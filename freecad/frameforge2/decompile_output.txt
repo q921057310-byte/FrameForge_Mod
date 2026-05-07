@@ -1,0 +1,560 @@
+# === Reconstructed execute() body (face generation section) ===
+
+  L450: if not (ANCHOR_X):  # jump to offset 1326
+  L450: # jump to offset 1328
+  L450: ax = 1
+  L451: if not (ANCHOR_Y):  # jump to offset 1420
+  L451: # jump to offset 1422
+  L451: ay = 1
+  L452: w = -W * ax / 2
+  L453: h = -H * ay / 2
+  L455: if (obj.Family == 'Equal Leg Angles'):  # jump to offset 1506
+  L455: if not (obj.Family == 'Unequal Leg Angles'):  # jump to offset 3252
+  L456: if not (obj.MakeFillet == False):  # jump to offset 2110
+  L457: p1 = vec(0 + w, 0 + h, 0)
+  L458: p2 = vec(0 + w, H + h, 0)
+  L459: p3 = vec(TW + w, H + h, 0)
+  L460: p4 = vec(TW + w, TW + h, 0)
+  L461: p5 = vec(W + w, TW + h, 0)
+  L462: p6 = vec(W + w, 0 + h, 0)
+  L464: L1 = Part.makeLine(p1, p2)
+  L465: L2 = Part.makeLine(p2, p3)
+  L466: L3 = Part.makeLine(p3, p4)
+  L467: L4 = Part.makeLine(p4, p5)
+  L468: L5 = Part.makeLine(p5, p6)
+  L469: L6 = Part.makeLine(p6, p1)
+  L471: wire1 = Part.Wire([L1, L2, L3, L4, L5, L6])
+  L473: if not (obj.MakeFillet == True):  # jump to offset 3212
+  L474: p1 = vec(0 + w, 0 + h, 0)
+  L475: p2 = vec(0 + w, H + h, 0)
+  L476: p3 = vec(TW - r + w, H + h, 0)
+  L477: p4 = vec(TW + w, H - r + h, 0)
+  L478: p5 = vec(TW + w, TW + R + h, 0)
+  L479: p6 = vec(TW + R + w, TW + h, 0)
+  L480: p7 = vec(W - r + w, TW + h, 0)
+  L481: p8 = vec(W + w, TW - r + h, 0)
+  L482: p9 = vec(W + w, 0 + h, 0)
+  L483: c1 = vec(TW - r + w, H - r + h, 0)
+  L484: c2 = vec(TW + R + w, TW + R + h, 0)
+  L485: c3 = vec(W - r + w, TW - r + h, 0)
+  L487: L1 = Part.makeLine(p1, p2)
+  L488: L2 = Part.makeLine(p2, p3)
+  L489: L3 = Part.makeLine(p4, p5)
+  L490: L4 = Part.makeLine(p6, p7)
+  L491: L5 = Part.makeLine(p8, p9)
+  L492: L6 = Part.makeLine(p9, p1)
+  L493: A1 = Part.makeCircle(r, c1, d, 0, 90)
+  L494: A2 = Part.makeCircle(R, c2, d, 180, 270)
+  L495: A3 = Part.makeCircle(r, c3, d, 0, 90)
+  L497: wire1 = Part.Wire([L1, L2, A1, L3, A2, L4, A3, L5, L6])
+  L499: p = Part.Face(wire1)
+  L502: if (obj.Family == 'Flat Sections'):  # jump to offset 3342
+  L503: if (obj.Family == 'Square'):  # jump to offset 3342
+  L504: if (obj.Family == 'Square Hollow'):  # jump to offset 3342
+  L505: if not (obj.Family == 'Rectangular Hollow'):  # jump to offset 7084
+  L507: wire1 = 0
+  L507: wire2 = 0
+  L509: if (obj.Family == 'Square'):  # jump to offset 3394
+  L509: if not (obj.Family == 'Flat Sections'):  # jump to offset 3794
+  L510: p1 = vec(0 + w, 0 + h, 0)
+  L511: p2 = vec(0 + w, H + h, 0)
+  L512: p3 = vec(W + w, H + h, 0)
+  L513: p4 = vec(W + w, 0 + h, 0)
+  L514: L1 = Part.makeLine(p1, p2)
+  L515: L2 = Part.makeLine(p2, p3)
+  L516: L3 = Part.makeLine(p3, p4)
+  L517: L4 = Part.makeLine(p4, p1)
+  L518: wire1 = Part.Wire([L1, L2, L3, L4])
+  L520: if not (obj.MakeFillet == False):  # jump to offset 4688
+  L520: if (obj.Family == 'Square Hollow'):  # jump to offset 3864
+  L520: if not (obj.Family == 'Rectangular Hollow'):  # jump to offset 4688
+  L521: p1 = vec(0 + w, 0 + h, 0)
+  L522: p2 = vec(0 + w, H + h, 0)
+  L523: p3 = vec(W + w, H + h, 0)
+  L524: p4 = vec(W + w, 0 + h, 0)
+  L525: p5 = vec(TW + w, TW + h, 0)
+  L526: p6 = vec(TW + w, H + h - TW, 0)
+  L527: p7 = vec(W + w - TW, H + h - TW, 0)
+  L528: p8 = vec(W + w - TW, TW + h, 0)
+  L530: L1 = Part.makeLine(p1, p2)
+  L531: L2 = Part.makeLine(p2, p3)
+  L532: L3 = Part.makeLine(p3, p4)
+  L533: L4 = Part.makeLine(p4, p1)
+  L534: L5 = Part.makeLine(p5, p6)
+  L535: L6 = Part.makeLine(p6, p7)
+  L536: L7 = Part.makeLine(p7, p8)
+  L537: L8 = Part.makeLine(p8, p5)
+  L539: wire1 = Part.Wire([L1, L2, L3, L4])
+  L540: wire2 = Part.Wire([L5, L6, L7, L8])
+  L542: if not (obj.MakeFillet == True):  # jump to offset 6916
+  L542: if (obj.Family == 'Square Hollow'):  # jump to offset 4758
+  L542: if not (obj.Family == 'Rectangular Hollow'):  # jump to offset 6916
+  L543: p1 = vec(0 + w, 0 + R + h, 0)
+  L544: p2 = vec(0 + w, H - R + h, 0)
+  L545: p3 = vec(R + w, H + h, 0)
+  L546: p4 = vec(W - R + w, H + h, 0)
+  L547: p5 = vec(W + w, H - R + h, 0)
+  L548: p6 = vec(W + w, R + h, 0)
+  L549: p7 = vec(W - R + w, 0 + h, 0)
+  L550: p8 = vec(R + w, 0 + h, 0)
+  L552: c1 = vec(R + w, R + h, 0)
+  L553: c2 = vec(R + w, H - R + h, 0)
+  L554: c3 = vec(W - R + w, H - R + h, 0)
+  L555: c4 = vec(W - R + w, R + h, 0)
+  L557: L1 = Part.makeLine(p1, p2)
+  L558: L2 = Part.makeLine(p3, p4)
+  L559: L3 = Part.makeLine(p5, p6)
+  L560: L4 = Part.makeLine(p7, p8)
+  L561: A1 = Part.makeCircle(R, c1, d, 180, 270)
+  L562: A2 = Part.makeCircle(R, c2, d, 90, 180)
+  L563: A3 = Part.makeCircle(R, c3, d, 0, 90)
+  L564: A4 = Part.makeCircle(R, c4, d, 270, 0)
+  L566: wire1 = Part.Wire([L1, A2, L2, A3, L3, A4, L4, A1])
+  L568: p1 = vec(TW + w, TW + r + h, 0)
+  L569: p2 = vec(TW + w, H - TW - r + h, 0)
+  L570: p3 = vec(TW + r + w, H - TW + h, 0)
+  L571: p4 = vec(W - TW - r + w, H - TW + h, 0)
+  L572: p5 = vec(W - TW + w, H - TW - r + h, 0)
+  L573: p6 = vec(W - TW + w, TW + r + h, 0)
+  L574: p7 = vec(W - TW - r + w, TW + h, 0)
+  L575: p8 = vec(TW + r + w, TW + h, 0)
+  L577: c1 = vec(TW + r + w, TW + r + h, 0)
+  L578: c2 = vec(TW + r + w, H - TW - r + h, 0)
+  L579: c3 = vec(W - TW - r + w, H - TW - r + h, 0)
+  L580: c4 = vec(W - TW - r + w, TW + r + h, 0)
+  L582: L1 = Part.makeLine(p1, p2)
+  L583: L2 = Part.makeLine(p3, p4)
+  L584: L3 = Part.makeLine(p5, p6)
+  L585: L4 = Part.makeLine(p7, p8)
+  L586: A1 = Part.makeCircle(r, c1, d, 180, 270)
+  L587: A2 = Part.makeCircle(r, c2, d, 90, 180)
+  L588: A3 = Part.makeCircle(r, c3, d, 0, 90)
+  L589: A4 = Part.makeCircle(r, c4, d, 270, 0)
+  L591: wire2 = Part.Wire([L1, A2, L2, A3, L3, A4, L4, A1])
+  L593: if not (wire2):  # jump to offset 7044
+  L594: p1 = Part.Face(wire1)
+  L595: p2 = Part.Face(wire2)
+  L596: p = p1.cut(p2)
+  L596: # jump to offset 7084
+  L598: p = Part.Face(wire1)
+  L600: if (obj.Family == 'UPE'):  # jump to offset 7130
+  L600: if not (obj.Family == 'UPN'):  # jump to offset 11560
+  L601: if not (obj.MakeFillet == False):  # jump to offset 8058
+  L603: Yd = 0
+  L604: if not (obj.Family == 'UPN'):  # jump to offset 7286
+  L605: Yd = W / 4 * math.tan(math.pi * FLANGE_ANGLES['UPN'] / 180)
+  L607: p1 = vec(w, h, 0)
+  L608: p2 = vec(w, H + h, 0)
+  L609: p3 = vec(w + W, H + h, 0)
+  L610: p4 = vec(W + w, h, 0)
+  L611: p5 = vec(W + w + Yd - TF, h, 0)
+  L612: p6 = vec(W + w - Yd - TF, H + h - TW, 0)
+  L613: p7 = vec(w + TF + Yd, H + h - TW, 0)
+  L614: p8 = vec(w + TF - Yd, h, 0)
+  L616: L1 = Part.makeLine(p1, p2)
+  L617: L2 = Part.makeLine(p2, p3)
+  L618: L3 = Part.makeLine(p3, p4)
+  L619: L4 = Part.makeLine(p4, p5)
+  L620: L5 = Part.makeLine(p5, p6)
+  L621: L6 = Part.makeLine(p6, p7)
+  L622: L7 = Part.makeLine(p7, p8)
+  L623: L8 = Part.makeLine(p8, p1)
+  L625: wire1 = Part.Wire([L1, L2, L3, L4, L5, L6, L7, L8])
+  L627: if not (obj.MakeFillet == True):  # jump to offset 9542
+  L627: if not (obj.Family == 'UPE'):  # jump to offset 9542
+  L629: p1 = vec(w, h, 0)
+  L630: p2 = vec(w, H + h, 0)
+  L631: p3 = vec(w + W, H + h, 0)
+  L632: p4 = vec(W + w, h, 0)
+  L633: p5 = vec(W + w - TF + r, h, 0)
+  L634: p6 = vec(W + w - TF, h + r, 0)
+  L635: p7 = vec(W + w - TF, H + h - TW - R, 0)
+  L636: p8 = vec(W + w - TF - R, H + h - TW, 0)
+  L637: p9 = vec(w + TF + R, H + h - TW, 0)
+  L638: p10 = vec(w + TF, H + h - TW - R, 0)
+  L639: p11 = vec(w + TF, h + r, 0)
+  L640: p12 = vec(w + TF - r, h, 0)
+  L642: C1 = vec(w + TF - r, h + r, 0)
+  L643: C2 = vec(w + TF + R, H + h - TW - R, 0)
+  L644: C3 = vec(W + w - TF - R, H + h - TW - R, 0)
+  L645: C4 = vec(W + w - TF + r, r + h, 0)
+  L647: L1 = Part.makeLine(p1, p2)
+  L648: L2 = Part.makeLine(p2, p3)
+  L649: L3 = Part.makeLine(p3, p4)
+  L650: L4 = Part.makeLine(p4, p5)
+  L651: L5 = Part.makeLine(p6, p7)
+  L652: L6 = Part.makeLine(p8, p9)
+  L653: L7 = Part.makeLine(p10, p11)
+  L654: L8 = Part.makeLine(p12, p1)
+  L656: A1 = Part.makeCircle(r, C1, d, 270, 0)
+  L657: A2 = Part.makeCircle(R, C2, d, 90, 180)
+  L658: A3 = Part.makeCircle(R, C3, d, 0, 90)
+  L659: A4 = Part.makeCircle(r, C4, d, 180, 270)
+  L661: wire1 = Part.Wire([L1, L2, L3, L4, A4, L5, A3, L6, A2, L7, A1, L8])
+  L663: if not (obj.MakeFillet == True):  # jump to offset 11520
+  L663: if not (obj.Family == 'UPN'):  # jump to offset 11520
+  L664: angarc = FLANGE_ANGLES['UPN']
+  L665: angrad = math.pi * angarc / 180
+  L666: sina = math.sin(angrad)
+  L667: cosa = math.cos(angrad)
+  L668: tana = math.tan(angrad)
+  L670: cot1 = r * sina
+  L671: y11 = r - cot1
+  L672: cot2 = H / 2 - r * tana
+  L673: cot3 = cot1 * tana
+  L674: x11 = TF - cot2 - cot3
+  L675: xc1 = TF - cot2 - cot3 - r * cosa
+  L676: yc1 = r
+  L677: cot8 = H / 2 - R - TW + R * sina * tana
+  L678: x10 = TF + cot8
+  L679: y10 = H - TW - R + R * sina
+  L680: xc2 = cot8 + R * cosa + TF
+  L681: yc2 = H - TW - R
+  L682: x12 = TF - cot2 - cot3 - r * cosa
+  L683: y12 = 0
+  L684: x9 = cot8 + R * cosa + TF
+  L685: y9 = H - TW
+  L686: xc3 = W - xc2
+  L687: yc3 = yc2
+  L688: xc4 = W - xc1
+  L689: yc4 = yc1
+  L690: x1 = 0
+  L691: y1 = 0
+  L692: x2 = 0
+  L693: y2 = H
+  L694: x3 = W
+  L695: y3 = H
+  L696: x4 = W
+  L697: y4 = 0
+  L698: x5 = W - x12
+  L699: y5 = 0
+  L700: x6 = W - x11
+  L701: y6 = y11
+  L702: x7 = W - x10
+  L703: y7 = y10
+  L704: x8 = W - x9
+  L705: y8 = y9
+  L707: c1 = vec(xc1 + w, yc1 + h, 0)
+  L708: c2 = vec(xc2 + w, yc2 + h, 0)
+  L709: c3 = vec(xc3 + w, yc3 + h, 0)
+  L710: c4 = vec(xc4 + w, yc4 + h, 0)
+  L712: p1 = vec(x1 + w, y1 + h, 0)
+  L713: p2 = vec(x2 + w, y2 + h, 0)
+  L714: p3 = vec(x3 + w, y3 + h, 0)
+  L715: p4 = vec(x4 + w, y4 + h, 0)
+  L716: p5 = vec(x5 + w, y5 + h, 0)
+  L717: p6 = vec(x6 + w, y6 + h, 0)
+  L718: p7 = vec(x7 + w, y7 + h, 0)
+  L719: p8 = vec(x8 + w, y8 + h, 0)
+  L720: p9 = vec(x9 + w, y9 + h, 0)
+  L721: p10 = vec(x10 + w, y10 + h, 0)
+  L722: p11 = vec(x11 + w, y11 + h, 0)
+  L723: p12 = vec(x12 + w, y12 + h, 0)
+  L725: A1 = Part.makeCircle(r, c1, d, 270, 0 - angarc)
+  L726: A2 = Part.makeCircle(R, c2, d, 90, 180 - angarc)
+  L727: A3 = Part.makeCircle(R, c3, d, 0 + angarc, 90)
+  L728: A4 = Part.makeCircle(r, c4, d, 180 + angarc, 270)
+  L730: L1 = Part.makeLine(p1, p2)
+  L731: L2 = Part.makeLine(p2, p3)
+  L732: L3 = Part.makeLine(p3, p4)
+  L733: L4 = Part.makeLine(p4, p5)
+  L734: L5 = Part.makeLine(p6, p7)
+  L735: L6 = Part.makeLine(p8, p9)
+  L736: L7 = Part.makeLine(p10, p11)
+  L737: L8 = Part.makeLine(p12, p1)
+  L739: wire1 = Part.Wire([L1, L2, L3, L4, A4, L5, A3, L6, A2, L7, A1, L8])
+  L741: p = Part.Face(wire1)
+  L744: if (obj.Family == 'IPE'):  # jump to offset 11672
+  L745: if (obj.Family == 'IPN'):  # jump to offset 11672
+  L746: if (obj.Family == 'HEA'):  # jump to offset 11672
+  L747: if (obj.Family == 'HEB'):  # jump to offset 11672
+  L748: if not (obj.Family == 'HEM'):  # jump to offset 18066
+  L750: XA1 = W / 2 - TW / 2
+  L751: XA2 = W / 2 + TW / 2
+  L752: if not (obj.MakeFillet == False):  # jump to offset 13074
+  L753: Yd = 0
+  L754: if not (obj.Family == 'IPN'):  # jump to offset 11882
+  L755: Yd = W / 4 * math.tan(math.pi * FLANGE_ANGLES[obj.Family] / 180)
+  L757: p1 = vec(0 + w, 0 + h, 0)
+  L758: p2 = vec(0 + w, TF + h - Yd, 0)
+  L759: p3 = vec(XA1 + w, TF + h + Yd, 0)
+  L760: p4 = vec(XA1 + w, H - TF + h - Yd, 0)
+  L761: p5 = vec(0 + w, H - TF + h + Yd, 0)
+  L762: p6 = vec(0 + w, H + h, 0)
+  L763: p7 = vec(W + w, H + h, 0)
+  L764: p8 = vec(W + w, H - TF + h + Yd, 0)
+  L765: p9 = vec(XA2 + w, H - TF + h - Yd, 0)
+  L766: p10 = vec(XA2 + w, TF + h + Yd, 0)
+  L767: p11 = vec(W + w, TF + h - Yd, 0)
+  L768: p12 = vec(W + w, 0 + h, 0)
+  L770: L1 = Part.makeLine(p1, p2)
+  L771: L2 = Part.makeLine(p2, p3)
+  L772: L3 = Part.makeLine(p3, p4)
+  L773: L4 = Part.makeLine(p4, p5)
+  L774: L5 = Part.makeLine(p5, p6)
+  L775: L6 = Part.makeLine(p6, p7)
+  L776: L7 = Part.makeLine(p7, p8)
+  L777: L8 = Part.makeLine(p8, p9)
+  L778: L9 = Part.makeLine(p9, p10)
+  L779: L10 = Part.makeLine(p10, p11)
+  L780: L11 = Part.makeLine(p11, p12)
+  L781: L12 = Part.makeLine(p12, p1)
+  L783: wire1 = Part.Wire([L1, L2, L3, L4, L5, L6, L7, L8, L9, L10, L11, L12])
+  L785: if not (obj.MakeFillet == True):  # jump to offset 14954
+  L785: if not (obj.Family == 'IPE'):  # jump to offset 14954
+  L786: p1 = vec(0 + w, 0 + h, 0)
+  L787: p2 = vec(0 + w, TF + h, 0)
+  L788: p3 = vec(XA1 - R + w, TF + h, 0)
+  L789: p4 = vec(XA1 + w, TF + R + h, 0)
+  L790: p5 = vec(XA1 + w, H - TF - R + h, 0)
+  L791: p6 = vec(XA1 - R + w, H - TF + h, 0)
+  L792: p7 = vec(0 + w, H - TF + h, 0)
+  L793: p8 = vec(0 + w, H + h, 0)
+  L794: p9 = vec(W + w, H + h, 0)
+  L795: p10 = vec(W + w, H - TF + h, 0)
+  L796: p11 = vec(XA2 + R + w, H - TF + h, 0)
+  L797: p12 = vec(XA2 + w, H - TF - R + h, 0)
+  L798: p13 = vec(XA2 + w, TF + R + h, 0)
+  L799: p14 = vec(XA2 + R + w, TF + h, 0)
+  L800: p15 = vec(W + w, TF + h, 0)
+  L801: p16 = vec(W + w, 0 + h, 0)
+  L803: c1 = vec(XA1 - R + w, TF + R + h, 0)
+  L804: c2 = vec(XA1 - R + w, H - TF - R + h, 0)
+  L805: c3 = vec(XA2 + R + w, H - TF - R + h, 0)
+  L806: c4 = vec(XA2 + R + w, TF + R + h, 0)
+  L808: L1 = Part.makeLine(p1, p2)
+  L809: L2 = Part.makeLine(p2, p3)
+  L810: L3 = Part.makeLine(p4, p5)
+  L811: L4 = Part.makeLine(p6, p7)
+  L812: L5 = Part.makeLine(p7, p8)
+  L813: L6 = Part.makeLine(p8, p9)
+  L814: L7 = Part.makeLine(p9, p10)
+  L815: L8 = Part.makeLine(p10, p11)
+  L816: L9 = Part.makeLine(p12, p13)
+  L817: L10 = Part.makeLine(p14, p15)
+  L818: L11 = Part.makeLine(p15, p16)
+  L819: L12 = Part.makeLine(p16, p1)
+  L821: A1 = Part.makeCircle(R, c1, d, 270, 0)
+  L822: A2 = Part.makeCircle(R, c2, d, 0, 90)
+  L823: A3 = Part.makeCircle(R, c3, d, 90, 180)
+  L824: A4 = Part.makeCircle(R, c4, d, 180, 270)
+  L826: wire1 = Part.Wire([L1, L2, A1, L3, A2, L4, L5, L6, L7, L8, A3, L9, A4, L10, L11, L12])
+  L828: if not (obj.MakeFillet == True):  # jump to offset 18026
+  L828: if not (obj.Family == 'IPN'):  # jump to offset 18026
+  L829: angarc = FLANGE_ANGLES['IPN']
+  L830: angrad = math.pi * angarc / 180
+  L831: sina = math.sin(angrad)
+  L832: cosa = math.cos(angrad)
+  L833: tana = math.tan(angrad)
+  L834: cot1 = W / 4 * tana
+  L835: cot2 = TF - cot1
+  L836: cot3 = r * cosa
+  L837: cot4 = r - cot3 * tana
+  L838: cot5 = cot4 * tana
+  L839: cot5 = cot2 + cot5
+  L840: cot6 = R * sina
+  L841: cot7 = W / 4 - R - TW / 2
+  L842: cot8 = cot6 + cot7
+  L843: cot9 = cot7 * tana
+  L844: cot10 = R * cosa
+  L846: xc1 = r
+  L847: yc1 = cot5 - cot3
+  L848: c1 = vec(xc1 + w, yc1 + h, 0)
+  L850: xc2 = W / 2 - TW / 2 - R
+  L851: yc2 = cot9 + TF + cot10
+  L852: c2 = vec(xc2 + w, yc2 + h, 0)
+  L854: xc3 = xc2
+  L855: yc3 = H - yc2
+  L856: c3 = vec(xc3 + w, yc3 + h, 0)
+  L858: xc4 = xc1
+  L859: yc4 = H - yc1
+  L860: c4 = vec(xc4 + w, yc4 + h, 0)
+  L862: xc5 = W - xc1
+  L863: yc5 = yc4
+  L864: c5 = vec(xc5 + w, yc5 + h, 0)
+  L866: xc6 = W - xc2
+  L867: yc6 = yc3
+  L868: c6 = vec(xc6 + w, yc6 + h, 0)
+  L870: xc7 = xc6
+  L871: yc7 = yc2
+  L872: c7 = vec(xc7 + w, yc7 + h, 0)
+  L874: xc8 = xc5
+  L875: yc8 = yc1
+  L876: c8 = vec(xc8 + w, yc8 + h, 0)
+  L878: A1 = Part.makeCircle(r, c1, d, 90 + angarc, 180)
+  L879: A2 = Part.makeCircle(R, c2, d, 270 + angarc, 0)
+  L880: A3 = Part.makeCircle(R, c3, d, 0, 90 - angarc)
+  L881: A4 = Part.makeCircle(r, c4, d, 180, 270 - angarc)
+  L882: A5 = Part.makeCircle(r, c5, d, 270 + angarc, 0)
+  L883: A6 = Part.makeCircle(R, c6, d, 90 + angarc, 180)
+  L884: A7 = Part.makeCircle(R, c7, d, 180, 270 - angarc)
+  L885: A8 = Part.makeCircle(r, c8, d, 0, 90 - angarc)
+  L887: xp1 = 0
+  L888: yp1 = 0
+  L889: p1 = vec(xp1 + w, yp1 + h, 0)
+  L891: xp2 = 0
+  L892: yp2 = cot5 - cot3
+  L893: p2 = vec(xp2 + w, yp2 + h, 0)
+  L895: xp3 = cot4
+  L896: yp3 = cot5
+  L897: p3 = vec(xp3 + w, yp3 + h, 0)
+  L899: xp4 = W / 4 + cot8
+  L900: yp4 = TF + cot9
+  L901: p4 = vec(xp4 + w, yp4 + h, 0)
+  L903: xp5 = W / 2 - TW / 2
+  L904: yp5 = yc2
+  L905: p5 = vec(xp5 + w, yp5 + h, 0)
+  L907: xp6 = xp5
+  L908: yp6 = H - yp5
+  L909: p6 = vec(xp6 + w, yp6 + h, 0)
+  L911: xp7 = xp4
+  L912: yp7 = H - yp4
+  L913: p7 = vec(xp7 + w, yp7 + h, 0)
+  L915: xp8 = xp3
+  L916: yp8 = H - yp3
+  L917: p8 = vec(xp8 + w, yp8 + h, 0)
+  L919: xp9 = xp2
+  L920: yp9 = H - yp2
+  L921: p9 = vec(xp9 + w, yp9 + h, 0)
+  L923: xp10 = xp1
+  L924: yp10 = H
+  L925: p10 = vec(xp10 + w, yp10 + h, 0)
+  L927: xp11 = W
+  L928: yp11 = H
+  L929: p11 = vec(xp11 + w, yp11 + h, 0)
+  L931: xp12 = xp11
+  L932: yp12 = yp9
+  L933: p12 = vec(xp12 + w, yp12 + h, 0)
+  L935: xp13 = W - xp8
+  L936: yp13 = yp8
+  L937: p13 = vec(xp13 + w, yp13 + h, 0)
+  L939: xp14 = W - xp7
+  L940: yp14 = yp7
+  L941: p14 = vec(xp14 + w, yp14 + h, 0)
+  L943: xp15 = W - xp6
+  L944: yp15 = yp6
+  L945: p15 = vec(xp15 + w, yp15 + h, 0)
+  L947: xp16 = W - xp5
+  L948: yp16 = yp5
+  L949: p16 = vec(xp16 + w, yp16 + h, 0)
+  L951: xp17 = W - xp4
+  L952: yp17 = yp4
+  L953: p17 = vec(xp17 + w, yp17 + h, 0)
+  L955: xp18 = W - xp3
+  L956: yp18 = yp3
+  L957: p18 = vec(xp18 + w, yp18 + h, 0)
+  L959: xp19 = W - xp2
+  L960: yp19 = yp2
+  L961: p19 = vec(xp19 + w, yp19 + h, 0)
+  L963: xp20 = W
+  L964: yp20 = 0
+  L965: p20 = vec(xp20 + w, yp20 + h, 0)
+  L967: L1 = Part.makeLine(p1, p2)
+  L968: L2 = Part.makeLine(p3, p4)
+  L969: L3 = Part.makeLine(p5, p6)
+  L970: L4 = Part.makeLine(p7, p8)
+  L971: L5 = Part.makeLine(p9, p10)
+  L972: L6 = Part.makeLine(p10, p11)
+  L973: L7 = Part.makeLine(p11, p12)
+  L974: L8 = Part.makeLine(p13, p14)
+  L975: L9 = Part.makeLine(p15, p16)
+  L976: L10 = Part.makeLine(p17, p18)
+  L977: L11 = Part.makeLine(p19, p20)
+  L978: L12 = Part.makeLine(p20, p1)
+  L980: wire1 = Part.Wire([L1, A1, L2, A2, L3, A3, L4, A4, L5, L6, L7, A5, L8, A6, L9, A7, L10, A8, L11, L12])
+  L982: p = Part.Face(wire1)
+  L984: if not (obj.Family == 'Round Bar'):  # jump to offset 18282
+  L985: c = vec(H / 2 + h, H / 2 + h, 0)
+  L986: A1 = Part.makeCircle(H / 2, c, d, 0, 360)
+  L987: wire1 = Part.Wire([A1])
+  L988: p = Part.Face(wire1)
+  L990: if not (obj.Family == 'Pipe'):  # jump to offset 18682
+  L991: c = vec(H / 2 + h, H / 2 + h, 0)
+  L992: A1 = Part.makeCircle(H / 2, c, d, 0, 360)
+  L993: A2 = Part.makeCircle(H / 2 - TW, c, d, 0, 360)
+  L994: wire1 = Part.Wire([A1])
+  L995: wire2 = Part.Wire([A2])
+  L996: p1 = Part.Face(wire1)
+  L997: p2 = Part.Face(wire2)
+  L998: p = p1.cut(p2)
+  L1000: if not (obj.Family == 'Custom Profile'):  # jump to offset 18988
+  L1001: custom_prof = obj.CustomProfile
+  L1002: if not (isinstance(custom_prof.Shape, Part.Wire)):  # jump to offset 18832
+  L1003: p = Part.Face(custom_prof.Shape)
+  L1003: # jump to offset 18940
+  L1004: if not (isinstance(custom_prof.Shape, Part.Face)):  # jump to offset 18910
+  L1005: p = custom_prof.Shape
+  L1005: # jump to offset 18940
+  L1009: H = p.BoundBox.YLength
+  L1009: W = p.BoundBox.XLength
+  L1011: if not (obj.Family == 'V-Slot'):  # jump to offset 19258
+  L1012: if not (H == 20.0):  # jump to offset 19064
+  L1012: if not (W == 20.0):  # jump to offset 19064
+  L1013: p = vslot20x20()
+  L1013: # jump to offset 19258
+  L1014: if not (H == 20.0):  # jump to offset 19118
+  L1014: if not (W == 40.0):  # jump to offset 19118
+  L1015: p = vslot20x40()
+  L1015: # jump to offset 19258
+  L1016: if not (H == 20.0):  # jump to offset 19172
+  L1016: if not (W == 60.0):  # jump to offset 19172
+  L1017: p = vslot20x60()
+  L1017: # jump to offset 19258
+  L1018: if not (H == 20.0):  # jump to offset 19226
+  L1018: if not (W == 80.0):  # jump to offset 19226
+  L1019: p = vslot20x80()
+  L1019: # jump to offset 19258
+  L1021: p = make_vslot_face(W, H)
+  L1023: if not (obj.Family == 'T-Slot'):  # jump to offset 19312
+  L1024: p = make_tslot_face(W, H)
+  L1026: if not (obj.Family == 'T-Slot 3-Slots'):  # jump to offset 19420
+  L1027: if not (H == 20.0):  # jump to offset 19388
+  L1027: if not (W == 20.0):  # jump to offset 19388
+  L1028: p = tslot20x20_three_slot()
+  L1028: # jump to offset 19420
+  L1030: p = make_tslot_face(W, H)
+  L1032: if not (obj.Family == 'T-Slot 2-Slots'):  # jump to offset 19528
+  L1033: if not (H == 20.0):  # jump to offset 19496
+  L1033: if not (W == 20.0):  # jump to offset 19496
+  L1034: p = tslot20x20_two_slot()
+  L1034: # jump to offset 19528
+  L1036: p = make_tslot_face(W, H)
+  L1038: if not (obj.Family == 'T-Slot 2-Slots Opp'):  # jump to offset 19636
+  L1039: if not (H == 20.0):  # jump to offset 19604
+  L1039: if not (W == 20.0):  # jump to offset 19604
+  L1040: p = tslot20x20_two_slot_opp()
+  L1040: # jump to offset 19636
+  L1042: p = make_tslot_face(W, H)
+  L1044: if not (obj.Family == 'T-Slot 1-Slot'):  # jump to offset 19744
+  L1045: if not (H == 20.0):  # jump to offset 19712
+  L1045: if not (W == 20.0):  # jump to offset 19712
+  L1046: p = tslot20x20_one_slot()
+  L1046: # jump to offset 19744
+  L1048: p = make_tslot_face(W, H)
+  L1050: mirror_h = getattr(obj, 'MirrorH', False)
+  L1051: mirror_v = getattr(obj, 'MirrorV', False)
+  L1052: center_pt = vec(W / 2 + w, H / 2 + h, 0)
+  L1053: if not (mirror_h):  # jump to offset 19948
+  L1054: p = p.mirror(center_pt, vec(1, 0, 0))
+  L1055: if not (mirror_v):  # jump to offset 20026
+  L1056: p = p.mirror(center_pt, vec(0, 1, 0))
+  L1058: if not (L):  # jump to offset 21366
+  L1059: p = p.copy()
+  L1060: p.translate(vec(0, 0, -obj.OffsetA))
+  L1061: hc = 2 * max(H, W)
+  L1062: ProfileFull = p.extrude(vec(0, 0, L + hc / 2))
+  L1064: if (B1Y):  # jump to offset 20304
+  L1064: if (B2Y):  # jump to offset 20304
+  L1064: if (B1X):  # jump to offset 20304
+  L1064: if (B2X):  # jump to offset 20304
+  L1064: if (B1Z):  # jump to offset 20304
+  L1064: if not (B2Z):  # jump to offset 21350
+  L1067: box = Part.makeBox(hc, hc, hc)
+  L1068: box.translate(vec(-hc / 2 + w, -hc / 2 + h, L - obj.OffsetA))
+  L1069: pr = vec(0, 0, L - obj.OffsetA)
+  L1070: box.rotate(pr, vec(0, 1, 0), B2Y)
+  L1071: if not (self.bevels_combined == True):  # jump to offset 20690
+  L1072: box.rotate(pr, vec(0, 0, 1), B2Z)
+  L1072: # jump to offset 20766
+  L1074: box.rotate(pr, vec(1, 0, 0), B2X)
+  L1075: ProfileFull = ProfileFull.cut(box)

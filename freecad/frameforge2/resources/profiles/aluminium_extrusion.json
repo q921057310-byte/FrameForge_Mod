@@ -1,0 +1,39 @@
+{
+    "国标30系列(6.3)": {
+        "norm": "CN30 Series / Slot 6.3",
+        "unit": "Metric Units",
+        "fillet": false,
+        "sizes": {
+            "25x25": {"Height": "25", "Width": "25"}
+        }
+    },
+    "欧标20系列": {
+        "norm": "EU20 Series / Slot 6.0",
+        "unit": "Metric Units",
+        "fillet": false,
+        "sizes": {
+            "20x20": {"Height": "20", "Width": "20"},
+            "20x40": {"Height": "20", "Width": "40"},
+            "20x60": {"Height": "20", "Width": "60"},
+            "20x80": {"Height": "20", "Width": "80"}
+        }
+    },
+    "欧标30系列(8.2)": {
+        "norm": "EU30 Series / Slot 8.2",
+        "unit": "Metric Units",
+        "fillet": false,
+        "sizes": {
+            "30x30": {"Height": "30", "Width": "30"},
+            "30x60": {"Height": "60", "Width": "30"}
+        }
+    },
+    "欧标40系列(10.2)": {
+        "norm": "EU40 Series / Slot 10.2",
+        "unit": "Metric Units",
+        "fillet": false,
+        "sizes": {
+            "40x40": {"Height": "40", "Width": "40"},
+            "40x80": {"Height": "80", "Width": "40"}
+        }
+    }
+}
