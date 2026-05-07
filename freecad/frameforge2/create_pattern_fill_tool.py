@@ -38,8 +38,7 @@ def _make_hexagon_face(center, size):
     return Part.Face(wire)
 
 
-def _make_triangle_face(center, size, angle=0):
-    """Equilateral triangle pointing up (angle=0) or rotated."""
+def _make_triangle_face(center, size, angle=-math.pi/2):
     h = size * math.sqrt(3) / 2.0
     r = h * 2.0 / 3.0
     pts = []
@@ -61,41 +60,32 @@ def _make_circle_face(center, radius):
 
 
 def _make_oblong_face(center, width, height, angle=0):
-    """Capsule/stadium shape."""
     half_w = width / 2.0
     half_h = height / 2.0
     r = min(half_w, half_h)
+    steps = 16
+    pts = []
     if width > height:
         d = half_w - r
-        arc1_center = App.Vector(center.x + d, center.y, 0)
-        arc2_center = App.Vector(center.x - d, center.y, 0)
-
-        c1 = Part.Circle(arc1_center, App.Vector(0, 0, 1), r)
-        c2 = Part.Circle(arc2_center, App.Vector(0, 0, 1), r)
-        e1 = Part.Edge(c1)
-        e2 = Part.Edge(c2)
-        p1 = App.Vector(arc1_center.x, center.y + r, 0)
-        p2 = App.Vector(arc2_center.x, center.y + r, 0)
-        p3 = App.Vector(arc2_center.x, center.y - r, 0)
-        p4 = App.Vector(arc1_center.x, center.y - r, 0)
-        l1 = Part.makeLine(p1, p2)
-        l2 = Part.makeLine(p3, p4)
-        wire = Part.Wire([e1, l1, e2, l2])
+        for i in range(steps + 1):
+            a = math.pi / 2 * (1 - i / steps)
+            pts.append(App.Vector(center.x + d + r * math.cos(a),
+                                  center.y + r * math.sin(a), 0))
+        for i in range(steps, -1, -1):
+            a = math.pi / 2 * (1 + i / steps)
+            pts.append(App.Vector(center.x - d + r * math.cos(a),
+                                  center.y + r * math.sin(a), 0))
     else:
         d = half_h - r
-        arc1_center = App.Vector(center.x, center.y + d, 0)
-        arc2_center = App.Vector(center.x, center.y - d, 0)
-        c1 = Part.Circle(arc1_center, App.Vector(0, 0, 1), r)
-        c2 = Part.Circle(arc2_center, App.Vector(0, 0, 1), r)
-        e1 = Part.Edge(c1)
-        e2 = Part.Edge(c2)
-        p1 = App.Vector(center.x + r, arc1_center.y, 0)
-        p2 = App.Vector(center.x + r, arc2_center.y, 0)
-        p3 = App.Vector(center.x - r, arc2_center.y, 0)
-        p4 = App.Vector(center.x - r, arc1_center.y, 0)
-        l1 = Part.makeLine(p1, p2)
-        l2 = Part.makeLine(p3, p4)
-        wire = Part.Wire([e1, l1, e2, l2])
+        for i in range(steps + 1):
+            a = -math.pi + math.pi * i / steps
+            pts.append(App.Vector(center.x + r * math.cos(a),
+                                  center.y + d + r * math.sin(a), 0))
+        for i in range(steps, -1, -1):
+            a = math.pi * i / steps
+            pts.append(App.Vector(center.x + r * math.cos(a),
+                                  center.y - d + r * math.sin(a), 0))
+    wire = Part.makePolygon(pts + [pts[0]])
     return Part.Face(wire)
 
 
@@ -533,28 +523,24 @@ if App.GuiUp:
             }
 
         def Activated(self):
-            doc = App.ActiveDocument
             sel = Gui.Selection.getSelectionEx()
-
-            selobj = None
-            selected_faces = []
+            selobj = sel[0].Object if sel else None
+            selected_faces = sel[0].SubElementNames if sel else []
             selected_sketch = None
-
-            for s in sel:
-                if s.Object.isDerivedFrom("Sketcher::SketchObject"):
-                    selected_sketch = s.Object
-                for sn in s.SubElementNames:
-                    name = sn.rstrip('.')
-                    obj = doc.getObject(name)
-                    if obj and obj.isDerivedFrom("Sketcher::SketchObject"):
-                        selected_sketch = obj
-                    elif 'Face' in sn:
-                        selobj = s.Object
-                        selected_faces.append(sn)
-                if selobj is None and s.HasSubObjects and not s.Object.isDerivedFrom("Sketcher::SketchObject"):
-                    selobj = s.Object
-                    if not selected_faces:
-                        selected_faces = list(s.SubElementNames)
+            if len(sel) >= 2:
+                if sel[0].Object.isDerivedFrom("Sketcher::SketchObject"):
+                    selected_sketch = sel[0].Object
+                    selobj = sel[1].Object
+                    selected_faces = sel[1].SubElementNames
+                elif sel[1].Object.isDerivedFrom("Sketcher::SketchObject"):
+                    selected_sketch = sel[1].Object
+            if not selected_sketch or not selected_sketch.isDerivedFrom("Sketcher::SketchObject"):
+                for s in sel:
+                    for sn in s.SubElementNames:
+                        obj = App.ActiveDocument.getObject(sn.rstrip('.'))
+                        if obj and obj.isDerivedFrom("Sketcher::SketchObject"):
+                            selected_sketch = obj
+                            break
 
             if selobj is not None and selected_sketch is not None:
                 pass
