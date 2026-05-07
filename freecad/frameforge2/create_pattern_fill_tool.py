@@ -33,7 +33,7 @@ def _make_hexagon_face(center, size):
     for i in range(6):
         angle = math.pi / 6 + i * math.pi / 3
         pts.append(App.Vector(center.x + size * math.cos(angle),
-                              center.y + size * math.sin(angle), 0))
+                              center.y + size * math.sin(angle), center.z))
     wire = Part.makePolygon(pts + [pts[0]])
     return Part.Face(wire)
 
@@ -45,7 +45,7 @@ def _make_triangle_face(center, size, angle=-math.pi/2):
     for i in range(3):
         a = angle + i * 2 * math.pi / 3
         pts.append(App.Vector(center.x + r * math.cos(a),
-                              center.y + r * math.sin(a), 0))
+                              center.y + r * math.sin(a), center.z))
     wire = Part.makePolygon(pts + [pts[0]])
     return Part.Face(wire)
 
@@ -65,26 +65,27 @@ def _make_oblong_face(center, width, height, angle=0):
     r = min(half_w, half_h)
     steps = 16
     pts = []
+    cz = center.z
     if width > height:
         d = half_w - r
         for i in range(steps + 1):
             a = math.pi / 2 * (1 - i / steps)
             pts.append(App.Vector(center.x + d + r * math.cos(a),
-                                  center.y + r * math.sin(a), 0))
+                                  center.y + r * math.sin(a), cz))
         for i in range(steps, -1, -1):
             a = math.pi / 2 * (1 + i / steps)
             pts.append(App.Vector(center.x - d + r * math.cos(a),
-                                  center.y + r * math.sin(a), 0))
+                                  center.y + r * math.sin(a), cz))
     else:
         d = half_h - r
         for i in range(steps + 1):
             a = -math.pi + math.pi * i / steps
             pts.append(App.Vector(center.x + r * math.cos(a),
-                                  center.y + d + r * math.sin(a), 0))
+                                  center.y + d + r * math.sin(a), cz))
         for i in range(steps, -1, -1):
             a = math.pi * i / steps
             pts.append(App.Vector(center.x + r * math.cos(a),
-                                  center.y - d + r * math.sin(a), 0))
+                                  center.y - d + r * math.sin(a), cz))
     wire = Part.makePolygon(pts + [pts[0]])
     return Part.Face(wire)
 
