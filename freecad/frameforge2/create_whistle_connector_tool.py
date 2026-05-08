@@ -14,6 +14,9 @@ from freecad.frameforge2.whistle_connector import (
     WhistleConnector,
     ViewProviderWhistleConnector,
     _get_qy_specs,
+    _detect_hole_diameter_from_face,
+    _match_tjoint_spec,
+    _get_all_holes_info,
 )
 
 
@@ -275,3 +278,262 @@ class WhistleConnectorCommand:
 
 
 Gui.addCommand("FrameForge2_WhistleConnector", WhistleConnectorCommand())
+
+
+class TJointConnectorTaskPanel:
+    def __init__(self, obj):
+        self.obj = obj
+        self.dump = obj.dumpContent()
+        self._obs = None
+        self._b_obj = None  # B profile object for hiding
+
+        self.form = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(self.form)
+
+        top_bar = QtWidgets.QHBoxLayout()
+        top_bar.addStretch()
+        apply_btn = QtWidgets.QPushButton(translate("FrameForge2", "Apply"))
+        apply_btn.setFixedWidth(60)
+        apply_btn.setFixedHeight(22)
+        apply_btn.clicked.connect(self.apply)
+        top_bar.addWidget(apply_btn)
+        layout.addLayout(top_bar)
+
+        info = QtWidgets.QLabel(
+            "<b>" + translate("FrameForge2", "T-Joint Connector") + "</b><br>"
+            + translate("FrameForge2", "1. Click B side face (B hides)<br>2. Click A end face (with hole)")
+        )
+        info.setWordWrap(True)
+        layout.addWidget(info)
+
+        self.b_label = QtWidgets.QLabel(translate("FrameForge2", "Waiting for B side face..."))
+        self.a_label = QtWidgets.QLabel(translate("FrameForge2", "Waiting for A end face..."))
+        layout.addWidget(self.b_label)
+        layout.addWidget(self.a_label)
+
+        self.detected_label = QtWidgets.QLabel(translate("FrameForge2", "Detected hole: not yet"))
+        layout.addWidget(self.detected_label)
+
+        self.match_label = QtWidgets.QLabel(translate("FrameForge2", "Matched spec: --"))
+        layout.addWidget(self.match_label)
+
+        param_group = QtWidgets.QGroupBox(translate("FrameForge2", "T-Joint Parameters"))
+        param_layout = QtWidgets.QFormLayout(param_group)
+
+        self.spin_through = QtWidgets.QDoubleSpinBox()
+        self.spin_through.setRange(1.0, 50.0)
+        self.spin_through.setDecimals(1)
+        self.spin_through.setSuffix(" mm")
+        self.spin_through.setValue(float(obj.ThroughHoleDiameter))
+        self.spin_through.valueChanged.connect(
+            lambda v: [setattr(obj, "ThroughHoleDiameter", v), obj.recompute()])
+        param_layout.addRow(translate("FrameForge2", "Through Hole Dia"), self.spin_through)
+
+        self.spin_csink_dia = QtWidgets.QDoubleSpinBox()
+        self.spin_csink_dia.setRange(1.0, 50.0)
+        self.spin_csink_dia.setDecimals(1)
+        self.spin_csink_dia.setSuffix(" mm")
+        self.spin_csink_dia.setValue(float(obj.CounterSinkDiameter))
+        self.spin_csink_dia.valueChanged.connect(
+            lambda v: [setattr(obj, "CounterSinkDiameter", v), obj.recompute()])
+        param_layout.addRow(translate("FrameForge2", "Counterbore Dia"), self.spin_csink_dia)
+
+        self.spin_csink_depth = QtWidgets.QDoubleSpinBox()
+        self.spin_csink_depth.setRange(0.5, 50.0)
+        self.spin_csink_depth.setDecimals(1)
+        self.spin_csink_depth.setSuffix(" mm")
+        self.spin_csink_depth.setValue(float(obj.CounterSinkDepth))
+        self.spin_csink_depth.valueChanged.connect(
+            lambda v: [setattr(obj, "CounterSinkDepth", v), obj.recompute()])
+        param_layout.addRow(translate("FrameForge2", "Counterbore Depth"), self.spin_csink_depth)
+
+        self.spin_detected_dia = QtWidgets.QDoubleSpinBox()
+        self.spin_detected_dia.setRange(1.0, 50.0)
+        self.spin_detected_dia.setDecimals(2)
+        self.spin_detected_dia.setSuffix(" mm")
+        self.spin_detected_dia.setValue(0.0)
+        self.spin_detected_dia.valueChanged.connect(
+            lambda v: [setattr(obj, "DetectedHoleDiameter", v), self._rematch_spec(), obj.recompute()])
+        param_layout.addRow(translate("FrameForge2", "Detected Hole Dia"), self.spin_detected_dia)
+
+        layout.addWidget(param_group)
+        layout.addStretch()
+
+    def open(self):
+        App.Console.PrintMessage("T-Joint Connector: click B side face first, then A end face\n")
+        self._obs = _SelObserver(self)
+        Gui.Selection.addObserver(self._obs)
+        App.ActiveDocument.openTransaction("T-Joint Connector")
+        self.obj.ConnectorType = "TJoint"
+
+    def reject(self):
+        self._restore_b()
+        if self._obs:
+            Gui.Selection.removeObserver(self._obs)
+        self.obj.restoreContent(self.dump)
+        App.ActiveDocument.abortTransaction()
+        Gui.ActiveDocument.resetEdit()
+        return True
+
+    def apply(self):
+        self._restore_b()
+        App.ActiveDocument.commitTransaction()
+        try:
+            self.obj.recompute()
+        except Exception:
+            pass
+        App.ActiveDocument.recompute()
+        try:
+            Gui.updateGui()
+        except Exception:
+            pass
+        if hasattr(self, 'dump') and hasattr(self.obj, 'dumpContent'):
+            self.dump = self.obj.dumpContent()
+        App.ActiveDocument.openTransaction("Continue editing")
+        App.Console.PrintMessage("T-Joint applied.\n")
+
+    def accept(self):
+        self._restore_b()
+        if self._obs:
+            Gui.Selection.removeObserver(self._obs)
+        App.ActiveDocument.commitTransaction()
+        App.ActiveDocument.recompute()
+        Gui.ActiveDocument.resetEdit()
+        return True
+
+    def _restore_b(self):
+        if self._b_obj:
+            try:
+                self._b_obj.ViewObject.Visibility = True
+            except Exception:
+                pass
+        self._b_obj = None
+
+    def _on_selection(self, doc_name, obj_name, sub):
+        if not sub or not sub.startswith("Face"):
+            return
+        if self.obj is None or obj_name == self.obj.Name:
+            return
+
+        doc = App.getDocument(doc_name)
+        sel_obj = doc.getObject(obj_name)
+        if sel_obj is None:
+            return
+
+        face = sel_obj.getSubObject(sub)
+        if not isinstance(face, Part.Face):
+            return
+
+        # Step 1: click B side face (DrillFace) → hide B
+        if self.obj.DrillFace is None:
+            self.obj.DrillFace = (sel_obj, (sub,))
+            self.b_label.setText(
+                f"{translate('FrameForge2', 'B side face')}: {sel_obj.Label} ({sub})")
+            self._b_obj = sel_obj
+            try:
+                self._b_obj.ViewObject.Visibility = False
+            except Exception:
+                pass
+            self.obj.recompute()
+            App.Console.PrintMessage(
+                f"B side face set: {sel_obj.Label} {sub}. "
+                f"Now click A END FACE with the hole.\n")
+            return
+
+        # Step 2: click A end face (EndFace) → detect hole, match
+        from freecad.frameforge2._utils import get_profile_from_trimmedbody
+        self.obj.EndFace = (sel_obj, (sub,))
+        self.obj.TJointReferenceA = get_profile_from_trimmedbody(sel_obj)
+        self.a_label.setText(
+            f"{translate('FrameForge2', 'A end face')}: {sel_obj.Label} ({sub})")
+        App.Console.PrintMessage(f"A end face set: {sel_obj.Label} {sub}\n")
+
+        self._detect_and_match(face)
+        self.obj.recompute()
+        App.Console.PrintMessage("Ready. Press Apply or OK.\n")
+
+    def _detect_and_match(self, face):
+        dia, err = _detect_hole_diameter_from_face(face)
+        if dia is not None:
+            self.spin_detected_dia.setValue(dia)
+            self.obj.DetectedHoleDiameter = dia
+            self.detected_label.setText(
+                f"{translate('FrameForge2', 'Detected hole')}: {dia:.1f} mm")
+            self._rematch_spec()
+        else:
+            all_holes, _ = _get_all_holes_info(face)
+            if all_holes:
+                non_corner = [h for h in all_holes if not h.get("corner")]
+                if non_corner:
+                    dia = non_corner[0]["diameter"]
+                    self.spin_detected_dia.setValue(dia)
+                    self.obj.DetectedHoleDiameter = dia
+                    self.detected_label.setText(
+                        f"{translate('FrameForge2', 'Detected hole')}: {dia:.2f} mm " +
+                        translate('FrameForge2', '(fallback, no narrow-center hole)'))
+                    self._rematch_spec()
+                else:
+                    self.detected_label.setText(translate("FrameForge2", err or "No valid hole detected"))
+            else:
+                self.detected_label.setText(translate("FrameForge2", err or "No hole detected on face"))
+
+    def _rematch_spec(self):
+        dia = float(self.spin_detected_dia.value())
+        if dia <= 0:
+            return
+        match = _match_tjoint_spec(dia)
+        if match:
+            screw, spec = match
+            self.obj.MatchedScrewSize = screw
+            self.obj.ThroughHoleDiameter = spec["through_dia"]
+            self.obj.CounterSinkDiameter = spec["csink_dia"]
+            self.obj.CounterSinkDepth = spec["csink_depth"]
+            self.spin_through.setValue(spec["through_dia"])
+            self.spin_csink_dia.setValue(spec["csink_dia"])
+            self.spin_csink_depth.setValue(spec["csink_depth"])
+            self.match_label.setText(
+                f"{translate('FrameForge2', 'Matched')}: {screw}  "
+                f"Thru⌀{spec['through_dia']:.1f} + Cbore⌀{spec['csink_dia']:.1f}x{spec['csink_depth']:.1f} mm")
+            App.Console.PrintMessage(
+                f"T-Joint: matched {screw} for {dia:.1f}mm hole\n")
+        else:
+            self.obj.MatchedScrewSize = "Manual"
+            self.match_label.setText(
+                f"{translate('FrameForge2', 'Diameter {:.1f} out of range, manual adjust needed').format(dia)}")
+            App.Console.PrintWarning(
+                f"T-Joint: no match for {dia:.1f}mm, manual adjust required\n")
+
+
+class TJointConnectorCommand:
+    def GetResources(self):
+        return {
+            "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
+            "MenuText": translate("FrameForge2", "T-Joint Connector"),
+            "Accel": "M, T",
+            "ToolTip": translate(
+                "FrameForge2",
+                "Select two profiles in T-joint. Auto-detects A/B, hides B, drills countersunk through hole.",
+            ),
+        }
+
+    def IsActive(self):
+        return bool(App.ActiveDocument)
+
+    def Activated(self):
+        doc = App.ActiveDocument
+
+        App.ActiveDocument.openTransaction("Make T-Joint Connector")
+
+        obj = doc.addObject("Part::FeaturePython", "TJointConnector")
+        WhistleConnector(obj)
+        ViewProviderWhistleConnector(obj.ViewObject)
+
+        obj.ConnectorType = "TJoint"
+
+        App.ActiveDocument.commitTransaction()
+
+        panel = TJointConnectorTaskPanel(obj)
+        Gui.Control.showDialog(panel)
+
+
+Gui.addCommand("FrameForge2_TJointConnector", TJointConnectorCommand())

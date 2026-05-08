@@ -190,6 +190,7 @@ class FrameForge2(Gui.Workbench):
         "FrameForge2_EndCap",
         "FrameForge2_Gusset",
         "FrameForge2_WhistleConnector",
+        "FrameForge2_TJointConnector",
     ]
 
     toolbox_group = ["Std_Group", "Std_Part"]

@@ -129,6 +129,13 @@ def is_whistleconnector(obj):
     return False
 
 
+def is_tjointconnector(obj):
+    if obj.TypeId == "Part::FeaturePython":
+        if hasattr(obj, "ConnectorType") and obj.ConnectorType == "TJoint":
+            return True
+    return False
+
+
 def is_link(obj):
     return obj.TypeId == "App::Link" and hasattr(obj, "AttachmentOffset")
 

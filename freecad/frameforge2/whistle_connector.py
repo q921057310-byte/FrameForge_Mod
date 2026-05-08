@@ -30,6 +30,14 @@ QY_SPECS = {
     45: {"model": "QY20-10-45", "hole_dia": 20.0, "hole_depth": 16.8, "hole_distance": 20.5, "bolt": "M8"},
 }
 
+# T-Joint connector: detected hole diameter → screw specification matching
+# (min_dia, max_dia, screw_label, {through_dia, csink_dia, csink_depth})
+TJOINT_MATCH_TABLE = [
+    (4.5, 5.5, "M6", {"through_dia": 6.5, "csink_dia": 11.0, "csink_depth": 6.0}),
+    (6.0, 7.5, "M8", {"through_dia": 8.5, "csink_dia": 14.0, "csink_depth": 8.0}),
+    (8.0, 9.5, "M10", {"through_dia": 10.5, "csink_dia": 18.0, "csink_depth": 10.0}),
+]
+
 
 def _detect_series_from_profile(profile_obj):
     try:
@@ -94,6 +102,191 @@ def _find_extrusion_dir(body_shape):
     return App.Vector(0, 0, 1)
 
 
+# ── T-Joint helper functions ──────────────────────────────────
+
+
+def _match_tjoint_spec(detected_hole_diameter):
+    for min_d, max_d, screw, spec in TJOINT_MATCH_TABLE:
+        if min_d <= detected_hole_diameter <= max_d:
+            return (screw, spec)
+    return None
+
+
+def _detect_tjoint(doc, objs):
+    if len(objs) < 2:
+        raise ValueError("Need exactly 2 objects for T-joint detection")
+
+    best_a = None
+    best_b = None
+    best_end_name = None
+    best_side_name = None
+    best_area_ratio = 0.0  # higher = clearer end-vs-side distinction
+
+    for oa in objs:
+        for ob in objs:
+            if oa is ob:
+                continue
+            try:
+                if oa.Shape.isNull() or ob.Shape.isNull():
+                    continue
+
+                s_a = oa.Shape
+                s_b = ob.Shape
+                max_area_a = max(f.Area for f in s_a.Faces)
+                max_area_b = max(f.Area for f in s_b.Faces)
+
+                for i_a, fa in enumerate(s_a.Faces):
+                    if fa.Area > max_area_a * 0.5:
+                        continue  # skip large faces (side faces of A)
+                    try:
+                        na = fa.normalAt(0.5, 0.5)
+                    except Exception:
+                        continue
+
+                    for i_b, fb in enumerate(s_b.Faces):
+                        if fb.Area < max_area_b * 0.25:
+                            continue  # skip small faces (end faces of B)
+                        try:
+                            nb = fb.normalAt(0.5, 0.5)
+                        except Exception:
+                            continue
+
+                        if abs(na.dot(nb)) < 0.99:
+                            continue
+
+                        try:
+                            min_dist = min(fa.distToShape(fb)[0], fb.distToShape(fa)[0])
+                        except Exception:
+                            continue
+                        if min_dist > 0.1:
+                            continue
+
+                        ratio = max(fb.Area / max(fa.Area, 0.01), 0.0)
+                        if ratio > best_area_ratio:
+                            best_area_ratio = ratio
+                            best_a = oa  # A has smaller face (end face)
+                            best_end_name = "Face%d" % (i_a + 1)
+                            best_b = ob  # B has larger face (side face)
+                            best_side_name = "Face%d" % (i_b + 1)
+            except Exception:
+                continue
+
+    if best_a is None:
+        raise ValueError("No T-joint detected: check that one profile end face touches the other's side face")
+
+    return (best_a, best_end_name, best_b, best_side_name)
+
+
+def _get_face_narrow_side_info(face):
+    bb = face.BoundBox
+    dims = [
+        (bb.XLength, "x", bb.XMin, bb.XMax),
+        (bb.YLength, "y", bb.YMin, bb.YMax),
+        (bb.ZLength, "z", bb.ZMin, bb.ZMax),
+    ]
+    dims.sort(key=lambda d: d[0])
+    narrow_size = dims[0][0]
+    wide_size = dims[1][0]
+    narrow_dir = dims[0][1]
+    narrow_min = dims[0][2]
+    narrow_max = dims[0][3]
+    narrow_center = (narrow_min + narrow_max) / 2.0
+
+    if narrow_dir == "x":
+        pt1 = App.Vector(narrow_center, bb.YMin, bb.ZMin)
+        pt2 = App.Vector(narrow_center, bb.YMax, bb.ZMin)
+    elif narrow_dir == "y":
+        pt1 = App.Vector(bb.XMin, narrow_center, bb.ZMin)
+        pt2 = App.Vector(bb.XMax, narrow_center, bb.ZMin)
+    else:
+        pt1 = App.Vector(bb.XMin, bb.YMin, narrow_center)
+        pt2 = App.Vector(bb.XMax, bb.YMin, narrow_center)
+
+    axis_dir = pt2 - pt1
+    if axis_dir.Length < 0.001:
+        axis_dir = App.Vector(1, 0, 0)
+    axis_dir.normalize()
+
+    return (narrow_size, wide_size, pt1, axis_dir)
+
+
+def _point_to_axis_distance(point, axis_origin, axis_dir):
+    v = point - axis_origin
+    cross = v.cross(axis_dir)
+    return cross.Length
+
+
+def _detect_holes_from_face(face):
+    if not face or not isinstance(face, Part.Face):
+        return []
+
+    outer_wire = face.OuterWire
+    holes = []
+    for w in face.Wires:
+        if w.isSame(outer_wire):
+            continue
+        if len(w.Edges) != 1:
+            continue
+        if not isinstance(w.Edges[0].Curve, Part.Circle):
+            continue
+        c = w.Edges[0].Curve
+        holes.append((c.Center, c.Radius * 2.0, w))
+
+    return holes
+
+
+def _detect_hole_diameter_from_face(face):
+    holes = _detect_holes_from_face(face)
+    if not holes:
+        return None, "A 型材端面无孔，请先用哨子连接器打中心孔"
+
+    narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(face)
+
+    outer_vertices = face.OuterWire.Vertexes
+
+    candidates = []
+    for center, dia, wire in holes:
+        # filter corner holes
+        min_corner_dist = min(center.distanceToPoint(v.Point) for v in outer_vertices)
+        if min_corner_dist < narrow_size * 0.25:
+            continue
+
+        # filter by narrow side center axis
+        axis_dist = _point_to_axis_distance(center, axis_pt, axis_dir)
+        if axis_dist < narrow_size * 0.25:
+            candidates.append((center, dia, wire))
+
+    if not candidates:
+        return None, "A 端面未检测到窄边中心孔（已过滤四角孔）"
+
+    # pick the hole closest to the narrow edge
+    face_normal = face.normalAt(0.5, 0.5)
+    candidates.sort(key=lambda h: h[0].dot(face_normal))
+
+    best_center, best_dia, _ = candidates[0]
+    return best_dia, None
+
+
+def _get_all_holes_info(face):
+    holes = _detect_holes_from_face(face)
+    if not holes:
+        return None, "A 型材端面无孔"
+
+    narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(face)
+    outer_vertices = face.OuterWire.Vertexes
+
+    candidates = []
+    for center, dia, wire in holes:
+        min_corner_dist = min(center.distanceToPoint(v.Point) for v in outer_vertices)
+        is_corner = min_corner_dist < narrow_size * 0.25
+        axis_dist = _point_to_axis_distance(center, axis_pt, axis_dir)
+        is_narrow = axis_dist < narrow_size * 0.25
+        candidates.append({"center": center, "diameter": dia, "corner": is_corner, "narrow": is_narrow,
+                           "wire": wire})
+
+    return candidates, None
+
+
 class WhistleConnector:
     def __init__(self, obj):
         obj.addProperty(
@@ -141,6 +334,46 @@ class WhistleConnector:
             translate("App::Property", "Reverse drilling direction"),
         ).Reverse = False
 
+        # T-Joint connector type
+        obj.addProperty(
+            "App::PropertyString", "ConnectorType", "Hole",
+            translate("App::Property", "Connector type (Single or TJoint)"),
+        ).ConnectorType = "Single"
+        obj.setEditorMode("ConnectorType", 1)
+
+        obj.addProperty(
+            "App::PropertyLength", "ThroughHoleDiameter", "T-Joint",
+            translate("App::Property", "Through hole diameter for TJoint"),
+        ).ThroughHoleDiameter = 6.5
+
+        obj.addProperty(
+            "App::PropertyLength", "CounterSinkDiameter", "T-Joint",
+            translate("App::Property", "Counterbore diameter"),
+        ).CounterSinkDiameter = 11.0
+
+        obj.addProperty(
+            "App::PropertyLength", "CounterSinkDepth", "T-Joint",
+            translate("App::Property", "Counterbore depth"),
+        ).CounterSinkDepth = 6.0
+
+        obj.addProperty(
+            "App::PropertyString", "MatchedScrewSize", "T-Joint",
+            "Auto-detected screw size (M6/M8/M10)",
+        ).MatchedScrewSize = ""
+        obj.setEditorMode("MatchedScrewSize", 1)
+
+        obj.addProperty(
+            "App::PropertyFloat", "DetectedHoleDiameter", "T-Joint",
+            "Detected center hole diameter on reference profile",
+        )
+        obj.setEditorMode("DetectedHoleDiameter", 1)
+
+        obj.addProperty(
+            "App::PropertyLink", "TJointReferenceA", "T-Joint",
+            "Reference profile A (end face side)",
+        )
+        obj.setEditorMode("TJointReferenceA", 1)
+
         # QY model info (reference only)
         obj.addProperty(
             "App::PropertyString", "QYModel", "Hole",
@@ -181,6 +414,15 @@ class WhistleConnector:
         pass
 
     def execute(self, fp):
+        if fp.ConnectorType == "TJoint":
+            if fp.EndFace is not None and fp.DrillFace is not None:
+                self._execute_tjoint(fp)
+            elif fp.DrillFace is not None:
+                body = _get_body_to_cut(fp.DrillFace[0])
+                if body and not body.Shape.isNull():
+                    fp.Shape = body.Shape
+            return
+
         if fp.DrillFace is None:
             App.Console.PrintMessage("WhistleConnector: no DrillFace\n")
             return
@@ -331,6 +573,135 @@ class WhistleConnector:
         App.Console.PrintWarning(
             f"WhistleConnector: all directions failed\n")
 
+    def _execute_tjoint(self, fp):
+        if fp.EndFace is None or fp.DrillFace is None:
+            App.Console.PrintMessage("TJointConnector: missing face references\n")
+            return
+
+        end_obj, end_names = fp.EndFace
+        end_face = end_obj.getSubObject(end_names[0])
+        if end_face is None:
+            App.Console.PrintWarning("TJointConnector: end face not found\n")
+            return
+
+        drill_obj, drill_names = fp.DrillFace
+        drill_face = drill_obj.getSubObject(drill_names[0])
+        if drill_face is None:
+            App.Console.PrintWarning("TJointConnector: drill face not found\n")
+            return
+        if drill_obj is fp:
+            App.Console.PrintMessage("TJointConnector: face is on self\n")
+            return
+
+        # ── Reference profiles: A = end face owner, B = drill face owner ──
+        prof_a = get_profile_from_trimmedbody(end_obj)
+        prof_b = get_profile_from_trimmedbody(drill_obj)
+
+        # ── Hole center on A's end face ──
+        holes = _detect_holes_from_face(end_face)
+        if not holes:
+            App.Console.PrintWarning("TJointConnector: no hole detected on reference end face\n")
+            return
+
+        # Always find the best hole center regardless of diameter override
+        narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(end_face)
+        outer_vertices = end_face.OuterWire.Vertexes
+
+        non_corner = []
+        for center, dia, wire in holes:
+            min_corner = min(center.distanceToPoint(v.Point) for v in outer_vertices)
+            if min_corner >= narrow_size * 0.25:
+                non_corner.append((center, dia, wire))
+
+        if not non_corner:
+            non_corner = holes
+
+        non_corner.sort(key=lambda h: _point_to_axis_distance(h[0], axis_pt, axis_dir))
+        hole_center_a, detected_dia, _ = non_corner[0]
+
+        # Use the DetectedHoleDiameter override if set
+        use_dia = float(fp.DetectedHoleDiameter) if float(fp.DetectedHoleDiameter) > 0 else detected_dia
+
+        # ── Match screw spec ──
+        match = _match_tjoint_spec(use_dia)
+        if match is None:
+            App.Console.PrintWarning(
+                f"TJointConnector: detected hole {use_dia:.1f}mm outside matching range\n"
+            )
+            spec = {
+                "through_dia": float(fp.ThroughHoleDiameter),
+                "csink_dia": float(fp.CounterSinkDiameter),
+                "csink_depth": float(fp.CounterSinkDepth),
+            }
+            screw = "Manual"
+        else:
+            screw, spec = match
+
+        through_dia = float(fp.ThroughHoleDiameter) if fp.ThroughHoleDiameter > 0 else spec["through_dia"]
+        csink_dia = float(fp.CounterSinkDiameter) if fp.CounterSinkDiameter > 0 else spec["csink_dia"]
+        csink_depth = float(fp.CounterSinkDepth) if fp.CounterSinkDepth > 0 else spec["csink_depth"]
+
+        fp.MatchedScrewSize = screw
+        fp.DetectedHoleDiameter = use_dia
+
+        # ── Compute hole position on B ──
+        drill_normal = drill_face.normalAt(0.5, 0.5)
+        drill_cog = drill_face.CenterOfGravity
+
+        # Project A hole center onto B drill face plane
+        proj = hole_center_a - drill_normal * (hole_center_a - drill_cog).dot(drill_normal)
+
+        # Direction: drill into B body (opposite to drill_face normal)
+        drill_dir = -drill_normal
+
+        body_b_shape = _get_body_to_cut(drill_obj).Shape
+        if body_b_shape.isNull():
+            App.Console.PrintWarning("TJointConnector: B body is null\n")
+            return
+
+        orig_vol = body_b_shape.Volume
+        extrude_through = csink_depth + 100.0  # deep enough to go through
+
+        def _cut_cylinder(center, direction, diameter, length, body_shape):
+            r = diameter / 2.0
+            off = center - direction * 0.01
+            try:
+                circ = Part.Circle(off, direction, r)
+                f = Part.Face(Part.Wire([Part.Edge(circ)]))
+                if f.isNull() or not f.isValid():
+                    return None
+                ex = f.extrude(direction * length)
+                if ex.isNull() or not ex.isValid():
+                    return None
+                return body_shape.cut(ex)
+            except Exception:
+                return None
+
+        # Step 1: Counterbore (outer, shallow)
+        step1 = _cut_cylinder(proj, drill_dir, csink_dia, csink_depth, body_b_shape)
+        if step1 is None or step1.isNull():
+            App.Console.PrintWarning("TJointConnector: countersink cut failed\n")
+            fp.Shape = body_b_shape
+            return
+
+        # Step 2: Through hole (inner, deep) — cut from original surface deeper
+        # offset start to avoid overlapping cut artifact
+        through_start = proj + drill_dir * (csink_depth - 0.02)
+        step2 = _cut_cylinder(through_start, drill_dir, through_dia, extrude_through, step1)
+        if step2 is None or step2.isNull():
+            fp.Shape = step1  # at least keep the counterbore
+        else:
+            fp.Shape = step2
+
+        removed = orig_vol - fp.Shape.Volume
+        App.Console.PrintMessage(
+            f"TJointConnector: {screw} through⌀{through_dia:.1f} + csink⌀{csink_dia:.1f}x{csink_depth:.1f}, "
+            f"removed {removed:.0f}mm³\n"
+        )
+
+        self._update_structure_data(fp, prof_b)
+        fp.TJointReferenceA = prof_a
+
     def _update_structure_data(self, obj, prof=None):
         try:
             if prof is None:
@@ -447,8 +818,12 @@ class ViewProviderWhistleConnector:
     def setEdit(self, vobj, mode):
         if mode != 0:
             return None
-        import freecad.frameforge2.create_whistle_connector_tool
-        taskd = freecad.frameforge2.create_whistle_connector_tool.WhistleConnectorTaskPanel(self.Object)
+        import freecad.frameforge2.create_whistle_connector_tool as tools
+        fp = self.Object
+        if hasattr(fp, "ConnectorType") and fp.ConnectorType == "TJoint":
+            taskd = tools.TJointConnectorTaskPanel(fp)
+        else:
+            taskd = tools.WhistleConnectorTaskPanel(fp)
         Gui.Control.showDialog(taskd)
         return True
 
