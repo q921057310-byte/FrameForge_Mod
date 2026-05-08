@@ -182,6 +182,7 @@ class AddExtrudedCutoutCommandClass:
             selected_object = selection.Object
             # Get the selected face.
             selected_face = [selected_object, selection.SubElementNames[0]]
+            selected_face_shape = selection.SubObjects[0]
         # When user select first the object face.
         else:
             # Check if we have any sub-objects (faces) selected.
@@ -191,12 +192,43 @@ class AddExtrudedCutoutCommandClass:
             selected_object = selection.Object
             # Get the selected face.
             selected_face = [selected_object, selection.SubElementNames[0]]
+            selected_face_shape = selection.SubObjects[0]
             # Get selected sketch.
             selection = Gui.Selection.getSelectionEx()[1]
             cutSketch = selection.Object
 
         if cutSketch is None or not selected_object.Shape:
             raise FrameForgemodException("Both a valid sketch and an object with a shape must be selected.")
+
+        # If user selected a TJoint/WhistleConnector face, resolve to the underlying profile
+        if hasattr(selected_object, 'DrillFace') and selected_object.DrillFace:
+            root = selected_object.DrillFace[0]
+        elif hasattr(selected_object, 'baseObject') and selected_object.baseObject:
+            root = selected_object.baseObject[0]
+        else:
+            root = None
+
+        if root is not None and root is not selected_object:
+            try:
+                root.ViewObject.Visibility = True
+            except Exception:
+                pass
+            # Map selected face to root profile by normal matching
+            try:
+                sel_normal = selected_face_shape.normalAt(0.5, 0.5)
+                best = None
+                best_dot = -2.0
+                for i, f in enumerate(root.Shape.Faces):
+                    n = f.normalAt(0.5, 0.5)
+                    d = sel_normal.dot(n)
+                    if d > best_dot:
+                        best_dot = d
+                        best = f"Face{i + 1}"
+                if best is not None and best_dot > 0.99:
+                    selected_object = root
+                    selected_face = [root, best]
+            except Exception:
+                pass
 
         App.ActiveDocument.openTransaction("Create Cutout")
 

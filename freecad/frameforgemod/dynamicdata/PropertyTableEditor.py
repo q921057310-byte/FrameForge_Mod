@@ -216,9 +216,13 @@ class PropertyTableEditor(QtGui.QDialog):
             combo.setCurrentIndex(idx)
         self.table.setCellWidget(row, 1, combo)
 
-        # Value/Expr
-        valueItem = QtGui.QTableWidgetItem(value)
-        self.table.setItem(row, 2, valueItem)
+        # Value/Expr (QLineEdit for real-time result updates)
+        line_edit = QtGui.QLineEdit()
+        line_edit.textChanged.connect(lambda txt, r=row: self._onValueChanged(r, txt))
+        line_edit.blockSignals(True)
+        line_edit.setText(value)
+        line_edit.blockSignals(False)
+        self.table.setCellWidget(row, 2, line_edit)
 
         # Result (read-only)
         result = self._evaluateResult(value)
@@ -258,6 +262,12 @@ class PropertyTableEditor(QtGui.QDialog):
                 return
         self.table.removeRow(row)
 
+    def _onValueChanged(self, row, text):
+        result = self._evaluateResult(text)
+        result_item = self.table.item(row, 3)
+        if result_item:
+            result_item.setText(result)
+
     def onCellChanged(self, row, col):
         """Validate name when cell changes."""
         if col == 0:
@@ -281,14 +291,9 @@ class PropertyTableEditor(QtGui.QDialog):
                             return
                 self.infoLabel.setStyleSheet("color: gray;")
                 self.infoLabel.setText("Tip: Values starting with '=' are treated as expressions, e.g. =Length*2")
-        elif col == 2:
-            # Value changed → update Result column
-            value_item = self.table.item(row, 2)
-            if value_item:
-                result = self._evaluateResult(value_item.text())
-                result_item = self.table.item(row, 3)
-                if result_item:
-                    result_item.setText(result)
+                # Auto-add a new empty row if last row was just filled
+                if row == self.table.rowCount() - 1:
+                    self.addRow()
 
     def getPropertyNameFromType(self, type_name):
         """Get the App::Property{Type} name."""
@@ -306,8 +311,8 @@ class PropertyTableEditor(QtGui.QDialog):
             combo = self.table.cellWidget(row, 1)
             type_name = combo.currentText() if combo else "Float"
 
-            value_item = self.table.item(row, 2)
-            value = value_item.text() if value_item else ""
+            line_edit = self.table.cellWidget(row, 2)
+            value = line_edit.text() if line_edit else ""
 
             group_item = self.table.item(row, 4)
             group = group_item.text().strip() if group_item else "DefaultGroup"

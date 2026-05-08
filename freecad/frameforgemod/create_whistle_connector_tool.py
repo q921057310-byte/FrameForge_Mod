@@ -150,6 +150,10 @@ class WhistleConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
+        try:
+            self.obj.ViewObject.Visibility = False
+        except Exception:
+            pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -383,6 +387,13 @@ class TJointConnectorTaskPanel:
 
     def apply(self):
         self._restore_b()
+        self.obj.EndFace = None
+        self.obj.DrillFace = None
+        self.b_label.setText(translate("frameforgemod", "Waiting for B side face..."))
+        self.a_label.setText(translate("frameforgemod", "Waiting for A end face..."))
+        self.detected_label.setText(translate("frameforgemod", "Detected hole: not yet"))
+        self.match_label.setText(translate("frameforgemod", "Matched spec: --"))
+        self.spin_detected_dia.setValue(0.0)
         App.ActiveDocument.commitTransaction()
         try:
             self.obj.recompute()
@@ -404,6 +415,10 @@ class TJointConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
+        try:
+            self.obj.ViewObject.Visibility = False
+        except Exception:
+            pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -425,6 +440,14 @@ class TJointConnectorTaskPanel:
         sel_obj = doc.getObject(obj_name)
         if sel_obj is None:
             return
+
+        try:
+            proxy = getattr(sel_obj, "Proxy", None)
+            if proxy is not None and getattr(proxy, "Type", "") == "WhistleConnector":
+                App.Console.PrintMessage("Skipping connector object, select a profile face.\n")
+                return
+        except Exception:
+            pass
 
         face = sel_obj.getSubObject(sub)
         if not isinstance(face, Part.Face):

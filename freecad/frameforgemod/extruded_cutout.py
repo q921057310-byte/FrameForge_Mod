@@ -158,10 +158,6 @@ class ExtrudedCutout:
             if fp.Sketch is None or fp.baseObject is None:
                 raise FrameForgemodException("Both the Sketch and baseObject properties must be set.")
 
-            # hide trimmed body
-            for tb in get_children_from_extrudedcutout(fp.baseObject[0]):
-                tb.ViewObject.Visibility = False
-
             # === CACHE CHECK ===
             cache_key = self._cutout_key(fp)
             if self._cached_key == cache_key and self._cached_shape is not None:
@@ -345,12 +341,7 @@ class ViewProviderExtrudedCutout:
         return mode
 
     def claimChildren(self):
-        children = [self.Object.baseObject[0], self.Object.Sketch]
-        if len(children) > 0:
-            for child in children:
-                if child:
-                    child.ViewObject.Visibility = False
-        return children
+        return [self.Object.baseObject[0], self.Object.Sketch]
 
     def onChanged(self, vp, prop):
         pass

@@ -183,9 +183,12 @@ def _get_face_narrow_side_info(face):
         (bb.YLength, "y", bb.YMin, bb.YMax),
         (bb.ZLength, "z", bb.ZMin, bb.ZMax),
     ]
+    dims = [d for d in dims if d[0] > 0.001]
+    if not dims:
+        return (1.0, 1.0, App.Vector(0, 0, 0), App.Vector(1, 0, 0))
     dims.sort(key=lambda d: d[0])
     narrow_size = dims[0][0]
-    wide_size = dims[1][0]
+    wide_size = dims[1][0] if len(dims) > 1 else dims[0][0]
     narrow_dir = dims[0][1]
     narrow_min = dims[0][2]
     narrow_max = dims[0][3]
@@ -288,6 +291,7 @@ def _get_all_holes_info(face):
 
 class WhistleConnector:
     def __init__(self, obj):
+        self.Type = "WhistleConnector"
         _register_profile_metadata(obj)
 
         # Selection
@@ -373,47 +377,22 @@ class WhistleConnector:
         obj.setEditorMode("QYModel", 1)
 
         obj.Proxy = self
-        self._cached_key = None
-        self._cached_shape = None
 
-    def _whistle_key(self, fp):
-        try:
-            key_parts = [fp.ConnectorType, fp.HoleDiameter, fp.HoleDepth, fp.CounterDiameter,
-                         fp.CounterBoreDepth, fp.ScrewDiameter, fp.QYModel]
-            if fp.DrillFace and len(fp.DrillFace) > 0:
-                obj = fp.DrillFace[0]
-                s = getattr(obj, "Shape", None)
-                if s and not s.isNull():
-                    bb = s.BoundBox
-                    key_parts.append(hash((bb.XMin, bb.YMin, bb.ZMin, bb.XMax, bb.YMax, bb.ZMax)))
-                key_parts.append(fp.DrillFace[1][0])
-            if fp.ConnectorType == "TJoint" and fp.EndFace and len(fp.EndFace) > 0:
-                obj = fp.EndFace[0]
-                s = getattr(obj, "Shape", None)
-                if s and not s.isNull():
-                    bb = s.BoundBox
-                    key_parts.append(hash((bb.XMin, bb.YMin, bb.ZMin, bb.XMax, bb.YMax, bb.ZMax)))
-                key_parts.append(fp.EndFace[1][0])
-            return hash(tuple(key_parts))
-        except Exception:
-            return None
+    def dumps(self):
+        return None
 
-    def onChanged(self, fp, prop):
-        pass
+    def loads(self, state):
+        return None
 
     def execute(self, fp):
         if fp.ConnectorType == "TJoint":
             if fp.EndFace is not None and fp.DrillFace is not None:
                 self._execute_tjoint(fp)
             elif fp.DrillFace is not None:
-                body = _get_body_to_cut(fp.DrillFace[0])
-                if body and not body.Shape.isNull():
-                    fp.Shape = body.Shape
-                else:
-                    try:
-                        fp.Shape = Part.Compound([])
-                    except Exception:
-                        pass
+                try:
+                    fp.Shape = Part.Compound([])
+                except Exception:
+                    pass
             else:
                 try:
                     fp.Shape = Part.Compound([])
@@ -445,12 +424,6 @@ class WhistleConnector:
         body_shape = body.Shape
         if body_shape.isNull():
             App.Console.PrintWarning("WhistleConnector: body null\n")
-            return
-
-        cache_key = self._whistle_key(fp)
-        if self._cached_key == cache_key and self._cached_shape is not None:
-            fp.Shape = self._cached_shape
-            self._update_structure_data(fp, get_profile_from_trimmedbody(drill_obj))
             return
 
         # ── Compute hole position ──
@@ -538,8 +511,6 @@ class WhistleConnector:
             removed = orig_vol - result.Volume
             if removed > min_ok:
                 fp.Shape = result
-                self._cached_key = cache_key
-                self._cached_shape = result
                 App.Console.PrintMessage(
                     f"WhistleConnector: perpendicular to drill face (-normal), "
                     f"removed {removed:.0f}mm³\n")
@@ -552,8 +523,6 @@ class WhistleConnector:
             removed = orig_vol - result.Volume
             if removed > min_ok:
                 fp.Shape = result
-                self._cached_key = cache_key
-                self._cached_shape = result
                 App.Console.PrintMessage(
                     f"WhistleConnector: +normal direction (reverse), "
                     f"removed {removed:.0f}mm³\n")
@@ -572,8 +541,6 @@ class WhistleConnector:
                     removed = orig_vol - result.Volume
                     if removed > min_ok:
                         fp.Shape = result
-                        self._cached_key = cache_key
-                        self._cached_shape = result
                         App.Console.PrintMessage(
                             f"WhistleConnector: {lbl} (fallback), "
                             f"removed {removed:.0f}mm³\n")
@@ -669,13 +636,6 @@ class WhistleConnector:
             App.Console.PrintWarning("TJointConnector: B body is null\n")
             return
 
-        cache_key = self._whistle_key(fp)
-        if self._cached_key == cache_key and self._cached_shape is not None:
-            fp.Shape = self._cached_shape
-            self._update_structure_data(fp, prof_b)
-            fp.TJointReferenceA = prof_a
-            return
-
         orig_vol = body_b_shape.Volume
         extrude_through = csink_depth + 100.0  # deep enough to go through
 
@@ -716,8 +676,6 @@ class WhistleConnector:
             f"removed {removed:.0f}mm³\n"
         )
 
-        self._cached_key = cache_key
-        self._cached_shape = fp.Shape
         self._update_structure_data(fp, prof_b)
         fp.TJointReferenceA = prof_a
 
@@ -806,17 +764,10 @@ class ViewProviderWhistleConnector:
     def claimChildren(self):
         parent = self._get_parent()
         if parent:
-            # Only hide parent when BOTH faces are configured
-            if self._both_faces_set():
-                try:
-                    parent.ViewObject.Visibility = False
-                except Exception:
-                    pass
             return [parent]
         return []
 
     def onChanged(self, vp, prop):
-        # When both faces are set, hide parent
         if prop in ("EndFace", "DrillFace") and self._both_faces_set():
             parent = self._get_parent()
             if parent:

@@ -101,7 +101,17 @@ class Gusset:
 
     def _gusset_key(self, fp):
         try:
-            key_parts = [fp.Thickness, fp.HoleDiameter, fp.Position]
+            key_parts = [
+                float(fp.Thickness),
+                float(fp.HoleDiameter) if fp.HoleEnabled else 0.0,
+                float(fp.LegLength1),
+                float(fp.LegLength2),
+                float(fp.Offset),
+                int(fp.ThicknessAlign),
+                int(fp.PositionAlign),
+                float(fp.PositionOffset),
+                int(fp.HoleEnabled),
+            ]
             for face_prop in (fp.Face1, fp.Face2):
                 if face_prop and len(face_prop) > 0 and len(face_prop[0]) >= 2:
                     try:
@@ -116,7 +126,12 @@ class Gusset:
             return None
 
     def onChanged(self, fp, prop):
-        pass
+        if prop in ("Face1", "Face2", "Thickness", "LegLength1", "LegLength2",
+                     "Offset", "ThicknessAlign", "PositionAlign", "PositionOffset",
+                     "HoleEnabled", "HoleDiameter"):
+            self._cached_key = None
+            self._cached_shape = None
+            fp.recompute()
 
     def execute(self, fp):
         if fp.Face1 is None or fp.Face2 is None:

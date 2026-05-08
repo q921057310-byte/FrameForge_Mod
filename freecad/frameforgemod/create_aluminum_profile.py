@@ -575,10 +575,14 @@ class ImportAluminumProfileTaskPanel:
                         results.append({"label": label, "name": obj_name,
                                        "shape": shape.copy()})
                     elif shape.ShapeType in ("Compound", "Shell", "Solid"):
-                        for i, face in enumerate(shape.Faces):
-                            results.append({"label": f"{label}_Face{i + 1}",
-                                           "name": f"{obj_name}_Face{i + 1}",
-                                           "shape": face.copy()})
+                        if shape.Faces:
+                            for i, face in enumerate(shape.Faces):
+                                results.append({"label": f"{label}_Face{i + 1}",
+                                               "name": f"{obj_name}_Face{i + 1}",
+                                               "shape": face.copy()})
+                        else:
+                            results.append({"label": label, "name": obj_name,
+                                           "shape": shape.copy()})
                     else:
                         results.append({"label": label, "name": obj_name,
                                        "shape": shape.copy()})

@@ -356,8 +356,8 @@ class Profile:
         return (
             obj.Family,
             obj.ProfileWidth, obj.ProfileHeight,
-            obj.Thickness, obj.ThicknessFlange,
-            obj.RadiusLarge, obj.RadiusSmall,
+            obj.Thickness, getattr(obj, 'ThicknessFlange', 0.0),
+            getattr(obj, 'RadiusLarge', 0.0), getattr(obj, 'RadiusSmall', 0.0),
             obj.MakeFillet,
             obj.AnchorX, obj.AnchorY,
             obj.MirrorH, obj.MirrorV,
@@ -437,14 +437,14 @@ class Profile:
         obj.ApproxWeight = obj.LinearWeight * L / 1000
         obj.Price = obj.UnitPrice * L / 1000
 
-        W = obj.ProfileWidth
-        H = obj.ProfileHeight
-        pl = obj.Placement
-        TW = obj.Thickness
-        TF = obj.ThicknessFlange
+        W = getattr(obj, 'ProfileWidth', 0.0)
+        H = getattr(obj, 'ProfileHeight', 0.0)
+        pl = getattr(obj, 'Placement', App.Placement())
+        TW = getattr(obj, 'Thickness', 0.0)
+        TF = getattr(obj, 'ThicknessFlange', 0.0)
 
-        R = obj.RadiusLarge
-        r = obj.RadiusSmall
+        R = getattr(obj, 'RadiusLarge', 0.0)
+        r = getattr(obj, 'RadiusSmall', 0.0)
         d = vec(0, 0, 1)
 
         w = h = 0
@@ -953,7 +953,14 @@ class Profile:
 
         elif obj.Family == 'Custom Profile':
             custom_prof = obj.CustomProfile
-            if custom_prof is None or custom_prof.Shape is None or custom_prof.Shape.isNull():
+            if custom_prof is None:
+                raise FrameForgemodException("CustomProfile link is None.")
+            if custom_prof.Shape is None or custom_prof.Shape.isNull():
+                try:
+                    custom_prof.recompute()
+                except Exception:
+                    pass
+            if custom_prof.Shape is None or custom_prof.Shape.isNull():
                 raise FrameForgemodException("CustomProfile has no valid shape.")
             sk_shape = custom_prof.Shape
             if isinstance(sk_shape, Part.Wire):
@@ -1259,17 +1266,6 @@ class Profile:
                 )
                 obj.setEditorMode("ApproxWeight", 1)
 
-            # add prices
-            if not hasattr(obj, "UnitPrice"):
-                obj.addProperty("App::PropertyFloat", "UnitPrice", "Base", "Approximate linear price").UnitPrice = 0.0
-            if not hasattr(obj, "Price"):
-                obj.addProperty("App::PropertyFloat", "Price", "Base", "Profile Price").Price = 0.0
-                obj.setEditorMode("Price", 1)
-
-            # double the thickness if pipe
-            if obj.Family == "Pipe":
-                obj.Thickness = 2 * obj.Thickness
-
             obj.addProperty("App::PropertyBool", "Cutout", "Structure", "Has Cutout").Cutout = False
             obj.setEditorMode("Cutout", 1)
 
@@ -1441,6 +1437,21 @@ class Profile:
 
                 # update version
                 obj.FrameforgeVersion = ff_version
+
+        # ensure UnitPrice/Price/Thickness exist on all objects regardless of version
+        if not hasattr(obj, "UnitPrice"):
+            obj.addProperty("App::PropertyFloat", "UnitPrice", "Base", "Approximate linear price").UnitPrice = 0.0
+        if not hasattr(obj, "Price"):
+            obj.addProperty("App::PropertyFloat", "Price", "Base", "Profile Price").Price = 0.0
+            obj.setEditorMode("Price", 1)
+        if not hasattr(obj, "Thickness"):
+            obj.addProperty("App::PropertyFloat", "Thickness", "Profile", "Thickness").Thickness = 0.0
+        if not hasattr(obj, "ThicknessFlange"):
+            obj.addProperty("App::PropertyFloat", "ThicknessFlange", "Profile", "Flange Thickness").ThicknessFlange = 0.0
+        if not hasattr(obj, "RadiusLarge"):
+            obj.addProperty("App::PropertyFloat", "RadiusLarge", "Profile", "Large radius").RadiusLarge = 0.0
+        if not hasattr(obj, "RadiusSmall"):
+            obj.addProperty("App::PropertyFloat", "RadiusSmall", "Profile", "Small radius").RadiusSmall = 0.0
 
 
 class ViewProviderProfile:
