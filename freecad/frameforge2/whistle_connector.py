@@ -421,6 +421,16 @@ class WhistleConnector:
                 body = _get_body_to_cut(fp.DrillFace[0])
                 if body and not body.Shape.isNull():
                     fp.Shape = body.Shape
+                else:
+                    try:
+                        fp.Shape = Part.Compound([])
+                    except Exception:
+                        pass
+            else:
+                try:
+                    fp.Shape = Part.Compound([])
+                except Exception:
+                    pass
             return
 
         if fp.DrillFace is None:

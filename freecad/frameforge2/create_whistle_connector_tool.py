@@ -537,3 +537,24 @@ class TJointConnectorCommand:
 
 
 Gui.addCommand("FrameForge2_TJointConnector", TJointConnectorCommand())
+
+
+class ConnectorToolGroup:
+    def GetCommands(self):
+        return ("FrameForge2_WhistleConnector", "FrameForge2_TJointConnector")
+
+    def GetDefaultCommand(self):
+        return 0
+
+    def GetResources(self):
+        return {
+            "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
+            "MenuText": translate("FrameForge2", "Connector"),
+            "ToolTip": translate(
+                "FrameForge2",
+                "Whistle connector or T-Joint connector",
+            ),
+        }
+
+
+Gui.addCommand("FrameForge2_ConnectorGroup", ConnectorToolGroup())

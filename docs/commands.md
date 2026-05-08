@@ -1,4 +1,9 @@
-# Code Snippets
+# Code Snippets / 代码片段
+
+This document shows how to add commands in FreeCAD using Python and C++. It is a reference for FreeCAD addon development.
+
+本文档展示了如何使用 Python 和 C++ 在 FreeCAD 中添加命令，是 FreeCAD 插件开发的参考。
+
 There is no way to add a button, menu entry from python to a workbench which is added with c++. So here is a comparison how to do that with python and with c++.
 
 ## Adding a command:
@@ -125,3 +130,17 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
     return root;
 }
 ```
+
+---
+
+## Credits / 致谢
+
+| Project / 项目 | Author / 作者 | Link / 链接 |
+|---|---|---|
+| **FrameForge2** | Vivien HENRY | Main workbench |
+| **MetalWB** | Veloma | [framagit.org/Veloma/freecad_metal_workbench](https://framagit.org/Veloma/freecad_metal_workbench) |
+| **Dynamic Data (动态数据)** | Mark Ganson | [github.com/mwganson/DynamicData](https://github.com/mwganson/DynamicData) |
+| **EasyProfileFrame** | ovo-Tim | [github.com/ovo-Tim/EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) |
+| **BOLTS** | Johannes Reinhardt | [github.com/boltsparts/BOLTS](https://github.com/boltsparts/BOLTS) |
+
+See [README](../README.md) for full credits. / 完整致谢请参见 README。

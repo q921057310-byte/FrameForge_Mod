@@ -1,8 +1,10 @@
 
 
-# FrameForge Tutorial
+# FrameForge2 Tutorial / FrameForge2 教程
 
-FrameForge is dedicated for creating Frames and Beams, and apply operations (miter cuts, trim cuts) on these profiles.
+FrameForge2 is a FreeCAD workbench for creating frames and beams, with operations like miter cuts, trim cuts, cutouts, BOM export, and more.
+
+FrameForge2 是一个 FreeCAD 工作台，用于创建框架和梁结构，支持斜切、修剪、开孔、BOM 导出等操作。
 
 ## Create the skeleton
 
@@ -454,3 +456,22 @@ About Angles:
 - If a TrimmedProfile is Perfect Cut (Notch) is is noted "P"
 
 Check your BOM for error !
+
+---
+
+## Credits / 致谢
+
+This workbench references and builds upon several open-source projects:
+
+本工作台参考并基于以下开源项目：
+
+| Project / 项目 | Author / 作者 | Link / 链接 |
+|---|---|---|
+| **FrameForge2** | Vivien HENRY | Main workbench |
+| **MetalWB** | Veloma | [framagit.org/Veloma/freecad_metal_workbench](https://framagit.org/Veloma/freecad_metal_workbench) |
+| **Dynamic Data (动态数据)** | Mark Ganson (TheMarkster) | [github.com/mwganson/DynamicData](https://github.com/mwganson/DynamicData) |
+| **EasyProfileFrame** | ovo-Tim | [github.com/ovo-Tim/EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) |
+| **BOLTS** | Johannes Reinhardt | [github.com/boltsparts/BOLTS](https://github.com/boltsparts/BOLTS) |
+| **MakerWorkbench** | URJCMakerGroup | [github.com/URJCMakerGroup/MakerWorkbench](https://github.com/URJCMakerGroup/MakerWorkbench) |
+
+See [README](../README.md) for full credits. / 完整致谢请参见 README。

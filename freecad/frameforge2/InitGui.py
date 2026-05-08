@@ -189,8 +189,7 @@ class FrameForge2(Gui.Workbench):
         "FrameForge2_AddExtrudeCutout",
         "FrameForge2_EndCap",
         "FrameForge2_Gusset",
-        "FrameForge2_WhistleConnector",
-        "FrameForge2_TJointConnector",
+        "FrameForge2_ConnectorGroup",
     ]
 
     toolbox_group = ["Std_Group", "Std_Part"]
