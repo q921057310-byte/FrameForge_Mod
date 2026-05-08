@@ -59,36 +59,6 @@ def _make_circle_face(center, radius):
     return Part.Face(w)
 
 
-def _make_oblong_face(center, width, height, angle=0):
-    half_w = width / 2.0
-    half_h = height / 2.0
-    r = min(half_w, half_h)
-    steps = 16
-    pts = []
-    cz = center.z
-    if width > height:
-        d = half_w - r
-        for i in range(steps + 1):
-            a = math.pi / 2 * (1 - i / steps)
-            pts.append(App.Vector(center.x + d + r * math.cos(a),
-                                  center.y + r * math.sin(a), cz))
-        for i in range(steps, -1, -1):
-            a = math.pi / 2 * (1 + i / steps)
-            pts.append(App.Vector(center.x - d + r * math.cos(a),
-                                  center.y + r * math.sin(a), cz))
-    else:
-        d = half_h - r
-        for i in range(steps + 1):
-            a = -math.pi + math.pi * i / steps
-            pts.append(App.Vector(center.x + r * math.cos(a),
-                                  center.y + d + r * math.sin(a), cz))
-        for i in range(steps, -1, -1):
-            a = math.pi * i / steps
-            pts.append(App.Vector(center.x + r * math.cos(a),
-                                  center.y - d + r * math.sin(a), cz))
-    wire = Part.makePolygon(pts + [pts[0]])
-    return Part.Face(wire)
-
 
 def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_center, angle=None):
     actual_size = size
@@ -105,8 +75,8 @@ def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_cent
     return None
 
 
-def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing,
-                      grid_mode, size_decrease, face_axes):
+def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing_x,
+                      spacing_y, grid_mode, size_decrease, face_axes):
     origin, x_axis, y_axis, normal = face_axes
 
     local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
@@ -128,8 +98,8 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing,
 
     elements = []
     if pattern_type == "hexagon":
-        col_spacing = max(size * math.sqrt(3) + spacing, 0.001)
-        row_spacing = max(size * 1.5 + spacing, 0.001)
+        col_spacing = max(size * math.sqrt(3) + spacing_x, 0.001)
+        row_spacing = max(size * 1.5 + spacing_y, 0.001)
         row = 0
         y = min_y
         while y <= max_y:
@@ -148,8 +118,8 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing,
             y += row_spacing
             row += 1
     elif pattern_type == "triangle":
-        col_spacing = max(size + spacing, 0.001)
-        row_spacing = max(size * math.sqrt(3) / 2 + spacing, 0.001)
+        col_spacing = max(size + spacing_x, 0.001)
+        row_spacing = max(size * math.sqrt(3) / 2 + spacing_y, 0.001)
         row = 0
         y = min_y
         while y <= max_y:
@@ -169,31 +139,11 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing,
                 x += col_spacing
             y += row_spacing
             row += 1
-    elif pattern_type == "oblong":
-        col_spacing = max(size + spacing, 0.001)
-        row_spacing = max(size + spacing, 0.001)
-        row = 0
-        y = min_y
-        while y <= max_y:
-            offset_x = col_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
-            x = min_x - size + offset_x
-            while x <= max_x + size:
-                if _is_inside_2d(x, y):
-                    center = App.Vector(x, y, 0)
-                    local_face = _make_element(center, size, pattern_type,
-                                               size_decrease, max_dist, bbox_center)
-                    if local_face:
-                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
-                        if world_face:
-                            elements.append(world_face)
-                x += col_spacing
-            y += row_spacing
-            row += 1
     else:
-        el_spacing = max(size * 2 + spacing, 0.001)
-        row_spacing = el_spacing
+        el_spacing = max(size * 2 + spacing_x, 0.001)
+        row_spacing = max(size * 2 + spacing_y, 0.001)
         if grid_mode == "staggered":
-            row_spacing = el_spacing * math.sqrt(3) / 2.0
+            row_spacing = min(row_spacing, el_spacing * math.sqrt(3) / 2.0)
         row = 0
         y = min_y
         while y <= max_y:
@@ -284,7 +234,7 @@ def _transform_face_to_world(local_face, origin, x_axis, y_axis, normal):
         return None
 
 
-def _fill_with_element(boundary_face, element_face, spacing, grid_mode, face_axes):
+def _fill_with_element(boundary_face, element_face, spacing_x, spacing_y, grid_mode, face_axes):
     origin, x_axis, y_axis, normal = face_axes
 
     local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
@@ -309,10 +259,10 @@ def _fill_with_element(boundary_face, element_face, spacing, grid_mode, face_axe
     el_cy = (el_min_y + el_max_y) / 2.0
     el_radius = max(el_w, el_h) / 2.0
 
-    el_spacing = max(el_w + spacing, 0.001)
-    row_spacing = max(el_h + spacing, 0.001)
+    el_spacing = max(el_w + spacing_x, 0.001)
+    row_spacing = max(el_h + spacing_y, 0.001)
     if grid_mode == "staggered":
-        row_spacing = (el_h + spacing) * math.sqrt(3) / 2.0
+        row_spacing = min(row_spacing, (el_h + spacing_x) * math.sqrt(3) / 2.0)
 
     def _check_center(cx, cy):
         center_3d = _unproject_pt(cx, cy, origin, x_axis, y_axis)
@@ -367,6 +317,10 @@ class PatternFill:
                         "Pattern", "").ElementSize = 5.0
         obj.addProperty("App::PropertyDistance", "Spacing",
                         "Pattern", "").Spacing = 2.0
+        obj.addProperty("App::PropertyDistance", "SpacingY",
+                        "Pattern", "").SpacingY = 2.0
+        obj.addProperty("App::PropertyBool", "LinkSpacing",
+                        "Pattern", "").LinkSpacing = True
         obj.addProperty("App::PropertyFloat", "SizeDecrease",
                         "Pattern", "").SizeDecrease = 0.0
         obj.addProperty("App::PropertyEnumeration", "GridMode",
@@ -455,6 +409,9 @@ class PatternFill:
         boundary_face = Part.Face(boundary_wire)
         face_axes = _get_face_axes(boundary_face)
 
+        sp_x = fp.Spacing.Value
+        sp_y = fp.SpacingY.Value if not fp.LinkSpacing else sp_x
+
         elements = []
         if fp.PatternType == "user sketch":
             if fp.PatternSketch is None:
@@ -462,22 +419,33 @@ class PatternFill:
                     "User sketch pattern selected but no pattern sketch assigned.\n"
                     "请先选择一个图案草图。")
             sk = fp.PatternSketch
-            if sk.isDerivedFrom("Sketcher::SketchObject") and sk.Shape.Faces:
-                best = max(sk.Shape.Faces, key=lambda f: abs(f.Area))
-                App.Console.PrintMessage("Fill: element face area={:.2f}\n".format(best.Area))
-                elements = _fill_with_element(
-                    boundary_face, best,
-                    fp.Spacing.Value,
-                    fp.GridMode,
-                    face_axes,
-                )
-                App.Console.PrintMessage("Fill: generated {} elements\n".format(len(elements)))
+            if sk.isDerivedFrom("Sketcher::SketchObject"):
+                element_face = None
+                if sk.Shape.Faces:
+                    element_face = max(sk.Shape.Faces, key=lambda f: abs(f.Area))
+                if element_face is None:
+                    for w in sk.Shape.Wires:
+                        try:
+                            f = Part.Face(w)
+                            if element_face is None or abs(f.Area) > abs(element_face.Area):
+                                element_face = f
+                        except Part.OCCError:
+                            pass
+                if element_face is not None:
+                    App.Console.PrintMessage("Fill: element face area={:.2f}\n".format(element_face.Area))
+                    elements = _fill_with_element(
+                        boundary_face, element_face,
+                        sp_x, sp_y,
+                        fp.GridMode,
+                        face_axes,
+                    )
+                    App.Console.PrintMessage("Fill: generated {} elements\n".format(len(elements)))
         if not elements:
             elements = _generate_pattern(
                 boundary_face, boundary_wire,
                 fp.PatternType,
                 fp.ElementSize.Value,
-                fp.Spacing.Value,
+                sp_x, sp_y,
                 fp.GridMode,
                 fp.SizeDecrease,
                 face_axes,
@@ -602,7 +570,7 @@ if App.GuiUp:
             layout.addLayout(sz)
 
             sp = QtGui.QHBoxLayout()
-            sp.addWidget(QtGui.QLabel("Spacing 间距:"))
+            sp.addWidget(QtGui.QLabel("Spacing X 水平间距:"))
             self.spin_spacing = QtGui.QDoubleSpinBox()
             self.spin_spacing.setDecimals(2)
             self.spin_spacing.setSingleStep(0.5)
@@ -610,6 +578,21 @@ if App.GuiUp:
             self.spin_spacing.setMaximum(100.0)
             sp.addWidget(self.spin_spacing)
             layout.addLayout(sp)
+
+            self.link_check = QtGui.QCheckBox("Unify XY 统一间距")
+            self.link_check.setChecked(True)
+            layout.addWidget(self.link_check)
+
+            spy = QtGui.QHBoxLayout()
+            spy.addWidget(QtGui.QLabel("Spacing Y 垂直间距:"))
+            self.spin_spacing_y = QtGui.QDoubleSpinBox()
+            self.spin_spacing_y.setDecimals(2)
+            self.spin_spacing_y.setSingleStep(0.5)
+            self.spin_spacing_y.setMinimum(-50.0)
+            self.spin_spacing_y.setMaximum(100.0)
+            spy.addWidget(self.spin_spacing_y)
+            self.spin_spacing_y.setEnabled(False)
+            layout.addLayout(spy)
 
             sd = QtGui.QHBoxLayout()
             sd.addWidget(QtGui.QLabel("Gradient 渐变:"))
@@ -639,6 +622,8 @@ if App.GuiUp:
             self.combo_grid.currentIndexChanged.connect(self._on_grid_changed)
             self.spin_size.valueChanged.connect(self._on_size_changed)
             self.spin_spacing.valueChanged.connect(self._on_spacing_changed)
+            self.spin_spacing_y.valueChanged.connect(self._on_spacing_y_changed)
+            self.link_check.toggled.connect(self._on_link_toggled)
             self.spin_gradient.valueChanged.connect(self._on_gradient_changed)
             self.spin_thk.valueChanged.connect(self._on_thk_changed)
             self.sketch_btn.clicked.connect(self._pick_pattern_sketch)
@@ -664,6 +649,16 @@ if App.GuiUp:
                 self.spin_spacing.setValue(self.obj.Spacing.Value)
             except Exception:
                 self.spin_spacing.setValue(2.0)
+            try:
+                self.spin_spacing_y.setValue(self.obj.SpacingY.Value)
+            except Exception:
+                self.spin_spacing_y.setValue(2.0)
+            try:
+                link = getattr(self.obj, "LinkSpacing", True)
+                self.link_check.setChecked(link)
+                self.spin_spacing_y.setEnabled(not link)
+            except Exception:
+                pass
             try:
                 self.spin_gradient.setValue(self.obj.SizeDecrease)
             except Exception:
@@ -731,6 +726,19 @@ if App.GuiUp:
 
         def _on_spacing_changed(self, val):
             self.obj.Spacing = val
+            if self.link_check.isChecked():
+                self.spin_spacing_y.setValue(val)
+            self._update()
+
+        def _on_spacing_y_changed(self, val):
+            self.obj.SpacingY = val
+            self._update()
+
+        def _on_link_toggled(self, linked):
+            self.spin_spacing_y.setEnabled(not linked)
+            self.obj.LinkSpacing = linked
+            if linked:
+                self.spin_spacing_y.setValue(self.spin_spacing.value())
             self._update()
 
         def _on_gradient_changed(self, val):
@@ -768,7 +776,7 @@ if App.GuiUp:
                 "Pixmap": TOOL_ICON,
                 "MenuText": "Pattern Fill 填充阵列",
                 "ToolTip": "Fill sketch boundary with pattern\n填充阵列：选中面和边界草图后自动填充图案\n"
-                           "Patterns: Hexagon/Circle/Triangle/Oblong\n"
+                           "Patterns: Hexagon/Circle/Triangle\n"
                            "支持六边形、圆形、三角形、长腰型",
             }
 
