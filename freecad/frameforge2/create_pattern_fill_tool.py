@@ -79,7 +79,8 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing_
                       spacing_y, grid_mode, size_decrease, face_axes):
     origin, x_axis, y_axis, normal = face_axes
 
-    local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
+    boundary_pts = boundary_face.OuterWire.discretize(64)
+    local_pts = [_project_pt(p, origin, x_axis, y_axis) for p in boundary_pts]
     min_x = min(p.x for p in local_pts)
     max_x = max(p.x for p in local_pts)
     min_y = min(p.y for p in local_pts)
@@ -237,7 +238,8 @@ def _transform_face_to_world(local_face, origin, x_axis, y_axis, normal):
 def _fill_with_element(boundary_face, element_face, spacing_x, spacing_y, grid_mode, face_axes):
     origin, x_axis, y_axis, normal = face_axes
 
-    local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
+    boundary_pts = boundary_face.OuterWire.discretize(64)
+    local_pts = [_project_pt(p, origin, x_axis, y_axis) for p in boundary_pts]
     min_x = min(p.x for p in local_pts)
     max_x = max(p.x for p in local_pts)
     min_y = min(p.y for p in local_pts)
@@ -536,6 +538,7 @@ if App.GuiUp:
     class PatternFillTaskPanel:
         def __init__(self, obj):
             self.obj = obj
+            self._selection_mode = None
             self.form = QtGui.QWidget()
             self.form.setWindowTitle("Pattern Fill 填充阵列")
             layout = QtGui.QVBoxLayout(self.form)
@@ -691,23 +694,47 @@ if App.GuiUp:
             self._update()
 
         def _pick_pattern_sketch(self):
-            for s in Gui.Selection.getSelectionEx():
-                if s.Object.isDerivedFrom("Sketcher::SketchObject"):
-                    self._apply_sketch(s.Object)
-                    return
-                for sn in s.SubElementNames:
-                    o = App.ActiveDocument.getObject(sn.rstrip('.'))
-                    if o and o.isDerivedFrom("Sketcher::SketchObject"):
+            if self._selection_mode == 'pattern_sketch':
+                self._end_pick()
+                return
+            if self._selection_mode is not None:
+                self._end_pick()
+            self._selection_mode = 'pattern_sketch'
+            Gui.Selection.clearSelection()
+            Gui.Selection.addObserver(self)
+            self.sketch_btn.setText("Done 完成")
+            self.sketch_txt.setText("Select a sketch...")
+            App.Console.PrintMessage("FF2: Select a sketch for pattern element\n")
+
+        def _end_pick(self):
+            if self._selection_mode is not None:
+                Gui.Selection.removeObserver(self)
+                Gui.Selection.clearSelection()
+                self._selection_mode = None
+                self.sketch_btn.setText("Sketch 图案")
+
+        def addSelection(self, doc, obj, sub, pos):
+            if self._selection_mode == 'pattern_sketch':
+                sel = Gui.Selection.getSelection()
+                for o in sel:
+                    if o.isDerivedFrom("Sketcher::SketchObject"):
                         self._apply_sketch(o)
+                        self._end_pick()
                         return
 
+        def isAllowedAlterSelection(self):
+            return True
+
         def _apply_sketch(self, sk):
-            self.obj.PatternSketch = sk
-            self.obj.PatternType = "user sketch"
             from freecad.frameforge2.create_offset_plane_tool import find_body
             body = find_body(self.obj.baseObject[0]) if hasattr(self.obj, 'baseObject') and self.obj.baseObject else None
-            if body and not find_body(sk):
-                body.addObject(sk)
+            if body and find_body(sk) != body:
+                try:
+                    body.addObject(sk)
+                except Exception:
+                    pass
+            self.obj.PatternSketch = sk
+            self.obj.PatternType = "user sketch"
             self.sketch_txt.setText(sk.Name)
             self._update_combo()
             self.obj.Document.recompute()
@@ -755,6 +782,7 @@ if App.GuiUp:
             self._update()
 
         def accept(self):
+            self._end_pick()
             try:
                 if hasattr(self.obj, "baseObject") and self.obj.baseObject:
                     self.obj.baseObject[0].ViewObject.Visibility = True
@@ -766,6 +794,7 @@ if App.GuiUp:
             return True
 
         def reject(self):
+            self._end_pick()
             try:
                 if hasattr(self.obj, "baseObject") and self.obj.baseObject:
                     self.obj.baseObject[0].ViewObject.Visibility = True
@@ -782,7 +811,7 @@ if App.GuiUp:
                 "MenuText": "Pattern Fill 填充阵列",
                 "ToolTip": "Fill sketch boundary with pattern\n填充阵列：选中面和边界草图后自动填充图案\n"
                            "Patterns: Hexagon/Circle/Triangle\n"
-                           "支持六边形、圆形、三角形、长腰型",
+                           "支持六边形、圆形、三角形",
             }
 
         def Activated(self):
