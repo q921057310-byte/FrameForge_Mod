@@ -14,13 +14,13 @@ from freecad.frameforge2.frameforge_exceptions import FrameForge2Exception
 TOOL_ICON = os.path.join(ICONPATH, "extruded-cutout.svg")
 smEpsilon = App.Base.Precision.approximation()
 
-PATTERN_TYPES = ["hexagon", "circle", "triangle", "oblong"]
+PATTERN_TYPES = ["hexagon", "circle", "triangle", "user sketch"]
 GRID_MODES = ["staggered", "rectangular"]
 PATTERN_LABELS = {
     "hexagon": "Hexagon 六边形",
     "circle": "Circle 圆形",
     "triangle": "Triangle 三角形",
-    "oblong": "Oblong 长腰型",
+    "user sketch": "User Sketch 自绘草图",
 }
 GRID_LABELS = {
     "staggered": "Staggered 交错",
@@ -90,7 +90,7 @@ def _make_oblong_face(center, width, height, angle=0):
     return Part.Face(wire)
 
 
-def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_center):
+def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_center, angle=None):
     actual_size = size
     if size_decrease > 0 and max_dist > 0:
         dist = (center - bbox_center).Length
@@ -101,73 +101,113 @@ def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_cent
     elif pattern_type == "circle":
         return _make_circle_face(center, actual_size)
     elif pattern_type == "triangle":
-        return _make_triangle_face(center, actual_size)
-    elif pattern_type == "oblong":
-        w = actual_size * 2.0
-        h = actual_size * 0.6
-        return _make_oblong_face(center, w, h)
+        return _make_triangle_face(center, actual_size, angle if angle is not None else -math.pi/2)
     return None
 
 
 def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing,
-                      grid_mode, size_decrease, z_plane):
-    bb = boundary_face.BoundBox
-    bbox_center = App.Vector(bb.Center.x, bb.Center.y, z_plane)
-    max_dist = max(bb.XLength, bb.YLength) * 0.71
+                      grid_mode, size_decrease, face_axes):
+    origin, x_axis, y_axis, normal = face_axes
+
+    local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
+    min_x = min(p.x for p in local_pts)
+    max_x = max(p.x for p in local_pts)
+    min_y = min(p.y for p in local_pts)
+    max_y = max(p.y for p in local_pts)
+
+    face_centroid_3d = boundary_face.CenterOfMass
+    bbox_center = _project_pt(face_centroid_3d, origin, x_axis, y_axis)
+    max_dist = max(max_x - min_x, max_y - min_y) * 0.71
+
+    def _is_inside_2d(x, y):
+        center_3d = _unproject_pt(x, y, origin, x_axis, y_axis)
+        try:
+            return boundary_face.isInside(center_3d, size * 0.5, True)
+        except Exception:
+            return True
 
     elements = []
     if pattern_type == "hexagon":
-        col_spacing = size * math.sqrt(3) + spacing
-        row_spacing = size * 1.5 + spacing
+        col_spacing = max(size * math.sqrt(3) + spacing, 0.001)
+        row_spacing = max(size * 1.5 + spacing, 0.001)
         row = 0
-        y = bb.YMin
-        while y <= bb.YMax:
-            offset_x = col_spacing / 2.0 if row % 2 == 1 else 0
-            x = bb.XMin - size + offset_x
-            while x <= bb.XMax + size:
-                center = App.Vector(x, y, z_plane)
-                test_face = _make_hexagon_face(center, size)
-                common = test_face.common(boundary_face)
-                if common and hasattr(common, 'Area') and common.Area > smEpsilon:
-                    el = _make_element(center, size, pattern_type,
-                                       size_decrease, max_dist, bbox_center)
-                    if el:
-                        elements.append(el)
+        y = min_y
+        while y <= max_y:
+            offset_x = col_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
+            x = min_x - size + offset_x
+            while x <= max_x + size:
+                if _is_inside_2d(x, y):
+                    center = App.Vector(x, y, 0)
+                    local_face = _make_element(center, size, pattern_type,
+                                               size_decrease, max_dist, bbox_center)
+                    if local_face:
+                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                        if world_face:
+                            elements.append(world_face)
+                x += col_spacing
+            y += row_spacing
+            row += 1
+    elif pattern_type == "triangle":
+        col_spacing = max(size + spacing, 0.001)
+        row_spacing = max(size * math.sqrt(3) / 2 + spacing, 0.001)
+        row = 0
+        y = min_y
+        while y <= max_y:
+            do_stagger = (grid_mode == "staggered")
+            offset_x = col_spacing / 2.0 if (do_stagger and row % 2 == 1) else 0
+            x = min_x - size + offset_x
+            while x <= max_x + size:
+                if _is_inside_2d(x, y):
+                    center = App.Vector(x, y, 0)
+                    angle = (-math.pi/2 if row % 2 == 0 else math.pi/2) if do_stagger else -math.pi/2
+                    local_face = _make_element(center, size, pattern_type,
+                                               size_decrease, max_dist, bbox_center, angle)
+                    if local_face:
+                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                        if world_face:
+                            elements.append(world_face)
+                x += col_spacing
+            y += row_spacing
+            row += 1
+    elif pattern_type == "oblong":
+        col_spacing = max(size + spacing, 0.001)
+        row_spacing = max(size + spacing, 0.001)
+        row = 0
+        y = min_y
+        while y <= max_y:
+            offset_x = col_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
+            x = min_x - size + offset_x
+            while x <= max_x + size:
+                if _is_inside_2d(x, y):
+                    center = App.Vector(x, y, 0)
+                    local_face = _make_element(center, size, pattern_type,
+                                               size_decrease, max_dist, bbox_center)
+                    if local_face:
+                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                        if world_face:
+                            elements.append(world_face)
                 x += col_spacing
             y += row_spacing
             row += 1
     else:
-        if pattern_type == "circle":
-            el_spacing = size * 2 + spacing
-        elif pattern_type == "triangle":
-            el_spacing = size * math.sqrt(3) + spacing
-        elif pattern_type == "oblong":
-            el_spacing = size * 2.5 + spacing
-        else:
-            el_spacing = size * 2 + spacing
-
+        el_spacing = max(size * 2 + spacing, 0.001)
         row_spacing = el_spacing
         if grid_mode == "staggered":
             row_spacing = el_spacing * math.sqrt(3) / 2.0
         row = 0
-        y = bb.YMin
-        while y <= bb.YMax:
+        y = min_y
+        while y <= max_y:
             offset_x = el_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
-            x = bb.XMin - size + offset_x
-            while x <= bb.XMax + size:
-                center = App.Vector(x, y, z_plane)
-                if pattern_type == "circle":
-                    test_face = _make_circle_face(center, size)
-                elif pattern_type == "triangle":
-                    test_face = _make_triangle_face(center, size)
-                else:
-                    test_face = _make_oblong_face(center, size * 2, size * 0.6)
-                common = test_face.common(boundary_face)
-                if common and hasattr(common, 'Area') and common.Area > smEpsilon:
-                    el = _make_element(center, size, pattern_type,
-                                       size_decrease, max_dist, bbox_center)
-                    if el:
-                        elements.append(el)
+            x = min_x - size + offset_x
+            while x <= max_x + size:
+                if _is_inside_2d(x, y):
+                    center = App.Vector(x, y, 0)
+                    local_face = _make_element(center, size, pattern_type,
+                                               size_decrease, max_dist, bbox_center)
+                    if local_face:
+                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                        if world_face:
+                            elements.append(world_face)
                 x += el_spacing
             y += row_spacing
             row += 1
@@ -193,16 +233,136 @@ def _findBoundaryWire(sketch_shape):
     return _make_wire_from_edges(sketch_shape.Edges)
 
 
+def _get_face_axes(face):
+    normal = face.normalAt(0, 0)
+    surf = face.Surface
+    if hasattr(surf, 'Position'):
+        origin = surf.Position
+    else:
+        origin = face.CenterOfMass
+    if hasattr(surf, 'XAxis') and surf.XAxis.Length > 1e-10:
+        x_axis = surf.XAxis.normalize()
+    else:
+        x_axis = App.Vector(1, 0, 0).cross(normal)
+        if x_axis.Length < 1e-10:
+            x_axis = App.Vector(0, 1, 0).cross(normal)
+        x_axis.normalize()
+    y_axis = normal.cross(x_axis).normalize()
+    return origin, x_axis, y_axis, normal
+
+
+def _project_pt(point_3d, origin, x_axis, y_axis):
+    rel = point_3d - origin
+    return App.Vector(rel.dot(x_axis), rel.dot(y_axis), 0)
+
+
+def _unproject_pt(lx, ly, origin, x_axis, y_axis):
+    return origin + x_axis * lx + y_axis * ly
+
+
+def _transform_face_to_world(local_face, origin, x_axis, y_axis, normal):
+    wire = local_face.OuterWire
+    edges = wire.Edges
+
+    if len(edges) == 1 and isinstance(edges[0].Curve, Part.Circle):
+        circle = edges[0].Curve
+        center_3d = origin + x_axis * circle.Center.x + y_axis * circle.Center.y
+        c = Part.Circle()
+        c.Center = center_3d
+        c.Axis = normal
+        c.Radius = circle.Radius
+        try:
+            return Part.Face(Part.Wire([Part.Edge(c)]))
+        except Part.OCCError:
+            pass
+
+    try:
+        pts_3d = [origin + x_axis * v.Point.x + y_axis * v.Point.y for v in wire.Vertexes]
+        pts_3d.append(pts_3d[0])
+        return Part.Face(Part.makePolygon(pts_3d))
+    except Exception:
+        return None
+
+
+def _fill_with_element(boundary_face, element_face, spacing, grid_mode, face_axes):
+    origin, x_axis, y_axis, normal = face_axes
+
+    local_pts = [_project_pt(v.Point, origin, x_axis, y_axis) for v in boundary_face.Vertexes]
+    min_x = min(p.x for p in local_pts)
+    max_x = max(p.x for p in local_pts)
+    min_y = min(p.y for p in local_pts)
+    max_y = max(p.y for p in local_pts)
+
+    try:
+        base_pts_3d = element_face.OuterWire.discretize(48)
+    except Exception:
+        base_pts_3d = element_face.discretize(48)
+    base_pts_local = [_project_pt(p, origin, x_axis, y_axis) for p in base_pts_3d]
+
+    el_min_x = min(p.x for p in base_pts_local)
+    el_max_x = max(p.x for p in base_pts_local)
+    el_min_y = min(p.y for p in base_pts_local)
+    el_max_y = max(p.y for p in base_pts_local)
+    el_w = el_max_x - el_min_x
+    el_h = el_max_y - el_min_y
+    el_cx = (el_min_x + el_max_x) / 2.0
+    el_cy = (el_min_y + el_max_y) / 2.0
+    el_radius = max(el_w, el_h) / 2.0
+
+    el_spacing = max(el_w + spacing, 0.001)
+    row_spacing = max(el_h + spacing, 0.001)
+    if grid_mode == "staggered":
+        row_spacing = (el_h + spacing) * math.sqrt(3) / 2.0
+
+    def _check_center(cx, cy):
+        center_3d = _unproject_pt(cx, cy, origin, x_axis, y_axis)
+        try:
+            return boundary_face.isInside(center_3d, el_radius, True)
+        except Exception:
+            return True
+
+    elements = []
+    row = 0
+    y0 = min_y - el_h
+    while y0 <= max_y + el_h:
+        ox = el_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
+        x0 = min_x - el_w + ox
+        for i in range(int((max_x + el_w - x0) / el_spacing) + 2):
+            x = x0 + i * el_spacing
+            if not _check_center(x, y0):
+                continue
+            new_pts_local = []
+            for p in base_pts_local:
+                new_pts_local.append(App.Vector(
+                    p.x + x - el_cx,
+                    p.y + y0 - el_cy,
+                    0))
+            new_pts_local.append(new_pts_local[0])
+            try:
+                wire = Part.makePolygon(new_pts_local)
+                local_face = Part.Face(wire)
+                world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                if world_face:
+                    elements.append(world_face)
+            except Part.OCCError:
+                continue
+        y0 += row_spacing
+        row += 1
+    return elements
+
+
 class PatternFill:
-    def __init__(self, obj, selobj, selected_faces, sketch):
+    def __init__(self, obj, selobj, selected_faces, sketch, pattern_sketch=None):
         obj.addProperty("App::PropertyLinkSub", "baseObject",
                         "Parameters", "").baseObject = (selobj, selected_faces)
         obj.addProperty("App::PropertyLink", "Sketch",
                         "Parameters", "").Sketch = sketch
+        obj.addProperty("App::PropertyLink", "PatternSketch",
+                        "Pattern", "").PatternSketch = pattern_sketch
         obj.addProperty("App::PropertyEnumeration", "PatternType",
                         "Pattern", "")
         obj.PatternType = PATTERN_TYPES
-        obj.PatternType = "hexagon"
+        obj.PatternType = "user sketch" if pattern_sketch else "hexagon"
         obj.addProperty("App::PropertyDistance", "ElementSize",
                         "Pattern", "").ElementSize = 5.0
         obj.addProperty("App::PropertyDistance", "Spacing",
@@ -212,7 +372,7 @@ class PatternFill:
         obj.addProperty("App::PropertyEnumeration", "GridMode",
                         "Pattern", "").GridMode = GRID_MODES
         obj.addProperty("App::PropertyDistance", "Thickness",
-                        "Parameters", "").Thickness = 5.0
+                        "Parameters", "").Thickness = 10.0
         obj.Proxy = self
 
     def execute(self, fp):
@@ -221,76 +381,118 @@ class PatternFill:
         base_sub_names = fp.baseObject[1]
         sketch = fp.Sketch
 
-        base_face = None
-        normal = None
-
-        def _resolve_face(names):
-            from freecad.frameforge2.create_vent_tool import _getElementFromTNP
-            for nm in names:
-                try:
-                    bf = base.getElement(_getElementFromTNP(nm))
+        from freecad.frameforge2.create_vent_tool import _getElementFromTNP
+        face_found = False
+        if base_sub_names:
+            try:
+                name = _getElementFromTNP(base_sub_names[0])
+                if name:
+                    bf = base.getElement(name)
                     if bf.ShapeType == 'Face':
-                        return bf, bf.normalAt(0, 0)
-                except Exception:
-                    continue
-            return None, None
-
-        base_face, normal = _resolve_face(base_sub_names)
-
-        if base_face is None:
+                        face_found = True
+            except Exception:
+                pass
+        if not face_found:
+            base_sub_names = []
+        if not base_sub_names:
             if hasattr(sketch, "Support") and sketch.Support is not None:
                 s = sketch.Support
                 if isinstance(s, tuple) and len(s) > 1:
-                    sup = s[1]
-                    sup_list = list(sup) if isinstance(sup, (list, tuple)) else [sup]
-                    base_face, normal = _resolve_face(sup_list)
-
-        if base_face is None:
-            sk_pos = sketch.Placement.Base
-            sk_rot = sketch.Placement.Rotation
-            sk_normal = sk_rot.multVec(App.Vector(0, 0, 1))
-            for i, f in enumerate(base.Faces):
+                    base_sub_names = list(s[1]) if isinstance(s[1], (list, tuple)) else [s[1]]
+            if not base_sub_names:
                 try:
-                    f_normal = f.normalAt(0, 0)
-                    if abs(f_normal.dot(sk_normal)) < 0.999:
+                    gp = sketch.getGlobalPlacement()
+                    sk_pos = gp.Base
+                    sk_norm = gp.Rotation.multVec(App.Vector(0, 0, 1))
+                except Exception:
+                    sk_pos = sketch.Placement.Base
+                    sk_norm = sketch.Placement.Rotation.multVec(App.Vector(0, 0, 1))
+                best_face = None
+                for i, f in enumerate(base.Faces):
+                    try:
+                        f_normal = f.normalAt(0, 0)
+                        if abs(f_normal.dot(sk_norm)) < 0.999:
+                            continue
+                        if best_face is None:
+                            best_face = ("Face{}".format(i + 1), abs(f.CenterOfMass.dot(f_normal) - sk_pos.dot(sk_norm)))
+                        dist = abs(f.CenterOfMass.dot(f_normal) - sk_pos.dot(sk_norm))
+                        if dist < 1.0:
+                            base_sub_names = ["Face{}".format(i + 1)]
+                            break
+                        if dist < best_face[1]:
+                            best_face = ("Face{}".format(i + 1), dist)
+                    except Exception:
                         continue
-                    f_pos = f.CenterOfMass
-                    if abs(f_pos.dot(f_normal) - sk_pos.dot(sk_normal)) < 0.5:
-                        base_face = f
-                        normal = f_normal
-                        break
-                except (Part.OCCError, AttributeError):
-                    continue
-
-        if base_face is None:
+                if not base_sub_names and best_face:
+                    base_sub_names = [best_face[0]]
+                    App.Console.PrintMessage("Fill: using closest face {} (offset={:.1f}mm)\n".format(
+                        best_face[0], best_face[1]))
+        if not base_sub_names:
             raise FrameForge2Exception(
-                "No face selected on base object.\n"
-                "Please select a face or map the sketch to a face.")
-        thk = fp.Thickness.Value
+                "No face selected. Select a face on base or map sketch to a face.")
+
+        base_face = base.getElement(_getElementFromTNP(base_sub_names[0]))
+        normal = base_face.normalAt(0, 0)
+
+        from freecad.frameforge2.create_vent_tool import _smGetThickness
+        thk = _smGetThickness(base, base_face)
+        if thk < smEpsilon:
+            bb = base.BoundBox
+            extent = abs((bb.Max - bb.Min).dot(normal))
+            if extent > smEpsilon:
+                thk = extent
+                App.Console.PrintMessage("Fill: auto thickness={:.2f}\n".format(thk))
+            else:
+                thk = fp.Thickness.Value
+
+        extrude_dir = normal * -thk
 
         sketch_shape = fp.Sketch.Shape
         boundary_wire = _findBoundaryWire(sketch_shape)
         if boundary_wire is None:
             raise FrameForge2Exception("Cannot find closed boundary in sketch.")
-        boundary_face = Part.Face(boundary_wire)
-        z_plane = boundary_face.CenterOfMass.z
 
-        elements = _generate_pattern(
-            boundary_face, boundary_wire,
-            fp.PatternType,
-            fp.ElementSize.Value,
-            fp.Spacing.Value,
-            fp.GridMode,
-            fp.SizeDecrease,
-            z_plane,
-        )
+        boundary_face = Part.Face(boundary_wire)
+        face_axes = _get_face_axes(boundary_face)
+
+        elements = []
+        if fp.PatternType == "user sketch":
+            if fp.PatternSketch is None:
+                raise FrameForge2Exception(
+                    "User sketch pattern selected but no pattern sketch assigned.\n"
+                    "请先选择一个图案草图。")
+            sk = fp.PatternSketch
+            if sk.isDerivedFrom("Sketcher::SketchObject") and sk.Shape.Faces:
+                best = max(sk.Shape.Faces, key=lambda f: abs(f.Area))
+                App.Console.PrintMessage("Fill: element face area={:.2f}\n".format(best.Area))
+                elements = _fill_with_element(
+                    boundary_face, best,
+                    fp.Spacing.Value,
+                    fp.GridMode,
+                    face_axes,
+                )
+                App.Console.PrintMessage("Fill: generated {} elements\n".format(len(elements)))
+        if not elements:
+            elements = _generate_pattern(
+                boundary_face, boundary_wire,
+                fp.PatternType,
+                fp.ElementSize.Value,
+                fp.Spacing.Value,
+                fp.GridMode,
+                fp.SizeDecrease,
+                face_axes,
+            )
         if not elements:
             fp.Shape = base
             return
 
+        App.Console.PrintMessage("Fill: total {} elements\n".format(len(elements)))
+        if len(elements) > 500:
+            App.Console.PrintWarning(
+                "Fill: {} elements may be slow, consider larger spacing\n".format(len(elements)))
+
         compound = Part.Compound(elements)
 
-        extrude_dir = normal * -thk
         try:
             cut_solid = compound.extrude(extrude_dir)
             result = base.cut(cut_solid)
@@ -379,6 +581,16 @@ if App.GuiUp:
             g.addWidget(self.combo_grid)
             layout.addLayout(g)
 
+            self.sketch_widget = QtGui.QWidget()
+            skg = QtGui.QHBoxLayout(self.sketch_widget)
+            skg.setContentsMargins(0, 0, 0, 0)
+            self.sketch_btn = QtGui.QPushButton("Sketch 图案")
+            self.sketch_txt = QtGui.QLineEdit()
+            self.sketch_txt.setReadOnly(True)
+            skg.addWidget(self.sketch_btn)
+            skg.addWidget(self.sketch_txt)
+            layout.addWidget(self.sketch_widget)
+
             sz = QtGui.QHBoxLayout()
             sz.addWidget(QtGui.QLabel("Size 尺寸:"))
             self.spin_size = QtGui.QDoubleSpinBox()
@@ -394,7 +606,7 @@ if App.GuiUp:
             self.spin_spacing = QtGui.QDoubleSpinBox()
             self.spin_spacing.setDecimals(2)
             self.spin_spacing.setSingleStep(0.5)
-            self.spin_spacing.setMinimum(0.0)
+            self.spin_spacing.setMinimum(-50.0)
             self.spin_spacing.setMaximum(100.0)
             sp.addWidget(self.spin_spacing)
             layout.addLayout(sp)
@@ -429,6 +641,7 @@ if App.GuiUp:
             self.spin_spacing.valueChanged.connect(self._on_spacing_changed)
             self.spin_gradient.valueChanged.connect(self._on_gradient_changed)
             self.spin_thk.valueChanged.connect(self._on_thk_changed)
+            self.sketch_btn.clicked.connect(self._pick_pattern_sketch)
 
         def _load_values(self):
             try:
@@ -458,7 +671,13 @@ if App.GuiUp:
             try:
                 self.spin_thk.setValue(self.obj.Thickness.Value)
             except Exception:
-                self.spin_thk.setValue(5.0)
+                self.spin_thk.setValue(10.0)
+            try:
+                sk = getattr(self.obj, "PatternSketch", None)
+                if sk:
+                    self.sketch_txt.setText(sk.Name)
+            except Exception:
+                pass
 
         def _update(self):
             try:
@@ -470,6 +689,36 @@ if App.GuiUp:
             if 0 <= idx < len(PATTERN_TYPES):
                 self.obj.PatternType = PATTERN_TYPES[idx]
             self._update()
+
+        def _pick_pattern_sketch(self):
+            for s in Gui.Selection.getSelectionEx():
+                if s.Object.isDerivedFrom("Sketcher::SketchObject"):
+                    self._apply_sketch(s.Object)
+                    return
+                for sn in s.SubElementNames:
+                    o = App.ActiveDocument.getObject(sn.rstrip('.'))
+                    if o and o.isDerivedFrom("Sketcher::SketchObject"):
+                        self._apply_sketch(o)
+                        return
+
+        def _apply_sketch(self, sk):
+            self.obj.PatternSketch = sk
+            self.obj.PatternType = "user sketch"
+            from freecad.frameforge2.create_offset_plane_tool import find_body
+            body = find_body(self.obj.baseObject[0]) if hasattr(self.obj, 'baseObject') and self.obj.baseObject else None
+            if body and not find_body(sk):
+                body.addObject(sk)
+            self.sketch_txt.setText(sk.Name)
+            self._update_combo()
+            self.obj.Document.recompute()
+
+        def _update_combo(self):
+            try:
+                pt = str(self.obj.PatternType)
+                idx = PATTERN_TYPES.index(pt) if pt in PATTERN_TYPES else 0
+                self.combo_pattern.setCurrentIndex(idx)
+            except Exception:
+                pass
 
         def _on_grid_changed(self, idx):
             if 0 <= idx < len(GRID_MODES):
@@ -525,39 +774,47 @@ if App.GuiUp:
 
         def Activated(self):
             sel = Gui.Selection.getSelectionEx()
-            selobj = sel[0].Object if sel else None
-            selected_faces = sel[0].SubElementNames if sel else []
+            doc = App.ActiveDocument
+            selobj = None
+            selected_faces = []
             selected_sketch = None
-            if len(sel) >= 2:
-                if sel[0].Object.isDerivedFrom("Sketcher::SketchObject"):
-                    selected_sketch = sel[0].Object
-                    selobj = sel[1].Object
-                    selected_faces = sel[1].SubElementNames
-                elif sel[1].Object.isDerivedFrom("Sketcher::SketchObject"):
-                    selected_sketch = sel[1].Object
-            if not selected_sketch or not selected_sketch.isDerivedFrom("Sketcher::SketchObject"):
-                for s in sel:
-                    for sn in s.SubElementNames:
-                        obj = App.ActiveDocument.getObject(sn.rstrip('.'))
-                        if obj and obj.isDerivedFrom("Sketcher::SketchObject"):
-                            selected_sketch = obj
-                            break
+            pattern_sketch = None
 
-            if selobj is not None and selected_sketch is not None:
-                pass
-            else:
-                App.Console.PrintWarning("FF2: Select face (3D) + sketch (tree, Ctrl+click)\n")
+            for s in sel:
+                got_sketch = None
+                if s.Object.isDerivedFrom("Sketcher::SketchObject"):
+                    got_sketch = s.Object
+                else:
+                    for sn in s.SubElementNames:
+                        o = doc.getObject(sn.rstrip('.'))
+                        if o and o.isDerivedFrom("Sketcher::SketchObject"):
+                            got_sketch = o
+                            break
+                if got_sketch:
+                    if selected_sketch is None:
+                        selected_sketch = got_sketch
+                    else:
+                        pattern_sketch = got_sketch
+                elif selobj is None:
+                    selobj = s.Object
+                    if s.SubElementNames:
+                        selected_faces = list(s.SubElementNames)
+
+            if selobj is None or selected_sketch is None:
+                App.Console.PrintWarning("FF2: Select face + sketch\n")
                 return
 
             doc = App.ActiveDocument
             doc.openTransaction("PatternFill")
             from freecad.frameforge2.create_offset_plane_tool import find_body
             body = find_body(selobj)
+            if body is None:
+                body = find_body(selected_sketch)
             if body is not None:
                 newObj = doc.addObject("PartDesign::FeaturePython", "PatternFill")
             else:
                 newObj = doc.addObject("Part::FeaturePython", "PatternFill")
-            PatternFill(newObj, selobj, selected_faces, selected_sketch)
+            PatternFill(newObj, selobj, selected_faces, selected_sketch, pattern_sketch)
             PatternFillVP(newObj.ViewObject)
             if body is not None:
                 body.addObject(newObj)
