@@ -467,11 +467,10 @@ This workbench references and builds upon several open-source projects:
 
 | Project / 项目 | Author / 作者 | Link / 链接 |
 |---|---|---|
-| **FrameForge2** | Vivien HENRY | Main workbench |
+| **FrameForge** | lukh | [github.com/lukh/frameforge](https://github.com/lukh/frameforge) — original workbench this is forked from |
 | **MetalWB** | Veloma | [framagit.org/Veloma/freecad_metal_workbench](https://framagit.org/Veloma/freecad_metal_workbench) |
 | **Dynamic Data (动态数据)** | Mark Ganson (TheMarkster) | [github.com/mwganson/DynamicData](https://github.com/mwganson/DynamicData) |
 | **EasyProfileFrame** | ovo-Tim | [github.com/ovo-Tim/EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) |
 | **BOLTS** | Johannes Reinhardt | [github.com/boltsparts/BOLTS](https://github.com/boltsparts/BOLTS) |
-| **MakerWorkbench** | URJCMakerGroup | [github.com/URJCMakerGroup/MakerWorkbench](https://github.com/URJCMakerGroup/MakerWorkbench) |
 
 See [README](../README.md) for full credits. / 完整致谢请参见 README。

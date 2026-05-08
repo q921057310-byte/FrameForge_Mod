@@ -96,18 +96,17 @@ vivien.henry@inductivebrain.fr
 
 ## Credits / 致谢
 
-This workbench is built upon the work of several open-source projects:
+This workbench references and bundles code from the following open-source projects:
 
-本工作台基于以下开源项目构建：
+本工作台参考并集成了以下开源项目的代码：
 
 | Project / 项目 | Author / 作者 | Description / 说明 |
 |---|---|---|
-| [FrameForge2](https://github.com/inductivebrain/FrameForge2) | Vivien HENRY | Main workbench / 主工作台 |
-| [MetalWB](https://framagit.org/Veloma/freecad_metal_workbench) | Veloma | Original base workbench / 原始基础工作台 |
+| [FrameForge](https://github.com/lukh/frameforge) | lukh | Original workbench this project is forked from / 本分支的原始工作台 |
+| [MetalWB](https://framagit.org/Veloma/freecad_metal_workbench) | Veloma | Original base workbench (FrameForge predecessor) / FrameForge 的前身 |
 | [Dynamic Data (动态数据)](https://github.com/mwganson/DynamicData) | Mark Ganson (TheMarkster) | Dynamic properties system (v2.78, bundled) / 动态属性系统（v2.78，已集成） |
-| [EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) | ovo-Tim | Profile frame workbench (design reference) / 型材框架工作台（设计参考） |
+| [EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) | ovo-Tim | Profile frame workbench / 型材框架工作台 |
 | [BOLTS](https://github.com/boltsparts/BOLTS) | Johannes Reinhardt | Open Library of Technical Specifications (extrusion geometry) / 开源技术规格库（挤压型材几何） |
-| [MakerWorkbench](https://github.com/URJCMakerGroup/MakerWorkbench) | URJCMakerGroup | Icon resources / 图标资源 |
 
 ### Special thanks / 特别感谢
 

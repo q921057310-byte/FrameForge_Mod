@@ -137,7 +137,7 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
 
 | Project / 项目 | Author / 作者 | Link / 链接 |
 |---|---|---|
-| **FrameForge2** | Vivien HENRY | Main workbench |
+| **FrameForge** | lukh | [github.com/lukh/frameforge](https://github.com/lukh/frameforge) |
 | **MetalWB** | Veloma | [framagit.org/Veloma/freecad_metal_workbench](https://framagit.org/Veloma/freecad_metal_workbench) |
 | **Dynamic Data (动态数据)** | Mark Ganson | [github.com/mwganson/DynamicData](https://github.com/mwganson/DynamicData) |
 | **EasyProfileFrame** | ovo-Tim | [github.com/ovo-Tim/EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) |
