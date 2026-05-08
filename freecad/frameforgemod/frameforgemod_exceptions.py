@@ -1,0 +1,2 @@
+class FrameForgemodException(Exception):
+    pass

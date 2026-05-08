@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
 
-  <name>FrameForge2</name>
-  <description>FrameForge2 - Fork of FrameForge for creating Frames and Beams.</description>
+  <name>FrameForgemod</name>
+  <description>FrameForgemod - Modified fork of FrameForge for creating Frames and Beams.</description>
   <tag>Welded frame</tag>
   <tag>Metal</tag>
   <tag>Frame</tag>
@@ -11,21 +11,19 @@
   <tag>Miter cut</tag>
   <tag>Miter-joint</tag>
   <tag>Trim Cut</tag>
-  <version>0.2.2</version>
-  <date>2026-05-02</date>
-  <maintainer email="your-email@example.com">Your Name</maintainer>
+  <version>0.1</version>
+  <date>2026-05-08</date>
+  <maintainer>FrameForgemod contributors</maintainer>
   <license file="LICENSE">LGPL-3.0-only</license>
-  <url type="repository" branch="main">https://github.com/your-username/FrameForge2</url>
-  <url branch="main" type="repository">https://github.com/your-username/FrameForge2.git</url>
-  <url type="readme">https://github.com/your-username/FrameForge2/blob/main/README.md</url>
-  <icon>freecad/frameforge2/resources/icons/metalwb.svg</icon>
+  <url type="repository" branch="main">https://github.com/FrameForgemod/FrameForgemod</url>
+  <icon>freecad/frameforgemod/resources/icons/metalwb.svg</icon>
 
   <freecadmin>0.21.0</freecadmin>
 
   <content>
     <workbench>
-      <classname>FrameForge2</classname>
-      <subdirectory>freecad/frameforge2</subdirectory>
+      <classname>FrameForgemod</classname>
+      <subdirectory>freecad/frameforgemod</subdirectory>
     </workbench>
   </content>
 
