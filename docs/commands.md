@@ -143,4 +143,6 @@ Gui::ToolBarItem* Workbench::setupToolBars() const
 | **EasyProfileFrame** | ovo-Tim | [github.com/ovo-Tim/EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) |
 | **BOLTS** | Johannes Reinhardt | [github.com/boltsparts/BOLTS](https://github.com/boltsparts/BOLTS) |
 
+- **大海** (QQ group) — Aluminum extrusion profile library / 铝合金型材轮廓库 ([Bilibili](https://space.bilibili.com/3546652184938824?spm_id_from=333.337.0.0))
+
 See [README](../README.md) for full credits. / 完整致谢请参见 README。

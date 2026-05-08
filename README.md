@@ -110,6 +110,8 @@ This workbench references and bundles code from the following open-source projec
 
 ### Special thanks / 特别感谢
 
+- **大海** (QQ group) — Provided aluminum extrusion profile library / 提供铝合金型材轮廓库
+  - Bilibili: [space.bilibili.com/3546652184938824](https://space.bilibili.com/3546652184938824?spm_id_from=333.337.0.0)
 - Vincent B
 - Quentin Plisson
 - rockn
@@ -118,6 +120,75 @@ This workbench references and bundles code from the following open-source projec
 And many others from the [FreeCAD forum thread](https://forum.freecad.org/viewtopic.php?style=5&t=72389)
 
 以及 FreeCAD 论坛相关讨论中的众多贡献者。
+
+---
+
+## How to Add Profiles / 如何添加轮廓
+
+Profiles are defined in multiple places. To add a new profile, follow the steps below:
+
+轮廓定义在多个位置。要添加新轮廓，请按以下步骤操作：
+
+### 1. JSON Dimension Data / JSON 尺寸数据
+
+Edit the JSON file for the material type:
+
+编辑对应材料类型的 JSON 文件：
+
+- `freecad/frameforge2/resources/profiles/aluminium_extrusion.json` — Aluminum / 铝型材
+- `freecad/frameforge2/resources/profiles/wood.json` — Wood / 木材
+- `freecad/frameforge2/resources/profiles/metal.json` — Steel / 钢材
+
+**Format example / 格式示例** (add under the corresponding family):
+
+```json
+{
+  "family": "欧标30系列(8.2)",
+  "sizes": [
+    {"label": "30x30", "Height": 30.0, "Width": 30.0},
+    {"label": "30x60", "Height": 30.0, "Width": 60.0}
+  ]
+}
+```
+
+### 2. Cross-Section Sketch / 截面草图
+
+For aluminum extrusions with custom cross-sections, add a `.FCStd` file:
+
+对于有自定义截面的铝型材，添加 `.FCStd` 文件：
+
+`freecad/frameforge2/resources/profiles/aluminum/`
+
+- Create a sketch of the cross-section in FreeCAD / 在 FreeCAD 中绘制截面草图
+- Save as `YourProfileName.FCStd` / 保存为 `YourProfileName.FCStd`
+- The sketch name inside should match the filename / 内部草图名称需与文件名一致
+
+### 3. SVG Outline (Optional) / SVG 轮廓（可选）
+
+For visual reference in the UI, add an SVG:
+
+如需在界面中显示轮廓预览，添加 SVG 文件：
+
+`freecad/frameforge2/resources/profiles/aluminum/svg/`
+
+### 4. Profile Preview Image / 预览图片
+
+Add a preview PNG to the corresponding folder:
+
+添加预览 PNG 到对应文件夹：
+
+- `freecad/frameforge2/resources/images/profiles/Metal/`
+- `freecad/frameforge2/resources/images/profiles/Wood/`
+
+### 5. Using Custom Profile Tool / 使用自定义轮廓工具
+
+You can also create profiles directly in FreeCAD:
+
+也可以在 FreeCAD 中直接创建自定义轮廓：
+
+1. Switch to **FrameForge2** workbench / 切换到 FrameForge2 工作台
+2. Click **Create Custom Profile** / 点击"创建自定义轮廓"
+3. Select a sketch as the cross-section / 选择草图作为截面
 
 ---
 
