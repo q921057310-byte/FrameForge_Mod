@@ -244,9 +244,16 @@ def _fill_with_element(boundary_face, element_face, spacing_x, spacing_y, grid_m
     max_y = max(p.y for p in local_pts)
 
     try:
-        base_pts_3d = element_face.OuterWire.discretize(48)
+        wire = element_face.OuterWire
+        verts = list(wire.Vertexes)
+        if len(verts) >= 3 and len(verts) >= len(wire.Edges):
+            base_pts_3d = [v.Point for v in verts]
+            if base_pts_3d and base_pts_3d[0].distanceToPoint(base_pts_3d[-1]) < 1e-7:
+                base_pts_3d.pop()
+        else:
+            base_pts_3d = wire.discretize(24)
     except Exception:
-        base_pts_3d = element_face.discretize(48)
+        base_pts_3d = element_face.discretize(24)
     base_pts_local = [_project_pt(p, origin, x_axis, y_axis) for p in base_pts_3d]
 
     el_min_x = min(p.x for p in base_pts_local)
@@ -281,17 +288,15 @@ def _fill_with_element(boundary_face, element_face, spacing_x, spacing_y, grid_m
             x = x0 + i * el_spacing
             if not _check_center(x, y0):
                 continue
-            new_pts_local = []
+            pts_3d = []
             for p in base_pts_local:
-                new_pts_local.append(App.Vector(
-                    p.x + x - el_cx,
-                    p.y + y0 - el_cy,
-                    0))
-            new_pts_local.append(new_pts_local[0])
+                lx = p.x + x - el_cx
+                ly = p.y + y0 - el_cy
+                pts_3d.append(origin + x_axis * lx + y_axis * ly)
+            pts_3d.append(pts_3d[0])
             try:
-                wire = Part.makePolygon(new_pts_local)
-                local_face = Part.Face(wire)
-                world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                wire = Part.makePolygon(pts_3d)
+                world_face = Part.Face(wire)
                 if world_face:
                     elements.append(world_face)
             except Part.OCCError:
