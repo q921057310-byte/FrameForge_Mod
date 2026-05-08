@@ -334,6 +334,8 @@ class PatternFill:
                         "Pattern", "").GridMode = GRID_MODES
         obj.addProperty("App::PropertyDistance", "Thickness",
                         "Parameters", "").Thickness = 10.0
+        obj.addProperty("App::PropertyBool", "CutMode",
+                        "Parameters", "").CutMode = True
         obj.Proxy = self
 
     def execute(self, fp):
@@ -341,6 +343,16 @@ class PatternFill:
         base = base_obj.Shape
         base_sub_names = fp.baseObject[1]
         sketch = fp.Sketch
+
+        from freecad.frameforge2.create_offset_plane_tool import find_body
+        body = find_body(base_obj)
+        if body:
+            for sk in [sketch, getattr(fp, 'PatternSketch', None)]:
+                if sk is not None and find_body(sk) != body:
+                    try:
+                        body.addObject(sk)
+                    except Exception:
+                        pass
 
         from freecad.frameforge2.create_vent_tool import _getElementFromTNP
         face_found = False
@@ -469,10 +481,14 @@ class PatternFill:
         compound = Part.Compound(elements)
 
         try:
-            cut_solid = compound.extrude(extrude_dir)
-            result = base.cut(cut_solid)
+            if fp.CutMode:
+                tool_solid = compound.extrude(extrude_dir)
+                result = base.cut(tool_solid)
+            else:
+                tool_solid = compound.extrude(normal * thk)
+                result = base.fuse(tool_solid)
         except Part.OCCError as e:
-            raise FrameForge2Exception("Pattern cut failed: " + str(e))
+            raise FrameForge2Exception("Pattern failed: " + str(e))
 
         try:
             result = result.removeSplitter()
@@ -622,7 +638,17 @@ if App.GuiUp:
             th.addWidget(self.spin_thk)
             layout.addLayout(th)
 
+            self.cut_check = QtGui.QCheckBox("Cut 切除 (uncheck for Pad 凸台)")
+            self.cut_check.setChecked(True)
+            layout.addWidget(self.cut_check)
+
             layout.addStretch()
+
+            try:
+                if hasattr(self.obj, "baseObject") and self.obj.baseObject:
+                    self.obj.baseObject[0].ViewObject.Visibility = False
+            except Exception:
+                pass
 
             self._load_values()
 
@@ -634,6 +660,7 @@ if App.GuiUp:
             self.link_check.toggled.connect(self._on_link_toggled)
             self.spin_gradient.valueChanged.connect(self._on_gradient_changed)
             self.spin_thk.valueChanged.connect(self._on_thk_changed)
+            self.cut_check.toggled.connect(self._on_cut_changed)
             self.sketch_btn.clicked.connect(self._pick_pattern_sketch)
 
         def _load_values(self):
@@ -675,6 +702,10 @@ if App.GuiUp:
                 self.spin_thk.setValue(self.obj.Thickness.Value)
             except Exception:
                 self.spin_thk.setValue(10.0)
+            try:
+                self.cut_check.setChecked(getattr(self.obj, "CutMode", True))
+            except Exception:
+                pass
             try:
                 sk = getattr(self.obj, "PatternSketch", None)
                 if sk:
@@ -781,12 +812,16 @@ if App.GuiUp:
             self.obj.Thickness = val
             self._update()
 
+        def _on_cut_changed(self, checked):
+            self.obj.CutMode = checked
+            self._update()
+
         def accept(self):
             self._end_pick()
             try:
-                if hasattr(self.obj, "baseObject") and self.obj.baseObject:
-                    self.obj.baseObject[0].ViewObject.Visibility = True
                 self.obj.ViewObject.Visibility = True
+                if hasattr(self.obj, "baseObject") and self.obj.baseObject:
+                    self.obj.baseObject[0].ViewObject.Visibility = False
             except Exception:
                 pass
             App.ActiveDocument.commitTransaction()
@@ -796,6 +831,7 @@ if App.GuiUp:
         def reject(self):
             self._end_pick()
             try:
+                self.obj.ViewObject.Visibility = False
                 if hasattr(self.obj, "baseObject") and self.obj.baseObject:
                     self.obj.baseObject[0].ViewObject.Visibility = True
             except Exception:
@@ -860,6 +896,11 @@ if App.GuiUp:
             PatternFillVP(newObj.ViewObject)
             if body is not None:
                 body.addObject(newObj)
+                if pattern_sketch is not None and find_body(pattern_sketch) != body:
+                    try:
+                        body.addObject(pattern_sketch)
+                    except Exception:
+                        pass
             doc.recompute()
             newObj.ViewObject.Visibility = True
             panel = PatternFillTaskPanel(newObj)
