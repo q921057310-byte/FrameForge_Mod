@@ -182,7 +182,7 @@ print("PARSING: 5.svg (40x40 full perimeter)")
 print("=" * 80)
 
 segments_5 = parse_svg(
-    r"C:\Users\xing\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge2\freecad\frameforge2\resources\profiles\aluminum\svg\5.svg",
+    r"C:\Users\xing\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge_mod\freecad\frameforgemod\resources\profiles\aluminum\svg\5.svg",
     transform_scale_y=-1
 )
 
@@ -246,7 +246,7 @@ print("PARSING: 40槽口.svg (inner octagon hole)")
 print("=" * 80)
 
 segments_caokou = parse_svg(
-    r"C:\Users\xing\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge2\freecad\frameforge2\resources\profiles\aluminum\svg\40槽口.svg",
+    r"C:\Users\xing\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge_mod\freecad\frameforgemod\resources\profiles\aluminum\svg\40slot.svg",
     transform_scale_y=-1
 )
 

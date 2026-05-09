@@ -1,10 +1,10 @@
 
 
-# FrameForge2 Tutorial / FrameForge2 教程
+# FrameForge Tutorial / 型材框架教程 (Mod)
 
-FrameForge2 is a FreeCAD workbench for creating frames and beams, with operations like miter cuts, trim cuts, cutouts, BOM export, and more.
+FrameForge is a FreeCAD workbench for creating frames and beams, with operations like miter cuts, trim cuts, cutouts, BOM export, and more.
 
-FrameForge2 是一个 FreeCAD 工作台，用于创建框架和梁结构，支持斜切、修剪、开孔、BOM 导出等操作。
+型材框架 是一个 FreeCAD 工作台，用于创建框架和梁结构，支持斜切、修剪、开孔、BOM 导出等操作。
 
 ## Create the skeleton
 
