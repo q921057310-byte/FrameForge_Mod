@@ -423,6 +423,9 @@ class WhistleConnector:
         ).QYModel = ""
         obj.setEditorMode("QYModel", 1)
 
+        obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
+        obj.setEditorMode("CutResult", 2)
+
         obj.Proxy = self
 
     def dumps(self):
@@ -435,11 +438,6 @@ class WhistleConnector:
         if fp.ConnectorType == "TJoint":
             if fp.EndFace is not None and fp.DrillFace is not None:
                 self._execute_tjoint(fp)
-            elif fp.DrillFace is not None:
-                try:
-                    fp.Shape = Part.Compound([])
-                except Exception:
-                    pass
             else:
                 try:
                     fp.Shape = Part.Compound([])
@@ -448,16 +446,13 @@ class WhistleConnector:
             return
 
         if fp.DrillFace is None:
-            App.Console.PrintMessage("WhistleConnector: no DrillFace\n")
             return
         if fp.DrillFace[0] is fp:
-            App.Console.PrintMessage("WhistleConnector: face is on self\n")
             return
 
         drill_obj, drill_name = fp.DrillFace
         drill_face = drill_obj.getSubObject(drill_name[0])
         if drill_face is None:
-            App.Console.PrintWarning(f"WhistleConnector: face '{drill_name[0]}' not found\n")
             return
 
         try:
@@ -467,19 +462,7 @@ class WhistleConnector:
             App.Console.PrintWarning(f"WhistleConnector: bad drill face: {e}\n")
             return
 
-        body = _get_body_to_cut(drill_obj)
-        body_shape = _get_working_shape(body, fp)
-        if body_shape.isNull():
-            App.Console.PrintWarning("WhistleConnector: body null\n")
-            return
-
-        # ── Compute hole position ──
-        # Strategy: from drill face normal → which side of profile → groove center
-        # at side midpoint using end face local axes. Works for shoulder/wall/undercut clicks.
         hole_center = drill_center
-        App.Console.PrintMessage(
-            f"WhistleConnector: drill_center=({drill_center.x:.2f},{drill_center.y:.2f},{drill_center.z:.2f}) "
-            f"drill_normal=({drill_normal.x:.3f},{drill_normal.y:.3f},{drill_normal.z:.3f})\n")
         if fp.EndFace is not None:
             try:
                 end_obj, end_name = fp.EndFace
@@ -487,26 +470,22 @@ class WhistleConnector:
                 if end_face is not None:
                     end_dir = end_face.normalAt(0.5, 0.5)
                     end_ref = end_face.CenterOfGravity
-                    body_center = body_shape.BoundBox.Center
+                    body_center = drill_obj.Shape.BoundBox.Center
                     if end_dir.dot(body_center - end_ref) < 0:
                         end_dir = -end_dir
                     hole_dist = float(fp.HoleDistance)
 
-                    # Get profile cross-section dimensions
                     profile_obj = get_profile_from_trimmedbody(drill_obj)
                     W = float(getattr(profile_obj, 'ProfileWidth', 40))
                     H = float(getattr(profile_obj, 'ProfileHeight', 40))
 
-                    # Groove center: from BB side midpoint in end face plane
-                    bb = body_shape.BoundBox
+                    bb = drill_obj.Shape.BoundBox
                     bb_center = bb.Center
-                    # Find which BB axis drill_normal aligns with
                     dots = [(abs(drill_normal.x), "x", bb.XMin, bb.XMax),
                             (abs(drill_normal.y), "y", bb.YMin, bb.YMax),
                             (abs(drill_normal.z), "z", bb.ZMin, bb.ZMax)]
                     dots.sort(key=lambda x: -x[0])
                     ax_name, ax_min, ax_max = dots[0][1], dots[0][2], dots[0][3]
-                    # Sign of drill_normal along this axis
                     vec = App.Vector(1 if ax_name=="x" else 0,
                                      1 if ax_name=="y" else 0,
                                      1 if ax_name=="z" else 0)
@@ -514,28 +493,16 @@ class WhistleConnector:
                     half = (ax_max - ax_min) / 2.0
                     side_center = bb_center + vec * sign * half
 
-                    # Groove center = side midpoint, projected to end face plane
-                    # (removes extrusion component)
                     proj = side_center - end_dir * (side_center - end_ref).dot(end_dir)
                     hole_center = proj + end_dir * hole_dist
-                    App.Console.PrintMessage(
-                        f"WhistleConnector: side={ax_name} sign={'+' if sign>0 else '-'} "
-                        f"proj=({proj.x:.1f},{proj.y:.1f},{proj.z:.1f}) "
-                        f"+{hole_dist:.0f}mm → hole=({hole_center.x:.1f},{hole_center.y:.1f},{hole_center.z:.1f})\n")
             except Exception as e:
                 App.Console.PrintWarning(f"WhistleConnector: position failed: {e}\n")
 
-        # ── Drill parameters ──
         hole_r = float(fp.HoleDiameter) / 2.0
         hole_depth = float(fp.HoleDepth)
         extrude_len = hole_depth + 0.1
 
-        orig_vol = body_shape.Volume
-        # ── Direction: always drill perpendicular to drill face (into body) ──
-        # Priority: -drill_normal > drill_normal > orthogonal (fallback)
-        min_ok = 3.1416 * hole_r ** 2 * 1.0  # at least 1mm deep
-
-        def _cut_test(direction, label):
+        def _make_cyl(direction):
             try:
                 off = hole_center - direction * 0.1
                 circ = Part.Circle(off, direction, hole_r)
@@ -545,60 +512,44 @@ class WhistleConnector:
                 ex = f.extrude(direction * extrude_len)
                 if ex.isNull() or not ex.isValid():
                     return None
-                r = body_shape.cut(ex)
-                if r.isNull() or not r.isValid():
-                    return None
-                return r
+                return ex
             except Exception:
                 return None
 
-        # 1) Try -normal (into body) — this is the CORRECT direction
-        result = _cut_test(-drill_normal, "-normal")
-        if result is not None:
-            result = _reapply_trims(result, drill_obj)
-            removed = orig_vol - result.Volume
-            if removed > min_ok:
-                fp.Shape = result
-                App.Console.PrintMessage(
-                    f"WhistleConnector: perpendicular to drill face (-normal), "
-                    f"removed {removed:.0f}mm³\n")
-                self._update_structure_data(fp, get_profile_from_trimmedbody(drill_obj))
+        for d, lbl in [(-drill_normal, "-normal"), (drill_normal, "+normal")]:
+            cyl = _make_cyl(d)
+            if cyl is not None:
+                fp.Shape = cyl
+                self._sync_cut_label(fp)
                 return
 
-        # 2) Try +normal (out of body) — only if -normal didn't work
-        result = _cut_test(drill_normal, "+normal")
-        if result is not None:
-            result = _reapply_trims(result, drill_obj)
-            removed = orig_vol - result.Volume
-            if removed > min_ok:
-                fp.Shape = result
-                App.Console.PrintMessage(
-                    f"WhistleConnector: +normal direction (reverse), "
-                    f"removed {removed:.0f}mm³\n")
-                self._update_structure_data(fp, get_profile_from_trimmedbody(drill_obj))
-                return
-
-        # 3) Orthogonal fallback
         for axis in [App.Vector(1, 0, 0), App.Vector(0, 1, 0), App.Vector(0, 0, 1)]:
             perp = drill_normal.cross(axis)
             if perp.Length < 0.01:
                 continue
             perp.normalize()
             for d, lbl in [(perp, "+perp"), (-perp, "-perp")]:
-                result = _cut_test(d, lbl)
-                if result is not None:
-                    result = _reapply_trims(result, drill_obj)
-                    removed = orig_vol - result.Volume
-                    if removed > min_ok:
-                        fp.Shape = result
-                        App.Console.PrintMessage(
-                            f"WhistleConnector: {lbl} (fallback), "
-                            f"removed {removed:.0f}mm³\n")
-                        self._update_structure_data(fp, get_profile_from_trimmedbody(drill_obj))
-                        return
+                cyl = _make_cyl(d)
+                if cyl is not None:
+                    fp.Shape = cyl
+                    self._sync_cut_label(fp)
+                    return
 
-        App.Console.PrintWarning(
-            f"WhistleConnector: all directions failed\n")
+    def _sync_cut_label(self, fp):
+        cut = fp.CutResult
+        if cut is None:
+            return
+        try:
+            base = fp.DrillFace[0] if fp.DrillFace else None
+            if base is None:
+                return
+            name = getattr(base, "SizeName", None)
+            if not name:
+                label = base.Label
+                name = label.split("_Profile_")[0] if "_Profile_" in label else label
+            cut.Label = f"{name}_Cut"
+        except Exception:
+            pass
 
     def _execute_tjoint(self, fp):
         if fp.EndFace is None or fp.DrillFace is None:
@@ -681,15 +632,9 @@ class WhistleConnector:
         # Direction: drill into B body (opposite to drill_face normal)
         drill_dir = -drill_normal
 
-        body_b_shape = drill_obj.Shape
-        if body_b_shape.isNull():
-            App.Console.PrintWarning("TJointConnector: B body is null\n")
-            return
-
-        orig_vol = body_b_shape.Volume
         extrude_through = csink_depth + 100.0  # deep enough to go through
 
-        def _cut_cylinder(center, direction, diameter, length, body_shape):
+        def _make_cyl(center, direction, diameter, length):
             r = diameter / 2.0
             off = center - direction * 0.01
             try:
@@ -700,34 +645,28 @@ class WhistleConnector:
                 ex = f.extrude(direction * length)
                 if ex.isNull() or not ex.isValid():
                     return None
-                return body_shape.cut(ex)
+                return ex
             except Exception:
                 return None
 
-        # Step 1: Counterbore (outer, shallow)
-        step1 = _cut_cylinder(proj, drill_dir, csink_dia, csink_depth, body_b_shape)
-        if step1 is None or step1.isNull():
-            App.Console.PrintWarning("TJointConnector: countersink cut failed\n")
-            fp.Shape = body_b_shape
+        cb = _make_cyl(proj, drill_dir, csink_dia, csink_depth)
+        through_start = proj + drill_dir * (csink_depth - 0.02)
+        thru = _make_cyl(through_start, drill_dir, through_dia, extrude_through)
+
+        if cb is None:
+            fp.Shape = thru if thru else Part.Compound([])
+            return
+        if thru is None:
+            fp.Shape = cb
             return
 
-        # Step 2: Through hole (inner, deep) — cut from original surface deeper
-        # offset start to avoid overlapping cut artifact
-        through_start = proj + drill_dir * (csink_depth - 0.02)
-        step2 = _cut_cylinder(through_start, drill_dir, through_dia, extrude_through, step1)
-        if step2 is None or step2.isNull():
-            fp.Shape = step1  # at least keep the counterbore
-        else:
-            fp.Shape = step2
+        fp.Shape = cb.fuse(thru)
 
-        removed = orig_vol - fp.Shape.Volume
-        App.Console.PrintMessage(
-            f"TJointConnector: {screw} through⌀{through_dia:.1f} + csink⌀{csink_dia:.1f}x{csink_depth:.1f}, "
-            f"removed {removed:.0f}mm³\n"
-        )
-
-        self._update_structure_data(fp, prof_b)
+        fp.MatchedScrewSize = screw
+        fp.DetectedHoleDiameter = use_dia
         fp.TJointReferenceA = prof_a
+
+        self._sync_cut_label(fp)
 
     def _update_structure_data(self, obj, prof=None):
         try:
@@ -812,36 +751,12 @@ class ViewProviderWhistleConnector:
             return False
 
     def claimChildren(self):
-        children = []
-        parent = self._get_parent()
-        if parent:
-            children.append(parent)
-        try:
-            if self._both_faces_set():
-                end = self.Object.EndFace[0]
-                if end not in children:
-                    children.append(end)
-        except Exception:
-            pass
-        return children
+        return []
 
     def onChanged(self, vp, prop):
-        if prop == "DrillFace":
-            parent = self._get_parent()
-            if parent:
-                try:
-                    self.ViewObject.Visibility = False
-                    parent.ViewObject.Visibility = True
-                except Exception:
-                    pass
+        pass
 
     def onDelete(self, vobj, sub):
-        parent = self._get_parent()
-        if parent:
-            try:
-                parent.ViewObject.Visibility = True
-            except Exception:
-                pass
         return True
 
     def setEdit(self, vobj, mode):

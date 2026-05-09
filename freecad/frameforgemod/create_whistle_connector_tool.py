@@ -117,13 +117,10 @@ class WhistleConnectorTaskPanel:
     def reject(self):
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
-        if self._is_new:
-            try:
-                App.ActiveDocument.removeObject(self.obj.Name)
-            except Exception:
-                pass
-        elif self.dump:
-            self.obj.restoreContent(self.dump)
+        try:
+            App.ActiveDocument.removeObject(self.obj.Name)
+        except Exception:
+            pass
         App.ActiveDocument.abortTransaction()
         Gui.ActiveDocument.resetEdit()
         return True
@@ -154,15 +151,31 @@ class WhistleConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        self.obj.ViewObject.Visibility = True
-        parent = self.obj.DrillFace[0] if self.obj.DrillFace else None
-        if parent:
-            try:
-                parent.ViewObject.Visibility = False
-            except Exception:
-                pass
+        self._do_cut()
         Gui.ActiveDocument.resetEdit()
         return True
+
+    def _do_cut(self):
+        base = self.obj.DrillFace[0] if self.obj.DrillFace else None
+        if base is None:
+            return
+        try:
+            from BOPTools import BOPFeatures
+            bp = BOPFeatures.BOPFeatures(App.activeDocument())
+            cut_obj = bp.make_cut([base.Name, self.obj.Name])
+            if cut_obj:
+                name = getattr(base, "SizeName", None)
+                if not name:
+                    label = base.Label
+                    name = label.split("_Profile_")[0] if "_Profile_" in label else label
+                cut_obj.Label = f"{name}_Cut"
+                self.obj.CutResult = cut_obj
+                base.ViewObject.Visibility = False
+                self.obj.ViewObject.Visibility = False
+                App.ActiveDocument.recompute()
+                Gui.updateGui()
+        except Exception as e:
+            App.Console.PrintWarning(f"Connector: cut failed: {e}\n")
 
     # ── Selection handler ──────────────────────────────────
 
@@ -244,7 +257,7 @@ class WhistleConnectorCommand:
             "Accel": "M, W",
             "ToolTip": translate(
                 "frameforgemod",
-                "Click the end face, then the groove face. Hole is drilled centered on the groove.",
+                "Click the groove face, then the end face. Hole is drilled at the groove center.",
             ),
         }
 
@@ -305,7 +318,6 @@ class TJointConnectorTaskPanel:
         self.dump = obj.dumpContent()
         self._is_new = not (obj.DrillFace or obj.EndFace)
         self._obs = None
-        self._b_obj = None  # B profile object for hiding
 
         self.form = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(self.form)
@@ -385,24 +397,23 @@ class TJointConnectorTaskPanel:
         Gui.Selection.addObserver(self._obs)
         App.ActiveDocument.openTransaction("T-Joint Connector")
         self.obj.ConnectorType = "TJoint"
+        try:
+            self.obj.ViewObject.Visibility = False
+        except Exception:
+            pass
 
     def reject(self):
-        self._restore_b()
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
-        if self._is_new:
-            try:
-                App.ActiveDocument.removeObject(self.obj.Name)
-            except Exception:
-                pass
-        elif self.dump:
-            self.obj.restoreContent(self.dump)
+        try:
+            App.ActiveDocument.removeObject(self.obj.Name)
+        except Exception:
+            pass
         App.ActiveDocument.abortTransaction()
         Gui.ActiveDocument.resetEdit()
         return True
 
     def apply(self):
-        self._restore_b()
         App.ActiveDocument.commitTransaction()
         try:
             self.obj.recompute()
@@ -419,28 +430,35 @@ class TJointConnectorTaskPanel:
         App.Console.PrintMessage("T-Joint applied.\n")
 
     def accept(self):
-        self._restore_b()
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        self.obj.ViewObject.Visibility = True
-        parent = self.obj.DrillFace[0] if self.obj.DrillFace else None
-        if parent:
-            try:
-                parent.ViewObject.Visibility = False
-            except Exception:
-                pass
+        self._do_cut()
         Gui.ActiveDocument.resetEdit()
         return True
 
-    def _restore_b(self):
-        if self._b_obj:
-            try:
-                self._b_obj.ViewObject.Visibility = True
-            except Exception:
-                pass
-        self._b_obj = None
+    def _do_cut(self):
+        base = self.obj.DrillFace[0] if self.obj.DrillFace else None
+        if base is None:
+            return
+        try:
+            from BOPTools import BOPFeatures
+            bp = BOPFeatures.BOPFeatures(App.activeDocument())
+            cut_obj = bp.make_cut([base.Name, self.obj.Name])
+            if cut_obj:
+                name = getattr(base, "SizeName", None)
+                if not name:
+                    label = base.Label
+                    name = label.split("_Profile_")[0] if "_Profile_" in label else label
+                cut_obj.Label = f"{name}_Cut"
+                self.obj.CutResult = cut_obj
+                base.ViewObject.Visibility = False
+                self.obj.ViewObject.Visibility = False
+                App.ActiveDocument.recompute()
+                Gui.updateGui()
+        except Exception as e:
+            App.Console.PrintWarning(f"T-Joint: cut failed: {e}\n")
 
     def _on_selection(self, doc_name, obj_name, sub):
         if not sub or not sub.startswith("Face"):
@@ -456,8 +474,7 @@ class TJointConnectorTaskPanel:
         try:
             proxy = getattr(sel_obj, "Proxy", None)
             if proxy is not None and getattr(proxy, "Type", "") == "WhistleConnector":
-                App.Console.PrintMessage("Skipping connector object, select a profile face. "
-                                          "Hide the connector in the tree to see the profile.\n")
+                App.Console.PrintMessage("Skipping connector object, select a profile face.\n")
                 return
         except Exception:
             pass
@@ -466,16 +483,11 @@ class TJointConnectorTaskPanel:
         if not isinstance(face, Part.Face):
             return
 
-        # Step 1: click B side face (DrillFace) → hide B
+        # Step 1: click B side face (DrillFace)
         if self.obj.DrillFace is None:
             self.obj.DrillFace = (sel_obj, (sub,))
             self.b_label.setText(
                 f"{translate('frameforgemod', 'B side face')}: {sel_obj.Label} ({sub})")
-            self._b_obj = sel_obj
-            try:
-                self._b_obj.ViewObject.Visibility = False
-            except Exception:
-                pass
             self.obj.recompute()
             App.Console.PrintMessage(
                 f"B side face set: {sel_obj.Label} {sub}. "
@@ -490,7 +502,6 @@ class TJointConnectorTaskPanel:
             f"{translate('frameforgemod', 'A end face')}: {sel_obj.Label} ({sub})")
         App.Console.PrintMessage(f"A end face set: {sel_obj.Label} {sub}\n")
 
-        self._restore_b()
         self._detect_and_match(face)
         self.obj.recompute()
         App.Console.PrintMessage("Ready. Press Apply or OK.\n")
@@ -555,7 +566,7 @@ class TJointConnectorCommand:
             "Accel": "M, T",
             "ToolTip": translate(
                 "frameforgemod",
-                "Select two profiles in T-joint. Auto-detects A/B, hides B, drills countersunk through hole.",
+                "Click the B side face, then the A end face. Drills a countersunk through hole for T-joint.",
             ),
         }
 

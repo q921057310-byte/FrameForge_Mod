@@ -796,13 +796,31 @@ class ImportAluminumProfileTaskPanel:
         raw = Gui.Selection.getSelectionEx()
         self.edge_selection = []
         for sel in raw:
+            obj = sel.Object
+            if self._is_profile_object(obj):
+                App.Console.PrintMessage(f"Skipping profile edge: {obj.Label}\n")
+                continue
             top = [n for n in sel.SubElementNames if n.startswith("Edge") and ":" not in n]
-            # If no specific edges selected but object has edges, use all
-            if not top and hasattr(sel.Object, "Shape") and sel.Object.Shape and sel.Object.Shape.Edges:
-                top = [f"Edge{i + 1}" for i in range(len(sel.Object.Shape.Edges))]
+            if not top and hasattr(obj, "Shape") and obj.Shape and obj.Shape.Edges:
+                top = [f"Edge{i + 1}" for i in range(len(obj.Shape.Edges))]
             if top:
-                self.edge_selection.append(_Sel(sel.Object, top))
+                self.edge_selection.append(_Sel(obj, top))
         self._update_edge_label()
+
+    @staticmethod
+    def _is_profile_object(obj):
+        if not hasattr(obj, "TypeId") or obj.TypeId != "Part::FeaturePython":
+            return False
+        if hasattr(obj, "ProfileWidth") and hasattr(obj, "ProfileHeight"):
+            return True
+        if hasattr(obj, "TrimmedBody"):
+            return True
+        if hasattr(obj, "baseObject"):
+            return True
+        proxy = getattr(obj, "Proxy", None)
+        if proxy is not None and getattr(proxy, "Type", "") == "HoleFeature":
+            return True
+        return False
 
     def _update_edge_label(self):
         if not hasattr(self, 'selection_label'):

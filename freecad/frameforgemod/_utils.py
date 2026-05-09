@@ -190,6 +190,14 @@ def is_whistleconnector(obj):
     return False
 
 
+def is_holefeature(obj):
+    if obj.TypeId == "Part::FeaturePython":
+        proxy = getattr(obj, "Proxy", None)
+        if proxy is not None and getattr(proxy, "Type", "") == "HoleFeature":
+            return True
+    return False
+
+
 def is_tjointconnector(obj):
     if obj.TypeId == "Part::FeaturePython":
         if hasattr(obj, "ConnectorType") and obj.ConnectorType == "TJoint":

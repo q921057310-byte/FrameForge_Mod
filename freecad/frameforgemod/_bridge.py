@@ -22,6 +22,7 @@ _submodules = [
     "create_profiles_tool",
     "create_trimmed_profiles_tool",
     "create_vent_tool",
+    "create_connector_hole_tool",
     "create_whistle_connector_tool",
     "edit_profile_tool",
     "end_cap",
@@ -37,6 +38,7 @@ _submodules = [
     "trimmed_profile",
     "utilities",
     "version",
+    "connector_hole",
     "whistle_connector",
 ]
 

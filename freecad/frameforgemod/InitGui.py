@@ -191,6 +191,7 @@ class FrameForgemod(Gui.Workbench):
         "frameforgemod_EndCap",
         "frameforgemod_Gusset",
         "frameforgemod_ConnectorGroup",
+        "frameforgemod_HoleFeature",
     ]
 
     toolbox_group = ["Std_Group", "Std_Part"]
@@ -214,7 +215,11 @@ class FrameForgemod(Gui.Workbench):
 
     toolbox_other = ["frameforgemod_AddVent", "frameforgemod_PatternFill", "frameforgemod_OffsetPlane"]
 
-    toolbox_utilities = ["frameforgemod_RecomputeFrameForgeObjects", "frameforgemod_ExportTechDraw"]
+    toolbox_utilities = [
+        "frameforgemod_RecomputeFrameForgeObjects",
+        "frameforgemod_ExportTechDraw",
+        "frameforgemod_Isolate",
+    ]
 
     def GetClassName(self):
         return "Gui::PythonWorkbench"
@@ -248,8 +253,10 @@ class FrameForgemod(Gui.Workbench):
             create_profiles_tool,
             create_trimmed_profiles_tool,
             create_vent_tool,
+            create_connector_hole_tool,
             create_whistle_connector_tool,
             edit_profile_tool,
+            isolate_tool,
             parametric_line,
             populate_ids_tool,
             utilities,
