@@ -33,11 +33,6 @@ class CreateTrimmedProfileTaskPanel:
         # Top-right Apply button
         _top_row = QtWidgets.QHBoxLayout()
         _top_row.addStretch()
-        _apply_btn = QtWidgets.QPushButton(translate("frameforgemod", "Apply"))
-        _apply_btn.setFixedWidth(60)
-        _apply_btn.setFixedHeight(22)
-        _apply_btn.clicked.connect(self.apply)
-        _top_row.addWidget(_apply_btn)
         self.form.layout().insertLayout(0, _top_row)
 
         self.fp = fp
@@ -237,6 +232,9 @@ class CreateTrimmedProfileTaskPanel:
         if hasattr(self, 'dump') and hasattr(self.fp, 'dumpContent'):
             self.dump = self.fp.dumpContent()
         App.ActiveDocument.openTransaction("Continue editing")
+        self.trimmed_bodies = []
+        self.form.bodies_list_widget.clear()
+        self.form.boundaries_list_widget.clear()
         App.Console.PrintMessage("Ready. Continue adding trims or click OK.\n")
 
     def accept(self):
@@ -315,7 +313,14 @@ class TrimProfileCommand:
 def make_trimmed_profile(trimmedBody=None, trimmingBoundary=None):
     doc = App.ActiveDocument
 
-    name = "TrimmedProfile" if trimmedBody is None else f"{trimmedBody.Name}_Tr"
+    if trimmedBody is None:
+        name = "TrimmedProfile"
+    else:
+        n = getattr(trimmedBody, "SizeName", None)
+        if not n:
+            label = trimmedBody.Label
+            n = label.split("_Profile_")[0] if "_Profile_" in label else label
+        name = f"{n}_Tr"
     trimmed_profile = doc.addObject("Part::FeaturePython", name)
 
     if trimmedBody is not None and len(trimmedBody.Parents) > 0:
