@@ -150,10 +150,13 @@ class WhistleConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        try:
-            self.obj.ViewObject.Visibility = False
-        except Exception:
-            pass
+        self.obj.ViewObject.Visibility = True
+        parent = self.obj.DrillFace[0] if self.obj.DrillFace else None
+        if parent:
+            try:
+                parent.ViewObject.Visibility = False
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -435,10 +438,13 @@ class TJointConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        try:
-            self.obj.ViewObject.Visibility = False
-        except Exception:
-            pass
+        self.obj.ViewObject.Visibility = True
+        parent = self.obj.DrillFace[0] if self.obj.DrillFace else None
+        if parent:
+            try:
+                parent.ViewObject.Visibility = False
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
