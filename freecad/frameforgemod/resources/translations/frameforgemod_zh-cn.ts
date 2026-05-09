@@ -864,5 +864,37 @@ Select Edges or set Length</source>
         <source>Selected face for the end cap</source>
         <translation>用于端盖的面</translation>
     </message>
+    <message>
+        <source>Chamfer on the two edges along the profiles (right angle side)</source>
+        <translation>直角边倒角（靠型材的两条边）</translation>
+    </message>
+    <message>
+        <source>Chamfer size for the right angle edges</source>
+        <translation>直角边倒角尺寸</translation>
+    </message>
+    <message>
+        <source>Chamfer on the free edge (hypotenuse)</source>
+        <translation>锐角边倒角（外缘斜边）</translation>
+    </message>
+    <message>
+        <source>Chamfer size for the acute edges</source>
+        <translation>锐角边倒角尺寸</translation>
+    </message>
+    <message>
+        <source>Right angle edges</source>
+        <translation>直角边</translation>
+    </message>
+    <message>
+        <source>RA chamfer size</source>
+        <translation>直角边倒角尺寸</translation>
+    </message>
+    <message>
+        <source>Acute edge</source>
+        <translation>锐角边</translation>
+    </message>
+    <message>
+        <source>AC chamfer size</source>
+        <translation>锐角边倒角尺寸</translation>
+    </message>
 </context>
 </TS>

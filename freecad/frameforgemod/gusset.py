@@ -95,6 +95,34 @@ class Gusset:
             translate("App::Property", "Hole diameter"),
         ).HoleDiameter = 8.0
 
+        obj.addProperty(
+            "App::PropertyBool",
+            "ChamferRightAngle",
+            "Gusset",
+            translate("App::Property", "Chamfer on the two edges along the profiles (right angle side)"),
+        ).ChamferRightAngle = False
+
+        obj.addProperty(
+            "App::PropertyLength",
+            "ChamferRightAngleSize",
+            "Gusset",
+            translate("App::Property", "Chamfer size for the right angle edges"),
+        ).ChamferRightAngleSize = 3.0
+
+        obj.addProperty(
+            "App::PropertyBool",
+            "ChamferAcute",
+            "Gusset",
+            translate("App::Property", "Chamfer on the free edge (hypotenuse)"),
+        ).ChamferAcute = False
+
+        obj.addProperty(
+            "App::PropertyLength",
+            "ChamferAcuteSize",
+            "Gusset",
+            translate("App::Property", "Chamfer size for the acute edges"),
+        ).ChamferAcuteSize = 3.0
+
         obj.Proxy = self
         self._cached_key = None
         self._cached_shape = None
@@ -118,6 +146,10 @@ class Gusset:
                 int(fp.PositionAlign),
                 float(fp.PositionOffset),
                 int(fp.HoleEnabled),
+                int(fp.ChamferRightAngle),
+                float(fp.ChamferRightAngleSize) if fp.ChamferRightAngle else 0.0,
+                int(fp.ChamferAcute),
+                float(fp.ChamferAcuteSize) if fp.ChamferAcute else 0.0,
             ]
             for face_prop in (fp.Face1, fp.Face2):
                 if face_prop and len(face_prop) > 0 and len(face_prop[0]) >= 2:
@@ -135,7 +167,9 @@ class Gusset:
     def onChanged(self, fp, prop):
         if prop in ("Face1", "Face2", "Thickness", "LegLength1", "LegLength2",
                      "Offset", "ThicknessAlign", "PositionAlign", "PositionOffset",
-                     "HoleEnabled", "HoleDiameter"):
+                     "HoleEnabled", "HoleDiameter",
+                     "ChamferRightAngle", "ChamferRightAngleSize",
+                     "ChamferAcute", "ChamferAcuteSize"):
             self._cached_key = None
             self._cached_shape = None
             fp.recompute()
@@ -299,6 +333,42 @@ class Gusset:
                     gusset = gusset.cut(hole)
             except Exception:
                 pass
+
+        # Chamfers — find face-triangle edges (perpendicular to thickness direction)
+        try:
+            dir1_n = dir1.normalize()
+            dir2_n = dir2.normalize()
+            hyp_dir = (v2 - v1).normalize()
+            tri_n = tri_normal
+
+            def _classify_edges(shape):
+                ra, ac = [], []
+                for e in shape.Edges:
+                    if len(e.Vertexes) < 2:
+                        continue
+                    ed = e.Vertexes[-1].Point - e.Vertexes[0].Point
+                    el = ed.Length
+                    if el < 0.01:
+                        continue
+                    ed_n = ed / el
+                    if abs(ed_n.dot(tri_n)) > 0.5:
+                        continue
+                    if abs(ed_n.dot(dir1_n)) > 0.9 or abs(ed_n.dot(dir2_n)) > 0.9:
+                        ra.append(e)
+                    elif abs(ed_n.dot(hyp_dir)) > 0.9:
+                        ac.append(e)
+                return ra, ac
+
+            if fp.ChamferRightAngle and fp.ChamferRightAngleSize > 0:
+                ra, _ = _classify_edges(gusset)
+                if ra:
+                    gusset = gusset.makeChamfer(float(fp.ChamferRightAngleSize), ra)
+            if fp.ChamferAcute and fp.ChamferAcuteSize > 0:
+                _, ac = _classify_edges(gusset)
+                if ac:
+                    gusset = gusset.makeChamfer(float(fp.ChamferAcuteSize), ac)
+        except Exception:
+            pass
 
         fp.Shape = gusset
         self._cached_key = cache_key

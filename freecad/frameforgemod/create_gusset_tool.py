@@ -132,6 +132,35 @@ class CreateGussetTaskPanel:
         self.spin_hole_dia.valueChanged.connect(self.on_hole_dia_changed)
         opt_layout.addRow(translate("frameforgemod", "Hole diameter"), self.spin_hole_dia)
 
+        # Chamfer options
+        self.cb_chamfer_ra = QtWidgets.QCheckBox(translate("frameforgemod", "Right angle edges"))
+        self.cb_chamfer_ra.setChecked(obj.ChamferRightAngle)
+        self.cb_chamfer_ra.toggled.connect(self.on_chamfer_ra_toggled)
+        opt_layout.addRow(self.cb_chamfer_ra)
+
+        self.spin_chamfer_ra = QtWidgets.QDoubleSpinBox()
+        self.spin_chamfer_ra.setRange(0.1, 100.0)
+        self.spin_chamfer_ra.setDecimals(1)
+        self.spin_chamfer_ra.setValue(float(obj.ChamferRightAngleSize))
+        self.spin_chamfer_ra.setSuffix(" mm")
+        self.spin_chamfer_ra.setEnabled(obj.ChamferRightAngle)
+        self.spin_chamfer_ra.valueChanged.connect(self.on_chamfer_ra_size_changed)
+        opt_layout.addRow(translate("frameforgemod", "RA chamfer size"), self.spin_chamfer_ra)
+
+        self.cb_chamfer_ac = QtWidgets.QCheckBox(translate("frameforgemod", "Acute edge"))
+        self.cb_chamfer_ac.setChecked(obj.ChamferAcute)
+        self.cb_chamfer_ac.toggled.connect(self.on_chamfer_ac_toggled)
+        opt_layout.addRow(self.cb_chamfer_ac)
+
+        self.spin_chamfer_ac = QtWidgets.QDoubleSpinBox()
+        self.spin_chamfer_ac.setRange(0.1, 100.0)
+        self.spin_chamfer_ac.setDecimals(1)
+        self.spin_chamfer_ac.setValue(float(obj.ChamferAcuteSize))
+        self.spin_chamfer_ac.setSuffix(" mm")
+        self.spin_chamfer_ac.setEnabled(obj.ChamferAcute)
+        self.spin_chamfer_ac.valueChanged.connect(self.on_chamfer_ac_size_changed)
+        opt_layout.addRow(translate("frameforgemod", "AC chamfer size"), self.spin_chamfer_ac)
+
         layout.addWidget(opt_group)
 
         layout.addStretch()
@@ -210,6 +239,24 @@ class CreateGussetTaskPanel:
 
     def on_hole_dia_changed(self, val):
         self.obj.HoleDiameter = val
+        self.obj.recompute()
+
+    def on_chamfer_ra_toggled(self, checked):
+        self.obj.ChamferRightAngle = checked
+        self.spin_chamfer_ra.setEnabled(checked)
+        self.obj.recompute()
+
+    def on_chamfer_ra_size_changed(self, val):
+        self.obj.ChamferRightAngleSize = val
+        self.obj.recompute()
+
+    def on_chamfer_ac_toggled(self, checked):
+        self.obj.ChamferAcute = checked
+        self.spin_chamfer_ac.setEnabled(checked)
+        self.obj.recompute()
+
+    def on_chamfer_ac_size_changed(self, val):
+        self.obj.ChamferAcuteSize = val
         self.obj.recompute()
 
     def update_ui(self):
