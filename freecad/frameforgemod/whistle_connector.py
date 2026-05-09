@@ -766,8 +766,17 @@ class ViewProviderWhistleConnector:
         self.Object = vobj.Object
         vobj.ShapeColor = (0.6, 0.6, 0.6)
         vobj.Transparency = 0
+        vobj.Visibility = True
 
     def updateData(self, fp, prop):
+        self.ViewObject.Visibility = True
+        if prop == "Shape":
+            parent = self._get_parent()
+            if parent:
+                try:
+                    parent.ViewObject.Visibility = False
+                except Exception:
+                    pass
         if prop in ("DrillFace", "EndFace", "Shape"):
             ref_face = None
             try:
