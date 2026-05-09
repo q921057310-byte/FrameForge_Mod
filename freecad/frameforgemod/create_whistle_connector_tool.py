@@ -34,6 +34,7 @@ class WhistleConnectorTaskPanel:
     def __init__(self, obj):
         self.obj = obj
         self.dump = obj.dumpContent()
+        self._is_new = not (obj.DrillFace or obj.EndFace)
         self._obs = None
 
         self.form = QtWidgets.QWidget()
@@ -116,11 +117,14 @@ class WhistleConnectorTaskPanel:
     def reject(self):
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
+        if self._is_new:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
+        elif self.dump:
+            self.obj.restoreContent(self.dump)
         App.ActiveDocument.abortTransaction()
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -165,9 +169,7 @@ class WhistleConnectorTaskPanel:
     def _on_selection(self, doc_name, obj_name, sub):
         if not sub:
             return
-        is_face = sub.startswith("Face")
-        is_edge = sub.startswith("Edge")
-        if not (is_face or is_edge):
+        if not sub.startswith("Face"):
             return
         if self.obj is None or obj_name == self.obj.Name:
             return
@@ -178,25 +180,10 @@ class WhistleConnectorTaskPanel:
             return
 
         sub_obj = obj.getSubObject(sub)
-        if is_face and not isinstance(sub_obj, Part.Face):
+        if not isinstance(sub_obj, Part.Face):
             return
-        if is_edge:
-            edge = sub_obj
-            try:
-                curve = edge.Curve
-                try:
-                    _ = curve.Center
-                    _ = curve.Axis
-                except Exception:
-                    App.Console.PrintMessage(
-                        f"Edge {sub} curve has no Center/Axis (curve type: {type(curve).__name__})\n")
-                    return
-                dia = curve.Radius * 2
-            except Exception as e:
-                App.Console.PrintMessage(f"Edge {sub} cannot get curve: {e}\n")
-                return
 
-        # Toggle: clicking same face/edge again clears it
+        # Toggle: clicking same face again clears it
         for slot, label in [("DrillFace", self.drill_label), ("EndFace", self.end_label)]:
             stored = getattr(self.obj, slot)
             if stored and len(stored) > 0 and stored[0] is obj and stored[1] == (sub,):
@@ -206,7 +193,7 @@ class WhistleConnectorTaskPanel:
                 self.obj.recompute()
                 return
 
-        # Ordered: click drill face/edge first, then optionally end face
+        # Ordered: click drill face first, then optionally end face
         if self.obj.DrillFace is None:
             self.obj.DrillFace = (obj, (sub,))
             self.drill_label.setText(
@@ -214,15 +201,7 @@ class WhistleConnectorTaskPanel:
             self._update_qy()
             self.obj.recompute()
             App.Console.PrintMessage(f"Drill set: {obj.Label} {sub}\n")
-            if is_edge:
-                App.Console.PrintMessage(
-                    f"Arc edge (⌀{dia:.1f}mm) selected. "
-                    f"Auto end-face detection active. OK to finish.\n")
-            else:
-                App.Console.PrintMessage("Click END FACE for distance (optional), or press OK.\n")
-        elif is_edge:
-            App.Console.PrintMessage("EndFace must be a face, not an edge. "
-                                      "Click the cross-section face of the profile.\n")
+            App.Console.PrintMessage("Click END FACE for distance (optional), or press OK.\n")
         else:
             self.obj.EndFace = (obj, (sub,))
             self.end_label.setText(
@@ -324,6 +303,7 @@ class TJointConnectorTaskPanel:
     def __init__(self, obj):
         self.obj = obj
         self.dump = obj.dumpContent()
+        self._is_new = not (obj.DrillFace or obj.EndFace)
         self._obs = None
         self._b_obj = None  # B profile object for hiding
 
@@ -410,7 +390,13 @@ class TJointConnectorTaskPanel:
         self._restore_b()
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
-        self.obj.restoreContent(self.dump)
+        if self._is_new:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
+        elif self.dump:
+            self.obj.restoreContent(self.dump)
         App.ActiveDocument.abortTransaction()
         Gui.ActiveDocument.resetEdit()
         return True
@@ -470,7 +456,8 @@ class TJointConnectorTaskPanel:
         try:
             proxy = getattr(sel_obj, "Proxy", None)
             if proxy is not None and getattr(proxy, "Type", "") == "WhistleConnector":
-                App.Console.PrintMessage("Skipping connector object, select a profile face.\n")
+                App.Console.PrintMessage("Skipping connector object, select a profile face. "
+                                          "Hide the connector in the tree to see the profile.\n")
                 return
         except Exception:
             pass

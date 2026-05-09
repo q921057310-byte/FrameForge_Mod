@@ -415,15 +415,15 @@ class TrimmedProfile:
         except Exception:
             return
 
-        obj.PID = prof.PID
-        obj.Width = prof.ProfileWidth
-        obj.Height = prof.ProfileHeight
-        obj.Family = prof.Family
-        obj.CustomProfile = prof.CustomProfile
-        obj.SizeName = prof.SizeName
-        obj.Material = prof.Material
-        obj.ApproxWeight = prof.ApproxWeight
-        obj.Price = prof.Price
+        obj.PID = getattr(prof, "PID", "")
+        obj.Width = getattr(prof, "ProfileWidth", 0)
+        obj.Height = getattr(prof, "ProfileHeight", 0)
+        obj.Family = getattr(prof, "Family", "")
+        obj.CustomProfile = getattr(prof, "CustomProfile", None)
+        obj.SizeName = getattr(prof, "SizeName", "")
+        obj.Material = getattr(prof, "Material", "")
+        obj.ApproxWeight = getattr(prof, "ApproxWeight", 0)
+        obj.Price = getattr(prof, "Price", 0)
 
         cut_angles = get_readable_cutting_angles(
             getattr(prof, "BevelACutY", "N/A"),

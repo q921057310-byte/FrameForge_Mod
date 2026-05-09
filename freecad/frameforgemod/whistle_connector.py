@@ -681,7 +681,7 @@ class WhistleConnector:
         # Direction: drill into B body (opposite to drill_face normal)
         drill_dir = -drill_normal
 
-        body_b_shape = _get_working_shape(_get_body_to_cut(drill_obj), fp)
+        body_b_shape = drill_obj.Shape
         if body_b_shape.isNull():
             App.Console.PrintWarning("TJointConnector: B body is null\n")
             return
@@ -708,7 +708,7 @@ class WhistleConnector:
         step1 = _cut_cylinder(proj, drill_dir, csink_dia, csink_depth, body_b_shape)
         if step1 is None or step1.isNull():
             App.Console.PrintWarning("TJointConnector: countersink cut failed\n")
-            fp.Shape = _reapply_trims(body_b_shape, drill_obj)
+            fp.Shape = body_b_shape
             return
 
         # Step 2: Through hole (inner, deep) — cut from original surface deeper
@@ -716,9 +716,9 @@ class WhistleConnector:
         through_start = proj + drill_dir * (csink_depth - 0.02)
         step2 = _cut_cylinder(through_start, drill_dir, through_dia, extrude_through, step1)
         if step2 is None or step2.isNull():
-            fp.Shape = _reapply_trims(step1, drill_obj)
+            fp.Shape = step1  # at least keep the counterbore
         else:
-            fp.Shape = _reapply_trims(step2, drill_obj)
+            fp.Shape = step2
 
         removed = orig_vol - fp.Shape.Volume
         App.Console.PrintMessage(
@@ -766,17 +766,8 @@ class ViewProviderWhistleConnector:
         self.Object = vobj.Object
         vobj.ShapeColor = (0.6, 0.6, 0.6)
         vobj.Transparency = 0
-        vobj.Visibility = True
 
     def updateData(self, fp, prop):
-        self.ViewObject.Visibility = True
-        if prop == "Shape":
-            parent = self._get_parent()
-            if parent:
-                try:
-                    parent.ViewObject.Visibility = False
-                except Exception:
-                    pass
         if prop in ("DrillFace", "EndFace", "Shape"):
             ref_face = None
             try:
@@ -821,13 +812,28 @@ class ViewProviderWhistleConnector:
             return False
 
     def claimChildren(self):
+        children = []
         parent = self._get_parent()
         if parent:
-            return [parent]
-        return []
+            children.append(parent)
+        try:
+            if self._both_faces_set():
+                end = self.Object.EndFace[0]
+                if end not in children:
+                    children.append(end)
+        except Exception:
+            pass
+        return children
 
     def onChanged(self, vp, prop):
-        pass
+        if prop == "DrillFace":
+            parent = self._get_parent()
+            if parent:
+                try:
+                    self.ViewObject.Visibility = False
+                    parent.ViewObject.Visibility = True
+                except Exception:
+                    pass
 
     def onDelete(self, vobj, sub):
         parent = self._get_parent()
