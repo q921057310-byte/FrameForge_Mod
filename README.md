@@ -28,7 +28,7 @@ FrameForge is a FreeCAD workbench for designing beams and frames with cut, miter
 - **Populate IDs** for profile management / 型材 ID 自动编号管理
 - **Dynamic Data** integration (bundled) / 集成动态数据插件
 - **Price / Weight tracking** / 价格/重量追踪
-
+https://github.com/q921057310-byte/FrameForge_Mod/blob/348a72e9319fb45c44be6533b16470413d2eb708/docs/images/%E5%8A%A0%E5%BC%BA%E7%AD%8B.png
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L3L41KKMJR)
 
 ---
