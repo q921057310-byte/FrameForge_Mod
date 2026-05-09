@@ -10,6 +10,7 @@ except ImportError:
     QtWidgets = QtGui
 
 from freecad.frameforgemod._utils import (
+    is_cut,
     is_endcap,
     is_extrudedcutout,
     is_fusion,
@@ -102,6 +103,7 @@ class CreateBOMTaskPanel:
             [
                 (
                     is_fusion(s)
+                    or is_cut(s)
                     or is_part(s)
                     or is_group(s)
                     or is_profile(s)
@@ -194,6 +196,7 @@ class CreateBOMCommand:
                 return all(
                     [
                         is_fusion(sel)
+                        or is_cut(sel)
                         or is_part(sel)
                         or is_group(sel)
                         or is_profile(sel)

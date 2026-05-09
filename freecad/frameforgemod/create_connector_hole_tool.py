@@ -31,33 +31,38 @@ class HoleFeatureTaskPanel:
 
         top_bar = QtWidgets.QHBoxLayout()
         top_bar.addStretch()
-        ok_btn = QtWidgets.QPushButton("OK")
+        ok_btn = QtWidgets.QPushButton(translate("frameforgemod", "OK"))
         ok_btn.setFixedWidth(60)
         ok_btn.setFixedHeight(22)
         ok_btn.clicked.connect(self.accept)
         top_bar.addWidget(ok_btn)
-        cancel_btn = QtWidgets.QPushButton("Cancel")
+        apply_btn = QtWidgets.QPushButton(translate("frameforgemod", "Apply"))
+        apply_btn.setFixedWidth(60)
+        apply_btn.setFixedHeight(22)
+        apply_btn.clicked.connect(self.apply)
+        top_bar.addWidget(apply_btn)
+        cancel_btn = QtWidgets.QPushButton(translate("frameforgemod", "Cancel"))
         cancel_btn.setFixedWidth(60)
         cancel_btn.setFixedHeight(22)
         cancel_btn.clicked.connect(self.reject)
         top_bar.addWidget(cancel_btn)
         layout.addLayout(top_bar)
 
-        info = QtWidgets.QLabel(
+        info = QtWidgets.QLabel(translate("frameforgemod",
             "<b>Hole</b><br>"
             "1. Click PROFILE face<br>"
             "2. Click SKETCH: points / circles(center) / lines(both ends)<br>"
             "   (click again to remove)"
-        )
+        ))
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        self.base_label = QtWidgets.QLabel("Base: not set")
+        self.base_label = QtWidgets.QLabel(translate("frameforgemod", "Base: not set"))
         layout.addWidget(self.base_label)
-        self.pos_label = QtWidgets.QLabel("Positions: 0")
+        self.pos_label = QtWidgets.QLabel(translate("frameforgemod", "Positions: 0"))
         layout.addWidget(self.pos_label)
 
-        param_group = QtWidgets.QGroupBox("Hole Parameters")
+        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "Hole Parameters"))
         param_layout = QtWidgets.QFormLayout(param_group)
 
         self.hole_type = QtWidgets.QComboBox()
@@ -65,14 +70,14 @@ class HoleFeatureTaskPanel:
         current_type = str(obj.HoleType)
         self.hole_type.setCurrentText(current_type)
         self.hole_type.currentTextChanged.connect(self._on_type_changed)
-        param_layout.addRow("Type", self.hole_type)
+        param_layout.addRow(translate("frameforgemod", "Type"), self.hole_type)
 
         self.bolt_spec = QtWidgets.QComboBox()
         self.bolt_spec.addItems(list(BOLT_PRESETS.keys()))
         current_spec = str(obj.BoltSpec)
         self.bolt_spec.setCurrentText(current_spec)
         self.bolt_spec.currentTextChanged.connect(self._on_bolt_changed)
-        param_layout.addRow("Bolt", self.bolt_spec)
+        param_layout.addRow(translate("frameforgemod", "Bolt"), self.bolt_spec)
 
         self.spin_dia = QtWidgets.QDoubleSpinBox()
         self.spin_dia.setRange(1.0, 100.0)
@@ -81,7 +86,7 @@ class HoleFeatureTaskPanel:
         self.spin_dia.setValue(float(obj.HoleDiameter))
         self.spin_dia.valueChanged.connect(
             lambda v: self._set_and_recompute("HoleDiameter", v))
-        param_layout.addRow("Diameter", self.spin_dia)
+        param_layout.addRow(translate("frameforgemod", "Diameter"), self.spin_dia)
 
         self.spin_depth = QtWidgets.QDoubleSpinBox()
         self.spin_depth.setRange(0.0, 500.0)
@@ -90,7 +95,7 @@ class HoleFeatureTaskPanel:
         self.spin_depth.setValue(float(obj.HoleDepth))
         self.spin_depth.valueChanged.connect(
             lambda v: self._set_and_recompute("HoleDepth", v))
-        param_layout.addRow("Depth", self.spin_depth)
+        param_layout.addRow(translate("frameforgemod", "Depth"), self.spin_depth)
 
         self.spin_csink_dia = QtWidgets.QDoubleSpinBox()
         self.spin_csink_dia.setRange(1.0, 100.0)
@@ -99,7 +104,7 @@ class HoleFeatureTaskPanel:
         self.spin_csink_dia.setValue(float(obj.CounterSinkDiameter))
         self.spin_csink_dia.valueChanged.connect(
             lambda v: self._set_and_recompute("CounterSinkDiameter", v))
-        param_layout.addRow("CSink Dia", self.spin_csink_dia)
+        param_layout.addRow(translate("frameforgemod", "CSink Dia"), self.spin_csink_dia)
 
         self.spin_csink_depth = QtWidgets.QDoubleSpinBox()
         self.spin_csink_depth.setRange(0.5, 100.0)
@@ -108,31 +113,31 @@ class HoleFeatureTaskPanel:
         self.spin_csink_depth.setValue(float(obj.CounterSinkDepth))
         self.spin_csink_depth.valueChanged.connect(
             lambda v: self._set_and_recompute("CounterSinkDepth", v))
-        param_layout.addRow("CSink Depth", self.spin_csink_depth)
+        param_layout.addRow(translate("frameforgemod", "CSink Depth"), self.spin_csink_depth)
 
-        self.reverse_cb = QtWidgets.QCheckBox("Reverse")
+        self.reverse_cb = QtWidgets.QCheckBox(translate("frameforgemod", "Reverse"))
         self.reverse_cb.setChecked(obj.Reverse)
         self.reverse_cb.toggled.connect(
             lambda v: self._set_and_recompute("Reverse", v))
         param_layout.addRow(self.reverse_cb)
 
-        rot_group = QtWidgets.QGroupBox("Direction Rotation")
+        rot_group = QtWidgets.QGroupBox(translate("frameforgemod", "Direction Rotation"))
         rot_layout = QtWidgets.QHBoxLayout(rot_group)
-        rot_layout.addWidget(QtWidgets.QLabel("X:"))
+        rot_layout.addWidget(QtWidgets.QLabel(translate("frameforgemod", "X:")))
         self.combo_rotx = QtWidgets.QComboBox()
         self.combo_rotx.addItems(["-90", "0", "90", "180"])
         self.combo_rotx.setCurrentText(str(int(float(obj.RotX))))
         self.combo_rotx.currentTextChanged.connect(
             lambda v: self._set_and_recompute("RotX", float(v)))
         rot_layout.addWidget(self.combo_rotx)
-        rot_layout.addWidget(QtWidgets.QLabel(" Y:"))
+        rot_layout.addWidget(QtWidgets.QLabel(translate("frameforgemod", " Y:")))
         self.combo_roty = QtWidgets.QComboBox()
         self.combo_roty.addItems(["-90", "0", "90", "180"])
         self.combo_roty.setCurrentText(str(int(float(obj.RotY))))
         self.combo_roty.currentTextChanged.connect(
             lambda v: self._set_and_recompute("RotY", float(v)))
         rot_layout.addWidget(self.combo_roty)
-        rot_layout.addWidget(QtWidgets.QLabel(" Z:"))
+        rot_layout.addWidget(QtWidgets.QLabel(translate("frameforgemod", " Z:")))
         self.combo_rotz = QtWidgets.QComboBox()
         self.combo_rotz.addItems(["-90", "0", "90", "180"])
         self.combo_rotz.setCurrentText(str(int(float(obj.RotZ))))
@@ -280,6 +285,39 @@ class HoleFeatureTaskPanel:
         Gui.ActiveDocument.resetEdit()
         return True
 
+    def apply(self):
+        App.Console.PrintMessage("HoleFeature: apply\n")
+        self._do_cut()
+        self.obj.Base = None
+        self.obj.Positions = []
+        self._refresh_labels()
+        App.ActiveDocument.recompute()
+        try:
+            Gui.updateGui()
+        except Exception:
+            pass
+
+    def _do_cut(self):
+        base_obj = self.obj.Base[0] if self.obj.Base else None
+        if base_obj is None:
+            return
+        try:
+            from BOPTools import BOPFeatures
+            bp = BOPFeatures.BOPFeatures(App.activeDocument())
+            cut_obj = bp.make_cut([base_obj.Name, self.obj.Name])
+            if cut_obj:
+                name = getattr(base_obj, "SizeName", None)
+                if not name:
+                    label = base_obj.Label
+                    name = label.split("_Profile_")[0] if "_Profile_" in label else label
+                cut_obj.Label = f"{name}_Cut"
+                self.obj.CutResult = cut_obj
+                base_obj.ViewObject.Visibility = False
+                self.obj.ViewObject.Visibility = False
+                App.Console.PrintMessage(f"HoleFeature: Cut = {cut_obj.Label}\n")
+        except Exception as e:
+            App.Console.PrintWarning(f"HoleFeature: cut failed: {e}\n")
+
     def accept(self):
         App.Console.PrintMessage("HoleFeature: accept\n")
         if self._obs:
@@ -287,25 +325,7 @@ class HoleFeatureTaskPanel:
             self._obs = None
         self.obj.recompute()
         App.ActiveDocument.recompute()
-
-        base_obj = self.obj.Base[0] if self.obj.Base else None
-        if base_obj:
-            try:
-                from BOPTools import BOPFeatures
-                bp = BOPFeatures.BOPFeatures(App.activeDocument())
-                cut_obj = bp.make_cut([base_obj.Name, self.obj.Name])
-                if cut_obj:
-                    name = getattr(base_obj, "SizeName", None)
-                    if not name:
-                        label = base_obj.Label
-                        name = label.split("_Profile_")[0] if "_Profile_" in label else label
-                    cut_obj.Label = f"{name}_Cut"
-                    self.obj.CutResult = cut_obj
-                    base_obj.ViewObject.Visibility = False
-                    self.obj.ViewObject.Visibility = False
-                    App.Console.PrintMessage(f"HoleFeature: Cut = {cut_obj.Label}\n")
-            except Exception as e:
-                App.Console.PrintWarning(f"HoleFeature: cut failed: {e}\n")
+        self._do_cut()
 
         App.ActiveDocument.recompute()
         Gui.updateGui()
@@ -317,8 +337,9 @@ class HoleFeatureCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
-            "MenuText": "Hole",
-            "ToolTip": "Drill holes on profiles. Select profile face, then sketch points/circles.",
+            "MenuText": translate("frameforgemod", "Hole"),
+            "ToolTip": translate("frameforgemod",
+                "Drill holes on profiles. Select profile face, then sketch points/circles."),
         }
 
     def IsActive(self):

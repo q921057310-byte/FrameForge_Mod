@@ -99,6 +99,13 @@ class Gusset:
         self._cached_key = None
         self._cached_shape = None
 
+    def dumps(self):
+        return None
+
+    def loads(self, state):
+        self._cached_key = None
+        self._cached_shape = None
+
     def _gusset_key(self, fp):
         try:
             key_parts = [
@@ -151,11 +158,13 @@ class Gusset:
 
         if face1 is None or face2 is None:
             return
+        if not isinstance(face1, Part.Face) or not isinstance(face2, Part.Face):
+            return
         if not isinstance(face1.Surface, Part.Plane) or not isinstance(face2.Surface, Part.Plane):
             return
 
         cache_key = self._gusset_key(fp)
-        if self._cached_key == cache_key and self._cached_shape is not None:
+        if getattr(self, "_cached_key", None) == cache_key and getattr(self, "_cached_shape", None) is not None:
             fp.Shape = self._cached_shape
             self._update_structure_data(fp)
             return

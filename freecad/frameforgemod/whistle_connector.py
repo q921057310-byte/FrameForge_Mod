@@ -536,6 +536,8 @@ class WhistleConnector:
                     return
 
     def _sync_cut_label(self, fp):
+        if not hasattr(fp, "CutResult"):
+            return
         cut = fp.CutResult
         if cut is None:
             return

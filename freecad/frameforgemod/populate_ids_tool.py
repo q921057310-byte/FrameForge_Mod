@@ -40,6 +40,7 @@ except ImportError:
 from freecad.frameforgemod._utils import (
     get_profiles_and_links_from_document,
     get_profiles_and_links_from_object,
+    is_cut,
     is_extrudedcutout,
     is_fusion,
     is_group,
@@ -109,6 +110,7 @@ class PopulateIDsTaskPanel:
         if all(
             [
                 is_fusion(sel)
+                or is_cut(sel)
                 or is_part(sel)
                 or is_group(sel)
                 or is_profile(sel)
@@ -118,6 +120,7 @@ class PopulateIDsTaskPanel:
                 for sel in Gui.Selection.getSelection()
             ]
         ):
+
             param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
             param.SetBool("Allow Duplicating IDs", self.form.cb_allow_duplicated.isChecked())
             param.SetBool("Group IDs", self.form.cb_group_ids_for_identical.isChecked())
@@ -216,6 +219,7 @@ class PopulateIDsCommand:
                 return all(
                     [
                         is_fusion(sel)
+                        or is_cut(sel)
                         or is_part(sel)
                         or is_group(sel)
                         or is_profile(sel)
@@ -254,6 +258,7 @@ class ResetIDsCommand:
                 return all(
                     [
                         is_fusion(sel)
+                        or is_cut(sel)
                         or is_part(sel)
                         or is_group(sel)
                         or is_profile(sel)

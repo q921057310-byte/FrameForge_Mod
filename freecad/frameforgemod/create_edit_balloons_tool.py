@@ -6,6 +6,7 @@ import FreeCADGui as Gui
 
 from freecad.frameforgemod._utils import (
     get_profiles_and_links_from_object,
+    is_cut,
     is_extrudedcutout,
     is_fusion,
     is_group,
@@ -121,6 +122,7 @@ class CreateBalloonsCommand:
             sel
             for sel in selection
             if is_fusion(sel)
+            or is_cut(sel)
             or is_part(sel)
             or is_group(sel)
             or is_profile(sel)

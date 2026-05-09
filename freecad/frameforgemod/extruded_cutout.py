@@ -33,18 +33,19 @@ class ExtrudedCutout:
             "App::PropertyString",
             "FrameforgeVersion",
             "Profile",
-            "Frameforge Version used to create the profile",
+            translate("App::Property", "Frameforge Version used to create the profile"),
         ).FrameforgeVersion = ff_version
 
         obj.addProperty(
             "App::PropertyString",
             "PID",
             "Profile",
-            "Profile ID",
+            translate("App::Property", "Profile ID"),
         ).PID = ""
         obj.setEditorMode("PID", 1)
 
-        obj.addProperty("App::PropertyLinkSub", "baseObject", "ExtrudedCutout", "SelectedFace").baseObject = (
+        obj.addProperty("App::PropertyLinkSub", "baseObject", "ExtrudedCutout",
+                        translate("App::Property", "SelectedFace")).baseObject = (
             selected_face
         )
 
@@ -76,7 +77,8 @@ class ExtrudedCutout:
         obj.addProperty("App::PropertyString", "Family", "Profile", "")
         obj.setEditorMode("Family", 1)
 
-        obj.addProperty("App::PropertyLink", "CustomProfile", "Profile", "Target profile").CustomProfile = None
+        obj.addProperty("App::PropertyLink", "CustomProfile", "Profile",
+                        translate("App::Property", "Target profile")).CustomProfile = None
         obj.setEditorMode("CustomProfile", 1)
 
         obj.addProperty("App::PropertyString", "SizeName", "Profile", "")
@@ -259,7 +261,8 @@ class ExtrudedCutout:
             obj.addProperty("App::PropertyString", "Family", "Profile", "")
             obj.setEditorMode("Family", 1)
 
-            obj.addProperty("App::PropertyLink", "CustomProfile", "Profile", "Target profile").CustomProfile = None
+            obj.addProperty("App::PropertyLink", "CustomProfile", "Profile",
+                            translate("App::Property", "Target profile")).CustomProfile = None
             obj.setEditorMode("CustomProfile", 1)
 
             obj.addProperty("App::PropertyString", "SizeName", "Profile", "")
@@ -268,17 +271,23 @@ class ExtrudedCutout:
             obj.addProperty("App::PropertyString", "Material", "Profile", "")
             obj.setEditorMode("Material", 1)
 
-            obj.addProperty("App::PropertyFloat", "ApproxWeight", "Base", "Approximate weight in Kilogram")
+            obj.addProperty("App::PropertyFloat", "ApproxWeight", "Base",
+                            translate("App::Property", "Approximate weight in Kilogram"))
             obj.setEditorMode("ApproxWeight", 1)
 
-            obj.addProperty("App::PropertyFloat", "Price", "Base", "Profile Price")
+            obj.addProperty("App::PropertyFloat", "Price", "Base",
+                            translate("App::Property", "Profile Price"))
             obj.setEditorMode("Price", 1)
 
             # structure
-            obj.addProperty("App::PropertyLength", "Width", "Structure", "Parameter for structure")
-            obj.addProperty("App::PropertyLength", "Height", "Structure", "Parameter for structure")
-            obj.addProperty("App::PropertyLength", "Length", "Structure", "Parameter for structure")
-            obj.addProperty("App::PropertyBool", "Cutout", "Structure", "Has Cutout").Cutout = True
+            obj.addProperty("App::PropertyLength", "Width", "Structure",
+                            translate("App::Property", "Parameter for structure"))
+            obj.addProperty("App::PropertyLength", "Height", "Structure",
+                            translate("App::Property", "Parameter for structure"))
+            obj.addProperty("App::PropertyLength", "Length", "Structure",
+                            translate("App::Property", "Parameter for structure"))
+            obj.addProperty("App::PropertyBool", "Cutout", "Structure",
+                            translate("App::Property", "Has Cutout")).Cutout = True
             obj.setEditorMode("Width", 1)  # user doesn't change !
             obj.setEditorMode("Height", 1)
             obj.setEditorMode("Length", 1)
@@ -288,14 +297,14 @@ class ExtrudedCutout:
                 "App::PropertyString",
                 "CuttingAngleA",
                 "Structure",
-                "Cutting Angle A",
+                translate("App::Property", "Cutting Angle A"),
             )
             obj.setEditorMode("CuttingAngleA", 1)
             obj.addProperty(
                 "App::PropertyString",
                 "CuttingAngleB",
                 "Structure",
-                "Cutting Angle B",
+                translate("App::Property", "Cutting Angle B"),
             )
             obj.setEditorMode("CuttingAngleB", 1)
 
@@ -304,7 +313,7 @@ class ExtrudedCutout:
                 "App::PropertyString",
                 "FrameforgeVersion",
                 "Profile",
-                "Frameforge Version used to create the profile",
+                translate("App::Property", "Frameforge Version used to create the profile"),
             ).FrameforgeVersion = ff_version
 
 

@@ -127,6 +127,7 @@ class WhistleConnectorTaskPanel:
 
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
+        self._do_cut()
         self.obj.EndFace = None
         self.obj.DrillFace = None
         self.end_label.setText(translate("frameforgemod", "Waiting for end face..."))

@@ -39,6 +39,7 @@ _submodules = [
     "utilities",
     "version",
     "connector_hole",
+    "preferences",
     "whistle_connector",
 ]
 

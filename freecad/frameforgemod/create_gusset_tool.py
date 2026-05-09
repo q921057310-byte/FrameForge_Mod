@@ -242,7 +242,6 @@ class CreateGussetTaskPanel:
 
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
-        # Clear face selections so user can immediately select next
         self.obj.Face1 = None
         self.obj.Face2 = None
         self.face1_label.setText(translate("frameforgemod", "Not selected"))

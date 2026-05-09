@@ -12,6 +12,7 @@ from numbers import Number
 import FreeCAD
 import Part
 
+from freecad.frameforgemod.ff_tools import translate
 from freecad.frameforgemod.version import __version__ as ff_version
 
 
@@ -24,16 +25,16 @@ def _register_profile_metadata(obj, pid_readonly=True):
     if not hasattr(obj, "FrameforgeVersion"):
         obj.addProperty(
             "App::PropertyString", "FrameforgeVersion", "Profile",
-            "FrameForge Version used to create the profile",
+            translate("App::Property", "FrameForge Version used to create the profile"),
         ).FrameforgeVersion = ff_version
     if not hasattr(obj, "PID"):
-        obj.addProperty("App::PropertyString", "PID", "Profile", "Profile ID").PID = ""
+        obj.addProperty("App::PropertyString", "PID", "Profile", translate("App::Property", "Profile ID")).PID = ""
         obj.setEditorMode("PID", 1 if pid_readonly else 0)
     if not hasattr(obj, "Family"):
         obj.addProperty("App::PropertyString", "Family", "Profile", "")
         obj.setEditorMode("Family", 1)
     if not hasattr(obj, "CustomProfile"):
-        obj.addProperty("App::PropertyLink", "CustomProfile", "Profile", "Target profile").CustomProfile = None
+        obj.addProperty("App::PropertyLink", "CustomProfile", "Profile", translate("App::Property", "Target profile")).CustomProfile = None
         obj.setEditorMode("CustomProfile", 1)
     if not hasattr(obj, "SizeName"):
         obj.addProperty("App::PropertyString", "SizeName", "Profile", "")
@@ -42,28 +43,28 @@ def _register_profile_metadata(obj, pid_readonly=True):
         obj.addProperty("App::PropertyString", "Material", "Profile", "")
         obj.setEditorMode("Material", 1)
     if not hasattr(obj, "ApproxWeight"):
-        obj.addProperty("App::PropertyFloat", "ApproxWeight", "Base", "Approximate weight in Kilogram")
+        obj.addProperty("App::PropertyFloat", "ApproxWeight", "Base", translate("App::Property", "Approximate weight in Kilogram"))
         obj.setEditorMode("ApproxWeight", 1)
     if not hasattr(obj, "Price"):
-        obj.addProperty("App::PropertyFloat", "Price", "Base", "Profile Price")
+        obj.addProperty("App::PropertyFloat", "Price", "Base", translate("App::Property", "Profile Price"))
         obj.setEditorMode("Price", 1)
     if not hasattr(obj, "Width"):
-        obj.addProperty("App::PropertyLength", "Width", "Structure", "Parameter for structure")
+        obj.addProperty("App::PropertyLength", "Width", "Structure", translate("App::Property", "Parameter for structure"))
         obj.setEditorMode("Width", 1)
     if not hasattr(obj, "Height"):
-        obj.addProperty("App::PropertyLength", "Height", "Structure", "Parameter for structure")
+        obj.addProperty("App::PropertyLength", "Height", "Structure", translate("App::Property", "Parameter for structure"))
         obj.setEditorMode("Height", 1)
     if not hasattr(obj, "Length"):
-        obj.addProperty("App::PropertyLength", "Length", "Structure", "Parameter for structure")
+        obj.addProperty("App::PropertyLength", "Length", "Structure", translate("App::Property", "Parameter for structure"))
         obj.setEditorMode("Length", 1)
     if not hasattr(obj, "Cutout"):
-        obj.addProperty("App::PropertyBool", "Cutout", "Structure", "Has Cutout").Cutout = False
+        obj.addProperty("App::PropertyBool", "Cutout", "Structure", translate("App::Property", "Has Cutout")).Cutout = False
         obj.setEditorMode("Cutout", 1)
     if not hasattr(obj, "CuttingAngleA"):
-        obj.addProperty("App::PropertyString", "CuttingAngleA", "Structure", "Cutting Angle A")
+        obj.addProperty("App::PropertyString", "CuttingAngleA", "Structure", translate("App::Property", "Cutting Angle A"))
         obj.setEditorMode("CuttingAngleA", 1)
     if not hasattr(obj, "CuttingAngleB"):
-        obj.addProperty("App::PropertyString", "CuttingAngleB", "Structure", "Cutting Angle B")
+        obj.addProperty("App::PropertyString", "CuttingAngleB", "Structure", translate("App::Property", "Cutting Angle B"))
         obj.setEditorMode("CuttingAngleB", 1)
 
 
@@ -138,6 +139,25 @@ def is_fusion(obj):
         if shape is not None and (shape.ShapeType == "Compound" or shape.isValid() and len(shape.Faces) > 0):
             return True
     return False
+
+
+def is_cut(obj):
+    if obj.TypeId == "Part::Cut":
+        shape = obj.Shape
+        if shape is not None and shape.isValid() and len(shape.Faces) > 0:
+            return True
+    return False
+
+
+def _find_base_profile(obj):
+    """Walk through boolean cuts to find the originating profile object."""
+    if is_profile(obj) or is_trimmedbody(obj) or is_extrudedcutout(obj):
+        return obj
+    if is_cut(obj):
+        base = getattr(obj, "Base", None)
+        if base is not None:
+            return _find_base_profile(base)
+    return None
 
 
 def is_part(obj):
@@ -217,6 +237,11 @@ def get_profiles_and_links_from_object(profiles, links, obj):
     if is_fusion(obj):
         for child in obj.Shapes:
             get_profiles_and_links_from_object(profiles, links, child)
+
+    elif is_cut(obj):
+        base = getattr(obj, "Base", None)
+        if base is not None:
+            get_profiles_and_links_from_object(profiles, links, base)
 
     elif is_group(obj):
         for child in obj.Group:
@@ -374,7 +399,7 @@ def get_trimmed_profile_all_cutting_angles(trimmed_profile):
                 angle = 180 - angle
 
             bisect = angle / 2.0
-            angles.append(90.0 - bisect)
+            angles.append(bisect)
 
     else:
         raise ValueError("Unknown TrimmedProfileType")
@@ -475,21 +500,21 @@ def get_readable_cutting_angles(ba_y, ba_x, bb_y, bb_x, *trim_cuts):
         elif ba_y == bb_y == 0.0:
             angles = (ba_x, bb_x)
             angles = angles if (angles[0] * angles[1] < 0) else (abs(angles[0]), abs(angles[1]))
-            return (f"{angles[0]:.1f}", f"{angles[1]:.1f}")
+            return (f"{angles[0]:.2f}", f"{angles[1]:.2f}")
 
         elif ba_x == bb_x == 0.0:
             angles = (ba_y, bb_y)
             angles = angles if (angles[0] * angles[1] < 0) else (abs(angles[0]), abs(angles[1]))
-            return (f"{angles[0]:.1f}", f"{angles[1]:.1f}")
+            return (f"{angles[0]:.2f}", f"{angles[1]:.2f}")
 
         elif (ba_y == 0.0 and bb_x == 0.0) ^ (ba_x == 0.0 and bb_y == 0.0):
-            return (f"{(ba_y + ba_x):.1f}", f"* {(bb_y+bb_x):.1f}")
+            return (f"{(ba_y + ba_x):.2f}", f"* {(bb_y+bb_x):.2f}")
 
         else:
-            return (f"{ba_y:.1f} / {ba_x:.1f}", f"{bb_y:.1f} / {bb_x:.1f}")
+            return (f"{ba_y:.2f} / {ba_x:.2f}", f"{bb_y:.2f} / {bb_x:.2f}")
 
     elif len(trim_cuts) == 2:
-        trim_cuts = [f"{tc:.1f}" if isinstance(tc, float) else tc for tc in trim_cuts]
+        trim_cuts = [f"{tc:.2f}" if isinstance(tc, float) else tc for tc in trim_cuts]
         return (f"@ {trim_cuts[0]}", f"@ {trim_cuts[1]}")
 
     elif len(trim_cuts) == 1:

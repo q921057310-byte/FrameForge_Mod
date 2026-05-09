@@ -8,6 +8,7 @@ import FreeCADGui as Gui
 import Part
 
 from freecad.frameforgemod._utils import (
+    is_cut,
     is_endcap,
     is_extrudedcutout,
     is_fusion,
@@ -30,6 +31,17 @@ def traverse_assembly(profiles_data, links_data, obj, parent="", full_parent_pat
                 profiles_data,
                 links_data,
                 child,
+                parent=(f"{parent} / " if full_parent_path else "") + obj.Label,
+                full_parent_path=full_parent_path,
+            )
+
+    elif is_cut(obj):
+        base = getattr(obj, "Base", None)
+        if base is not None:
+            traverse_assembly(
+                profiles_data,
+                links_data,
+                base,
                 parent=(f"{parent} / " if full_parent_path else "") + obj.Label,
                 full_parent_path=full_parent_path,
             )
@@ -76,6 +88,7 @@ def traverse_assembly(profiles_data, links_data, obj, parent="", full_parent_pat
         p["approx_weight"] = str(obj.ApproxWeight)
         p["price"] = str(obj.Price)
         p["quantity"] = "1"
+        p["_obj_name"] = obj.Name
 
         profiles_data.append(p)
 
@@ -138,6 +151,8 @@ def group_profiles(profiles_data):
         d["approx_weight"] = g["approx_weight"]
         d["price"] = g["price"]
         d["quantity"] = len(group)
+        if len(group) == 1:
+            d["_obj_name"] = g.get("_obj_name")
 
         profiles_data_grouped.append(d)
 
@@ -191,19 +206,35 @@ def make_bom(profiles_data, links_data, bom_name="BOM", spreadsheet=None):
     row = 3
 
     for prof in profiles_data:
-        spreadsheet.set("A" + str(row), prof["parent"])
-        spreadsheet.set("B" + str(row), prof["ID"])
-        spreadsheet.set("C" + str(row), prof["family"])
-        spreadsheet.set("D" + str(row), prof["size_name"])
-        spreadsheet.set("E" + str(row), prof["length"])
-        spreadsheet.set("F" + str(row), "'" + str(prof["cut_angle_1"]))
-        spreadsheet.set("G" + str(row), "'" + str(prof["cut_angle_2"]))
-        spreadsheet.set("H" + str(row), "'" + str(prof["cutout"]))
-        spreadsheet.set("I" + str(row), str(prof["quantity"]))
-        spreadsheet.set("J" + str(row), prof["material"])
-        spreadsheet.set("K" + str(row), prof["approx_weight"])
-        spreadsheet.set("L" + str(row), prof["price"])
-        spreadsheet.set("M" + str(row), prof["label"])
+        obj_name = prof.get("_obj_name")
+        if obj_name and doc.getObject(obj_name):
+            spreadsheet.set("A" + str(row), "'" + prof["parent"])
+            spreadsheet.set("B" + str(row), "=" + obj_name + ".PID")
+            spreadsheet.set("C" + str(row), "=" + obj_name + ".Family")
+            spreadsheet.set("D" + str(row), "=" + obj_name + ".SizeName")
+            spreadsheet.set("E" + str(row), "=" + obj_name + ".Length")
+            spreadsheet.set("F" + str(row), "=" + obj_name + ".CuttingAngleA")
+            spreadsheet.set("G" + str(row), "=" + obj_name + ".CuttingAngleB")
+            spreadsheet.set("H" + str(row), "=" + obj_name + ".Cutout")
+            spreadsheet.set("I" + str(row), "'" + str(prof["quantity"]))
+            spreadsheet.set("J" + str(row), "=" + obj_name + ".Material")
+            spreadsheet.set("K" + str(row), "=" + obj_name + ".ApproxWeight")
+            spreadsheet.set("L" + str(row), "=" + obj_name + ".Price")
+            spreadsheet.set("M" + str(row), "=" + obj_name + ".Label")
+        else:
+            spreadsheet.set("A" + str(row), prof["parent"])
+            spreadsheet.set("B" + str(row), prof["ID"])
+            spreadsheet.set("C" + str(row), prof["family"])
+            spreadsheet.set("D" + str(row), prof["size_name"])
+            spreadsheet.set("E" + str(row), prof["length"])
+            spreadsheet.set("F" + str(row), "'" + str(prof["cut_angle_1"]))
+            spreadsheet.set("G" + str(row), "'" + str(prof["cut_angle_2"]))
+            spreadsheet.set("H" + str(row), "'" + str(prof["cutout"]))
+            spreadsheet.set("I" + str(row), str(prof["quantity"]))
+            spreadsheet.set("J" + str(row), prof["material"])
+            spreadsheet.set("K" + str(row), prof["approx_weight"])
+            spreadsheet.set("L" + str(row), prof["price"])
+            spreadsheet.set("M" + str(row), prof["label"])
 
         row += 1
 
@@ -269,14 +300,21 @@ def make_cut_list(sorted_stocks, cutlist_name="CutList", spreadsheet=None):
             cut_part_idx = 0
             for cut_part in stock.parts:
                 prof = cut_part.obj
+                obj_name = prof.get("_obj_name")
                 if cut_part_idx == 0:
                     spreadsheet.set("A" + str(row), stocks + f" / used = {stock.used:.1f}, left = {stock.left:.1f}")
 
                 spreadsheet.set("B" + str(row), str(stock_idx))
-                spreadsheet.set("C" + str(row), prof["ID"])
-                spreadsheet.set("D" + str(row), str(prof["length"]))
-                spreadsheet.set("E" + str(row), "'" + str(prof["cut_angle_1"]))
-                spreadsheet.set("F" + str(row), "'" + str(prof["cut_angle_2"]))
+                if obj_name and doc.getObject(obj_name):
+                    spreadsheet.set("C" + str(row), "=" + obj_name + ".PID")
+                    spreadsheet.set("D" + str(row), "=" + obj_name + ".Length")
+                    spreadsheet.set("E" + str(row), "=" + obj_name + ".CuttingAngleA")
+                    spreadsheet.set("F" + str(row), "=" + obj_name + ".CuttingAngleB")
+                else:
+                    spreadsheet.set("C" + str(row), prof["ID"])
+                    spreadsheet.set("D" + str(row), str(prof["length"]))
+                    spreadsheet.set("E" + str(row), "'" + str(prof["cut_angle_1"]))
+                    spreadsheet.set("F" + str(row), "'" + str(prof["cut_angle_2"]))
                 spreadsheet.set("G" + str(row), str(prof["quantity"]))
 
                 row += 1

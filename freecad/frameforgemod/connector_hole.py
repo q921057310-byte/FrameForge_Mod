@@ -3,6 +3,8 @@ import FreeCADGui as Gui
 import Part
 import math
 
+from freecad.frameforgemod.ff_tools import translate
+
 BOLT_PRESETS = {
     "Custom":    {"hole_dia": 8.5, "csink_dia": 14.0, "csink_depth": 8.0, "depth": 20.0},
     "M3":        {"hole_dia": 3.2, "csink_dia": 6.0, "csink_depth": 3.0, "depth": 20.0},
@@ -29,38 +31,38 @@ class HoleFeature:
         obj.Proxy = self
 
         obj.addProperty("App::PropertyLinkSub", "Base", "Hole",
-                        "Profile face to drill into").Base = None
+                        translate("App::Property", "Profile face to drill into")).Base = None
 
         obj.addProperty("App::PropertyLinkSubList", "Positions", "Hole",
-                        "Sketch vertices or circles for positioning").Positions = []
+                        translate("App::Property", "Sketch vertices or circles for positioning")).Positions = []
 
         obj.addProperty("App::PropertyEnumeration", "HoleType", "Hole",
-                        "Through / Blind / Counterbore").HoleType = _HOLE_TYPES
+                        translate("App::Property", "Through / Blind / Counterbore")).HoleType = _HOLE_TYPES
 
         obj.addProperty("App::PropertyEnumeration", "BoltSpec", "Hole",
-                        "Bolt size preset").BoltSpec = list(BOLT_PRESETS.keys())
+                        translate("App::Property", "Bolt size preset")).BoltSpec = list(BOLT_PRESETS.keys())
 
         obj.addProperty("App::PropertyLength", "HoleDiameter", "Hole",
-                        "Hole diameter").HoleDiameter = 8.5
+                        translate("App::Property", "Hole diameter")).HoleDiameter = 8.5
 
         obj.addProperty("App::PropertyLength", "HoleDepth", "Hole",
-                        "Blind hole depth (0 = auto through)").HoleDepth = 20.0
+                        translate("App::Property", "Blind hole depth (0 = auto through)")).HoleDepth = 20.0
 
         obj.addProperty("App::PropertyLength", "CounterSinkDiameter", "Hole",
-                        "Counterbore diameter").CounterSinkDiameter = 14.0
+                        translate("App::Property", "Counterbore diameter")).CounterSinkDiameter = 14.0
 
         obj.addProperty("App::PropertyLength", "CounterSinkDepth", "Hole",
-                        "Counterbore depth").CounterSinkDepth = 8.0
+                        translate("App::Property", "Counterbore depth")).CounterSinkDepth = 8.0
 
         obj.addProperty("App::PropertyBool", "Reverse", "Hole",
-                        "Flip direction").Reverse = False
+                        translate("App::Property", "Flip direction")).Reverse = False
 
         obj.addProperty("App::PropertyAngle", "RotX", "Direction",
-                        "Rotate around X").RotX = 0.0
+                        translate("App::Property", "Rotate around X")).RotX = 0.0
         obj.addProperty("App::PropertyAngle", "RotY", "Direction",
-                        "Rotate around Y").RotY = 0.0
+                        translate("App::Property", "Rotate around Y")).RotY = 0.0
         obj.addProperty("App::PropertyAngle", "RotZ", "Direction",
-                        "Rotate around Z").RotZ = 0.0
+                        translate("App::Property", "Rotate around Z")).RotZ = 0.0
 
         obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
         obj.setEditorMode("CutResult", 2)
@@ -82,6 +84,8 @@ class HoleFeature:
             App.Console.PrintWarning(f"HoleFeature.execute error: {e}\n")
 
     def _sync_cut_label(self, fp):
+        if not hasattr(fp, "CutResult"):
+            return
         cut = fp.CutResult
         if cut is None:
             return

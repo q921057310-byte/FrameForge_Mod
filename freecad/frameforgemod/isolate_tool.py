@@ -4,6 +4,7 @@ import FreeCAD as App
 import FreeCADGui as Gui
 
 from freecad.frameforgemod._utils import (
+    is_cut,
     is_endcap,
     is_extrudedcutout,
     is_fusion,
@@ -22,7 +23,8 @@ from freecad.frameforgemod.ff_tools import ICONPATH, translate
 
 def _is_container(obj):
     return (
-        obj.TypeId == "Part::MultiFuse"
+        is_fusion(obj)
+        or is_cut(obj)
         or obj.TypeId == "App::Part"
         or obj.TypeId == "App::DocumentObjectGroup"
     )
@@ -52,6 +54,8 @@ def _build_parent_map(doc):
         if obj.TypeId == "Part::MultiFuse" and hasattr(obj, "Shapes"):
             for child in obj.Shapes:
                 parent_map[child.Name] = obj.Name
+        elif is_cut(obj) and hasattr(obj, "Base") and obj.Base is not None:
+            parent_map[obj.Base.Name] = obj.Name
         elif obj.TypeId in ("App::Part", "App::DocumentObjectGroup") and hasattr(obj, "Group"):
             for child in obj.Group:
                 parent_map[child.Name] = obj.Name
@@ -84,7 +88,7 @@ def _find_nearest_fusion(obj_name, parent_map):
         parent = parent_map[current]
         if parent is not None:
             parent_obj = App.ActiveDocument.getObject(parent)
-            if parent_obj is not None and parent_obj.TypeId == "Part::MultiFuse":
+            if parent_obj is not None and (parent_obj.TypeId in ("Part::MultiFuse", "Part::Cut")):
                 return parent
         current = parent
     return None

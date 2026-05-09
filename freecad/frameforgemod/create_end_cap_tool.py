@@ -257,7 +257,6 @@ class CreateEndCapTaskPanel:
 
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
-        # Clear face selection so user can immediately select next
         self.obj.BaseObject = None
         self.face_label.setText(translate("frameforgemod", "No face selected"))
         App.ActiveDocument.commitTransaction()

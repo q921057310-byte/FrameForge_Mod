@@ -697,5 +697,172 @@ Select Edges or set Length</source>
 2. 选择一个闭合草图作为切口。
 3. 在属性编辑器中调整参数。</translation>
     </message>
+    <message>
+        <source>OK</source>
+        <translation>确定</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>取消</translation>
+    </message>
+    <message>
+        <source><b>Hole</b><br>1. Click PROFILE face<br>2. Click SKETCH: points / circles(center) / lines(both ends)<br>   (click again to remove)</source>
+        <translation><b>钻孔</b><br>1. 点击型材面<br>2. 点击草图：点 / 圆(中心) / 线(两端)<br>   （再次点击移除）</translation>
+    </message>
+    <message>
+        <source>Base: not set</source>
+        <translation>基准面：未设置</translation>
+    </message>
+    <message>
+        <source>Positions: 0</source>
+        <translation>位置点：0</translation>
+    </message>
+    <message>
+        <source>Hole Parameters</source>
+        <translation>孔参数</translation>
+    </message>
+    <message>
+        <source>Bolt</source>
+        <translation>螺栓</translation>
+    </message>
+    <message>
+        <source>Depth</source>
+        <translation>深度</translation>
+    </message>
+    <message>
+        <source>CSink Dia</source>
+        <translation>沉头直径</translation>
+    </message>
+    <message>
+        <source>CSink Depth</source>
+        <translation>沉头深度</translation>
+    </message>
+    <message>
+        <source>Reverse</source>
+        <translation>反转</translation>
+    </message>
+    <message>
+        <source>Direction Rotation</source>
+        <translation>方向旋转</translation>
+    </message>
+    <message>
+        <source>X:</source>
+        <translation>X:</translation>
+    </message>
+    <message>
+        <source> Y:</source>
+        <translation> Y:</translation>
+    </message>
+    <message>
+        <source> Z:</source>
+        <translation> Z:</translation>
+    </message>
+    <message>
+        <source>Hole</source>
+        <translation>钻孔</translation>
+    </message>
+    <message>
+        <source>Drill holes on profiles. Select profile face, then sketch points/circles.</source>
+        <translation>在型材上钻孔。选择型材面，然后选择草图中的点/圆定位。</translation>
+    </message>
+</context>
+<context>
+    <name>App::Property</name>
+    <message>
+        <source>Profile face to drill into</source>
+        <translation>要钻孔的型材面</translation>
+    </message>
+    <message>
+        <source>Sketch vertices or circles for positioning</source>
+        <translation>用于定位的草图顶点或圆</translation>
+    </message>
+    <message>
+        <source>Through / Blind / Counterbore</source>
+        <translation>通孔 / 盲孔 / 沉头孔</translation>
+    </message>
+    <message>
+        <source>Bolt size preset</source>
+        <translation>螺栓尺寸预设</translation>
+    </message>
+    <message>
+        <source>Hole diameter</source>
+        <translation>孔直径</translation>
+    </message>
+    <message>
+        <source>Blind hole depth (0 = auto through)</source>
+        <translation>盲孔深度（0=自动通孔）</translation>
+    </message>
+    <message>
+        <source>Counterbore diameter</source>
+        <translation>沉头孔直径</translation>
+    </message>
+    <message>
+        <source>Counterbore depth</source>
+        <translation>沉头孔深度</translation>
+    </message>
+    <message>
+        <source>Flip direction</source>
+        <translation>翻转方向</translation>
+    </message>
+    <message>
+        <source>Rotate around X</source>
+        <translation>绕X旋转</translation>
+    </message>
+    <message>
+        <source>Rotate around Y</source>
+        <translation>绕Y旋转</translation>
+    </message>
+    <message>
+        <source>Rotate around Z</source>
+        <translation>绕Z旋转</translation>
+    </message>
+    <message>
+        <source>FrameForge Version used to create the profile</source>
+        <translation>用于创建型材的FrameForge版本</translation>
+    </message>
+    <message>
+        <source>Frameforge Version used to create the profile</source>
+        <translation>用于创建型材的FrameForge版本</translation>
+    </message>
+    <message>
+        <source>Profile ID</source>
+        <translation>型材ID</translation>
+    </message>
+    <message>
+        <source>Target profile</source>
+        <translation>目标型材</translation>
+    </message>
+    <message>
+        <source>Approximate weight in Kilogram</source>
+        <translation>近似重量（千克）</translation>
+    </message>
+    <message>
+        <source>Profile Price</source>
+        <translation>型材价格</translation>
+    </message>
+    <message>
+        <source>Parameter for structure</source>
+        <translation>结构参数</translation>
+    </message>
+    <message>
+        <source>Has Cutout</source>
+        <translation>有切口</translation>
+    </message>
+    <message>
+        <source>Cutting Angle A</source>
+        <translation>切割角度 A</translation>
+    </message>
+    <message>
+        <source>Cutting Angle B</source>
+        <translation>切割角度 B</translation>
+    </message>
+    <message>
+        <source>SelectedFace</source>
+        <translation>选择的面</translation>
+    </message>
+    <message>
+        <source>Selected face for the end cap</source>
+        <translation>用于端盖的面</translation>
+    </message>
 </context>
 </TS>

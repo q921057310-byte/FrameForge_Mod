@@ -14,12 +14,23 @@ from freecad.frameforgemod._utils import (
 )
 from freecad.frameforgemod.ff_tools import ICONPATH, PROFILEIMAGES_PATH, PROFILESPATH, UIPATH, translate
 
+THREAD_SPECS = {
+    "Custom": 0,
+    "M3": 2.5,
+    "M5": 4.2,
+    "M6": 5.0,
+    "M8": 6.8,
+    "M10": 8.5,
+    "M12": 10.2,
+}
+
 
 class EndCap:
     def __init__(self, obj, selected_face):
         _register_profile_metadata(obj)
 
-        obj.addProperty("App::PropertyLinkSub", "BaseObject", "EndCap", "Selected face for the end cap").BaseObject = (
+        obj.addProperty("App::PropertyLinkSub", "BaseObject", "EndCap",
+                        translate("App::Property", "Selected face for the end cap")).BaseObject = (
             selected_face
         )
 
@@ -34,7 +45,7 @@ class EndCap:
             "App::PropertyLength",
             "Offset",
             "EndCap",
-            translate("App::Property", "Offset from the face"),
+            translate("App::Property", "Gap (distance from face)"),
         ).Offset = 0.0
 
         obj.addProperty(
@@ -101,6 +112,13 @@ class EndCap:
         ).HoleThreaded = False
 
         obj.addProperty(
+            "App::PropertyEnumeration",
+            "HoleThreadSpec",
+            "EndCap",
+            translate("App::Property", "Thread spec (auto-fills diameter)"),
+        ).HoleThreadSpec = list(THREAD_SPECS.keys())
+
+        obj.addProperty(
             "App::PropertyLength",
             "HoleDiameter",
             "EndCap",
@@ -111,10 +129,17 @@ class EndCap:
         self._cached_key = None
         self._cached_shape = None
 
+    def dumps(self):
+        return None
+
+    def loads(self, state):
+        self._cached_key = None
+        self._cached_shape = None
+
     def _endcap_key(self, fp):
         try:
             key_parts = [fp.CapType, fp.Reverse, fp.Thickness, fp.Offset, fp.PlugOffset,
-                         fp.HoleEnabled, fp.HoleDiameter, fp.HoleThreaded,
+                         fp.HoleEnabled, fp.HoleDiameter, fp.HoleThreaded, fp.HoleThreadSpec,
                          fp.ChamferEnabled, fp.ChamferSize, fp.FilletEnabled, fp.FilletSize]
             if fp.BaseObject and len(fp.BaseObject) >= 2:
                 try:
@@ -130,7 +155,10 @@ class EndCap:
             return None
 
     def onChanged(self, fp, prop):
-        pass
+        if prop == "HoleThreadSpec":
+            spec = str(fp.HoleThreadSpec)
+            if spec in THREAD_SPECS and THREAD_SPECS[spec] > 0:
+                fp.HoleDiameter = THREAD_SPECS[spec]
 
     def execute(self, fp):
         if fp.BaseObject is None:
@@ -147,7 +175,7 @@ class EndCap:
             return
 
         cache_key = self._endcap_key(fp)
-        if self._cached_key == cache_key and self._cached_shape is not None:
+        if cache_key is not None and getattr(self, "_cached_key", None) == cache_key and getattr(self, "_cached_shape", None) is not None:
             fp.Shape = self._cached_shape
             self._update_structure_data(fp)
             return
@@ -157,7 +185,10 @@ class EndCap:
 
         # Convert to float (PropertyLength returns Quantity)
         t = float(fp.Thickness)
-        off = float(fp.Offset)
+        gap = float(fp.Offset)
+
+        if t <= 0:
+            return
 
         # Build cap based on type
         try:
@@ -166,7 +197,6 @@ class EndCap:
                 extrude_dir = n
             else:  # Plug: inner hole wire, extrude into profile
                 plug_off = float(fp.PlugOffset)
-                # Find inner wire (cavity) if available
                 inner = None
                 for w in face.Wires:
                     if not w.isSame(face.OuterWire):
@@ -178,9 +208,11 @@ class EndCap:
                     base_wire = face.OuterWire
                 if plug_off > 0:
                     try:
-                        base_wire = base_wire.offset2D(-plug_off, 0.01, fill=False)
-                    except Exception:
-                        pass
+                        offset_result = base_wire.makeOffset2D(-plug_off)
+                        if offset_result and not offset_result.isNull() and offset_result.Wires:
+                            base_wire = offset_result.Wires[0]
+                    except Exception as e:
+                        App.Console.PrintWarning(f"EndCap: plug offset failed: {e}\n")
                 extrude_dir = -n
 
             cap_face = Part.Face(base_wire)
@@ -191,8 +223,8 @@ class EndCap:
             return
 
         thick_vec = extrude_dir * t
-        offset_vec = extrude_dir * off
-        cap = cap_face.extrude(offset_vec + thick_vec)
+        gap_vec = extrude_dir * gap
+        cap = cap_face.translated(gap_vec).extrude(thick_vec)
         if cap.isNull() or not cap.isValid():
             cap = cap_face.extrude(thick_vec)
             if cap.isNull() or not cap.isValid():
@@ -203,69 +235,72 @@ class EndCap:
             try:
                 hdia = float(fp.HoleDiameter)
                 center = face.CenterOfGravity
+                hole_len = t + 10
                 if fp.HoleThreaded:
-                    # Threaded hole: add cosmetic countersink for visual distinction
                     csink_r = hdia * 0.65
                     cone_h = csink_r - hdia / 2.0
                     cone = Part.makeCone(csink_r, hdia / 2.0, cone_h, center, extrude_dir)
-                    cyl = Part.makeCylinder(hdia / 2.0, t + off + 10, center, n)
+                    cyl = Part.makeCylinder(hdia / 2.0, hole_len, center, n)
                     hole = cyl.fuse(cone)
                     hole.translate(n * (-5))
                 else:
                     circle = Part.makeCircle(hdia / 2.0, center, n)
                     hole_face = Part.Face(Part.Wire(circle))
-                    hole = hole_face.extrude(n * (t + off + 10))
+                    hole = hole_face.extrude(n * hole_len)
                     hole.translate(n * (-5))
                 if not hole.isNull() and hole.isValid():
                     cap = cap.cut(hole)
             except Exception:
                 pass
 
-        # Apply chamfer or fillet to end edges
+        # Apply chamfer or fillet to vertical edges
         try:
-            # Find face(s) furthest along extrude_dir (the end face)
-            end_faces = []
-            max_dot = None
-            for f in cap.Faces:
-                fc = f.CenterOfGravity.dot(extrude_dir)
-                if max_dot is None or fc > max_dot + 0.01:
-                    max_dot = fc
-                    end_faces = [f]
-                elif abs(fc - max_dot) < 0.01:
-                    end_faces.append(f)
-            # Collect unique edges from end faces
-            end_edges = []
-            seen_hashes = set()
-            for f in end_faces:
-                for e in f.Edges:
-                    h = e.hashCode()
-                    if h not in seen_hashes:
-                        seen_hashes.add(h)
-                        end_edges.append(e)
-            if end_edges:
-                if fp.ChamferEnabled and fp.ChamferSize > 0:
-                    cap = cap.makeChamfer(fp.ChamferSize, end_edges)
-                elif fp.FilletEnabled and fp.FilletSize > 0:
-                    cap = cap.fillet(fp.FilletSize, end_edges)
-        except Exception:
-            pass
+            min_len = max(float(fp.ChamferSize), float(fp.FilletSize)) * 2.0
+            if min_len <= 0:
+                min_len = 0.1
+            candidates = []
+            for e in cap.Edges:
+                d = e.Vertexes[-1].Point - e.Vertexes[0].Point
+                dl = d.Length
+                if dl > min_len and abs(d.dot(extrude_dir)) / dl > 0.9:
+                    candidates.append(e)
+            if candidates:
+                ch = float(fp.ChamferSize) if fp.ChamferEnabled and fp.ChamferSize > 0 else 0
+                fi = float(fp.FilletSize) if fp.FilletEnabled and fp.FilletSize > 0 else 0
+                for e in candidates:
+                    try:
+                        if ch > 0:
+                            r = cap.makeChamfer(ch, [e])
+                            if r and not r.isNull() and r.isValid():
+                                cap = r
+                        elif fi > 0:
+                            r = cap.makeFillet(fi, [e])
+                            if r and not r.isNull() and r.isValid():
+                                cap = r
+                    except Exception:
+                        pass
+        except Exception as e:
+            App.Console.PrintWarning(f"EndCap: chamfer/fillet error: {e}\n")
 
         fp.Shape = cap
         self._cached_key = cache_key
         self._cached_shape = cap
         self._update_structure_data(fp)
 
+
     def _update_structure_data(self, obj):
         try:
             prof = get_profile_from_trimmedbody(obj.BaseObject[0])
         except Exception:
+            return
+        if not hasattr(prof, "PID"):
             return
 
         obj.PID = prof.PID
         obj.Width = prof.ProfileWidth if hasattr(prof, "ProfileWidth") else 0
         obj.Height = prof.ProfileHeight if hasattr(prof, "ProfileHeight") else 0
         obj.Family = prof.Family
-        obj.CustomProfile = prof.CustomProfile
+        obj.CustomProfile = getattr(prof, "CustomProfile", None)
         obj.SizeName = prof.SizeName
         obj.Material = prof.Material
         obj.ApproxWeight = prof.ApproxWeight
@@ -279,25 +314,12 @@ class ViewProviderEndCap:
         vobj.Proxy = self
         self.ViewObject = vobj
         self.Object = vobj.Object
-        vobj.ShapeColor = (0.6, 0.6, 0.6)
-        vobj.Transparency = 0
 
     def attach(self, vobj):
         self.ViewObject = vobj
         self.Object = vobj.Object
         vobj.ShapeColor = (0.6, 0.6, 0.6)
         vobj.Transparency = 0
-
-    def updateData(self, fp, prop):
-        if prop in ("BaseObject", "Shape"):
-            if fp.BaseObject and fp.BaseObject[0]:
-                try:
-                    vp = fp.BaseObject[0].ViewObject
-                    self.ViewObject.ShapeColor = vp.ShapeColor
-                    self.ViewObject.Transparency = vp.Transparency
-                except Exception:
-                    pass
-        return
 
     def getDisplayModes(self, obj):
         modes = []
