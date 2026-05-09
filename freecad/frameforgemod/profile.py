@@ -952,17 +952,72 @@ class Profile:
             p = p1.cut(p2)
 
         elif obj.Family == 'Custom Profile':
+            # Try linked shape object first (current session)
             custom_prof = obj.CustomProfile
-            if custom_prof is None:
-                raise FrameForgemodException("CustomProfile link is None.")
-            if custom_prof.Shape is None or custom_prof.Shape.isNull():
+            sk_shape = None
+            if custom_prof is not None and custom_prof.Shape is not None and not custom_prof.Shape.isNull():
+                sk_shape = custom_prof.Shape
+            else:
                 try:
                     custom_prof.recompute()
                 except Exception:
                     pass
-            if custom_prof.Shape is None or custom_prof.Shape.isNull():
-                raise FrameForgemodException("CustomProfile has no valid shape.")
-            sk_shape = custom_prof.Shape
+                if custom_prof is not None and custom_prof.Shape is not None and not custom_prof.Shape.isNull():
+                    sk_shape = custom_prof.Shape
+            # Fall back to embedded BREP data
+            if sk_shape is None:
+                brep = getattr(obj, 'CrossSectionBrep', "")
+                if brep:
+                    try:
+                        import tempfile, os
+                        brep_bytes = brep.encode("latin-1") if isinstance(brep, str) else brep
+                        tmp = tempfile.NamedTemporaryFile(
+                            suffix=".brp", delete=False, mode="wb")
+                        try:
+                            tmp.write(brep_bytes)
+                            tmp.close()
+                            sk_shape = Part.read(tmp.name)
+                        finally:
+                            os.unlink(tmp.name)
+                    except Exception:
+                        sk_shape = None
+            # Last resort: try reading from source library file
+            if sk_shape is None:
+                try:
+                    src = getattr(custom_prof, 'SourceFile', '') if custom_prof else ''
+                    if not src:
+                        src = getattr(obj, 'SourceFile', '')
+                    if src and os.path.isfile(src):
+                        import zipfile
+                        with zipfile.ZipFile(src, 'r') as zf:
+                            brp_entries = [n for n in zf.namelist()
+                                          if n.endswith('.Shape.brp') and zf.getinfo(n).file_size > 0]
+                            tmp2 = tempfile.mkdtemp()
+                            try:
+                                for entry in brp_entries:
+                                    zf.extract(entry, tmp2)
+                                    brp_path = os.path.join(tmp2, entry)
+                                    try:
+                                        shape = Part.read(brp_path)
+                                        if shape is not None and not shape.isNull():
+                                            if shape.ShapeType in ("Face", "Wire", "Compound"):
+                                                sk_shape = shape.copy()
+                                                break
+                                    except Exception:
+                                        pass
+                            finally:
+                                import shutil
+                                shutil.rmtree(tmp2, ignore_errors=True)
+                except Exception:
+                    pass
+            if sk_shape is None:
+                App.Console.PrintLog(f"Profile '{obj.Label}': custom shape not available (re-select section to fix).\n")
+                try:
+                    obj.Shape = Part.Compound([])
+                except Exception:
+                    obj.Shape = Part.Shape()
+                obj.purgeTouched()
+                return
             if isinstance(sk_shape, Part.Wire):
                 p = Part.Face(sk_shape)
             elif isinstance(sk_shape, Part.Face):
@@ -1255,6 +1310,10 @@ class Profile:
             # add CustomProfile atttribute
             if not hasattr(obj, "CustomProfile"):
                 obj.addProperty("App::PropertyLink", "CustomProfile", "Profile", "Target profile").CustomProfile = None
+
+            if not hasattr(obj, "CrossSectionBrep"):
+                obj.addProperty("App::PropertyString", "CrossSectionBrep", "Profile",
+                                "Serialized cross-section shape BREP data").CrossSectionBrep = ""
 
             # add LinearWeight attribute (<= 0.1.7)
             if not hasattr(obj, "LinearWeight"):

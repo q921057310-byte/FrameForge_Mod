@@ -228,7 +228,9 @@ def _transform_face_to_world(local_face, origin, x_axis, y_axis, normal):
             pass
 
     try:
-        pts_3d = [origin + x_axis * v.Point.x + y_axis * v.Point.y for v in wire.Vertexes]
+        # Discretize to preserve curved edges (腰孔等)
+        pts = wire.discretize(64)
+        pts_3d = [origin + x_axis * p.x + y_axis * p.y for p in pts]
         pts_3d.append(pts_3d[0])
         return Part.Face(Part.makePolygon(pts_3d))
     except Exception:
@@ -253,9 +255,9 @@ def _fill_with_element(boundary_face, element_face, spacing_x, spacing_y, grid_m
             if base_pts_3d and base_pts_3d[0].distanceToPoint(base_pts_3d[-1]) < 1e-7:
                 base_pts_3d.pop()
         else:
-            base_pts_3d = wire.discretize(24)
+            base_pts_3d = wire.discretize(64)
     except Exception:
-        base_pts_3d = element_face.discretize(24)
+        base_pts_3d = element_face.discretize(64)
     base_pts_local = [_project_pt(p, origin, x_axis, y_axis) for p in base_pts_3d]
 
     el_min_x = min(p.x for p in base_pts_local)

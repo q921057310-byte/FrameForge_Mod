@@ -884,10 +884,7 @@ class ImportAluminumProfileTaskPanel:
                         feat.ViewObject.Visibility = False
                     except Exception:
                         pass
-                    try:
-                        feat.ViewObject.ShowInTree = False
-                    except Exception:
-                        pass
+
                     parent_shapes[key] = feat
 
             counter = 0
@@ -1129,10 +1126,6 @@ class ImportAluminumProfileTaskPanel:
             feat.ViewObject.Visibility = False
         except Exception:
             pass
-        try:
-            feat.ViewObject.ShowInTree = False
-        except Exception:
-            pass
         name = f"{name_base}_Profile_{counter:03d}"
         obj = doc.addObject("Part::FeaturePython", name)
         obj.addExtension("Part::AttachExtensionPython")
@@ -1156,6 +1149,19 @@ class ImportAluminumProfileTaskPanel:
             obj.MapMode = "Deactivated"
         except Exception:
             pass
+        if hasattr(obj, "CrossSectionBrep"):
+            try:
+                obj.CrossSectionBrep = sketch_data["shape"].exportBrepToString()
+            except Exception:
+                pass
+        source_file = sketch_data.get("source_file", "")
+        if source_file and not hasattr(obj, "SourceFile"):
+            try:
+                obj.addProperty("App::PropertyString", "SourceFile", "frameforgemod",
+                                "Source FCStd file path")
+                obj.SourceFile = source_file
+            except Exception:
+                pass
         return obj
 
     def _find_part_siblings(self, profile):
@@ -1485,10 +1491,6 @@ class ImportAluminumProfileTaskPanel:
                 feat.ViewObject.Visibility = False
             except Exception:
                 pass
-            try:
-                feat.ViewObject.ShowInTree = False
-            except Exception:
-                pass
 
         if is_curved and edge_obj is not None:
             try:
@@ -1511,19 +1513,11 @@ class ImportAluminumProfileTaskPanel:
                     section_obj.ViewObject.Visibility = False
                 except Exception:
                     pass
-                try:
-                    section_obj.ViewObject.ShowInTree = False
-                except Exception:
-                    pass
 
                 path_obj = doc.addObject("Part::Feature", f"{name_base}_Path_{counter:03d}")
                 path_obj.Shape = Part.Wire([edge_obj])
                 try:
                     path_obj.ViewObject.Visibility = False
-                except Exception:
-                    pass
-                try:
-                    path_obj.ViewObject.ShowInTree = False
                 except Exception:
                     pass
 
@@ -1541,12 +1535,6 @@ class ImportAluminumProfileTaskPanel:
                     plane.ViewObject.Visibility = False
                     section_obj.ViewObject.Visibility = False
                     path_obj.ViewObject.Visibility = False
-                except Exception:
-                    pass
-                try:
-                    plane.ViewObject.ShowInTree = False
-                    section_obj.ViewObject.ShowInTree = False
-                    path_obj.ViewObject.ShowInTree = False
                 except Exception:
                     pass
 
@@ -1579,6 +1567,19 @@ class ImportAluminumProfileTaskPanel:
         )
 
         ViewProviderCustomProfile(obj.ViewObject)
+        if hasattr(obj, "CrossSectionBrep"):
+            try:
+                obj.CrossSectionBrep = sketch_data["shape"].exportBrepToString()
+            except Exception:
+                pass
+        source_file = sketch_data.get("source_file", "")
+        if source_file and not hasattr(obj, "SourceFile"):
+            try:
+                obj.addProperty("App::PropertyString", "SourceFile", "frameforgemod",
+                                "Source FCStd file path")
+                obj.SourceFile = source_file
+            except Exception:
+                pass
 
         return obj
 

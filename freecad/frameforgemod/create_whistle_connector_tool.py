@@ -160,7 +160,11 @@ class WhistleConnectorTaskPanel:
     # ── Selection handler ──────────────────────────────────
 
     def _on_selection(self, doc_name, obj_name, sub):
-        if not sub or not sub.startswith("Face"):
+        if not sub:
+            return
+        is_face = sub.startswith("Face")
+        is_edge = sub.startswith("Edge")
+        if not (is_face or is_edge):
             return
         if self.obj is None or obj_name == self.obj.Name:
             return
@@ -170,11 +174,26 @@ class WhistleConnectorTaskPanel:
         if obj is None:
             return
 
-        face = obj.getSubObject(sub)
-        if not isinstance(face, Part.Face):
+        sub_obj = obj.getSubObject(sub)
+        if is_face and not isinstance(sub_obj, Part.Face):
             return
+        if is_edge:
+            edge = sub_obj
+            try:
+                curve = edge.Curve
+                try:
+                    _ = curve.Center
+                    _ = curve.Axis
+                except Exception:
+                    App.Console.PrintMessage(
+                        f"Edge {sub} curve has no Center/Axis (curve type: {type(curve).__name__})\n")
+                    return
+                dia = curve.Radius * 2
+            except Exception as e:
+                App.Console.PrintMessage(f"Edge {sub} cannot get curve: {e}\n")
+                return
 
-        # Toggle: clicking same face again clears it
+        # Toggle: clicking same face/edge again clears it
         for slot, label in [("DrillFace", self.drill_label), ("EndFace", self.end_label)]:
             stored = getattr(self.obj, slot)
             if stored and len(stored) > 0 and stored[0] is obj and stored[1] == (sub,):
@@ -184,19 +203,30 @@ class WhistleConnectorTaskPanel:
                 self.obj.recompute()
                 return
 
-        # Ordered: click drill face first, then end face
+        # Ordered: click drill face/edge first, then optionally end face
         if self.obj.DrillFace is None:
             self.obj.DrillFace = (obj, (sub,))
-            self.drill_label.setText(f"{translate('frameforgemod', 'Drill face')}: {obj.Label} ({sub})")
+            self.drill_label.setText(
+                f"{translate('frameforgemod', 'Drill')}: {obj.Label} ({sub})")
             self._update_qy()
-            App.Console.PrintMessage(f"Drill face set: {obj.Label} {sub}\n")
-            App.Console.PrintMessage("Now click END FACE (cross-section) of the profile.\n")
+            self.obj.recompute()
+            App.Console.PrintMessage(f"Drill set: {obj.Label} {sub}\n")
+            if is_edge:
+                App.Console.PrintMessage(
+                    f"Arc edge (⌀{dia:.1f}mm) selected. "
+                    f"Auto end-face detection active. OK to finish.\n")
+            else:
+                App.Console.PrintMessage("Click END FACE for distance (optional), or press OK.\n")
+        elif is_edge:
+            App.Console.PrintMessage("EndFace must be a face, not an edge. "
+                                      "Click the cross-section face of the profile.\n")
         else:
             self.obj.EndFace = (obj, (sub,))
-            self.end_label.setText(f"{translate('frameforgemod', 'End face')}: {obj.Label} ({sub})")
+            self.end_label.setText(
+                f"{translate('frameforgemod', 'End face')}: {obj.Label} ({sub})")
             App.Console.PrintMessage(f"End face set: {obj.Label} {sub}\n")
             self.obj.recompute()
-            App.Console.PrintMessage("Both faces set. OK to finish.\n")
+            App.Console.PrintMessage("End face applied. OK to finish.\n")
 
     def _update_qy(self):
         try:
@@ -377,23 +407,13 @@ class TJointConnectorTaskPanel:
         self._restore_b()
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
+        self.obj.restoreContent(self.dump)
         App.ActiveDocument.abortTransaction()
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
         Gui.ActiveDocument.resetEdit()
         return True
 
     def apply(self):
         self._restore_b()
-        self.obj.EndFace = None
-        self.obj.DrillFace = None
-        self.b_label.setText(translate("frameforgemod", "Waiting for B side face..."))
-        self.a_label.setText(translate("frameforgemod", "Waiting for A end face..."))
-        self.detected_label.setText(translate("frameforgemod", "Detected hole: not yet"))
-        self.match_label.setText(translate("frameforgemod", "Matched spec: --"))
-        self.spin_detected_dia.setValue(0.0)
         App.ActiveDocument.commitTransaction()
         try:
             self.obj.recompute()
@@ -477,6 +497,7 @@ class TJointConnectorTaskPanel:
             f"{translate('frameforgemod', 'A end face')}: {sel_obj.Label} ({sub})")
         App.Console.PrintMessage(f"A end face set: {sel_obj.Label} {sub}\n")
 
+        self._restore_b()
         self._detect_and_match(face)
         self.obj.recompute()
         App.Console.PrintMessage("Ready. Press Apply or OK.\n")

@@ -82,9 +82,26 @@ def _get_qy_specs(profile_obj):
 
 
 def _get_body_to_cut(obj_ref):
-    if is_trimmedbody(obj_ref):
-        return obj_ref
+    while is_trimmedbody(obj_ref):
+        obj_ref = obj_ref.TrimmedBody
     return obj_ref
+
+
+def _reapply_trims(shape, obj_ref):
+    """Re-apply TrimmedProfile cuts to a shape by intersecting with each
+    TrimmedProfile's result shape. This is needed because _get_body_to_cut
+    resolves to the base profile, whose shape is untrimmed."""
+    while is_trimmedbody(obj_ref):
+        trimmed = obj_ref.Shape
+        if not trimmed.isNull():
+            try:
+                common = shape.common(trimmed)
+                if not common.isNull() and common.isValid():
+                    shape = common
+            except Exception:
+                pass
+        obj_ref = obj_ref.TrimmedBody
+    return shape
 
 
 def _find_extrusion_dir(body_shape):
@@ -764,6 +781,11 @@ class ViewProviderWhistleConnector:
     def claimChildren(self):
         parent = self._get_parent()
         if parent:
+            if self._both_faces_set():
+                try:
+                    parent.ViewObject.Visibility = False
+                except Exception:
+                    pass
             return [parent]
         return []
 
