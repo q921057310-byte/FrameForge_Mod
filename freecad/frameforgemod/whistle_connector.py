@@ -87,6 +87,36 @@ def _get_body_to_cut(obj_ref):
     return obj_ref
 
 
+def _get_working_shape(body, exclude_obj=None):
+    """Return the shape with the most holes accumulated from sibling connectors.
+    Falls back to body.Shape if no sibling connectors have computed shapes."""
+    try:
+        candidates = []
+        if hasattr(body, "Document") and body.Document:
+            for obj in body.Document.Objects:
+                if obj is exclude_obj:
+                    continue
+                if getattr(obj.Proxy, "Type", "") != "WhistleConnector":
+                    continue
+                if not hasattr(obj, "DrillFace") or not obj.DrillFace or len(obj.DrillFace) == 0:
+                    continue
+                sib_body = _get_body_to_cut(obj.DrillFace[0])
+                if sib_body is body:
+                    try:
+                        s = obj.Shape
+                        if s and not s.isNull():
+                            candidates.append(s)
+                    except Exception:
+                        pass
+        if candidates:
+            best = min(candidates, key=lambda s: s.Volume)
+            if best.Volume < body.Shape.Volume:
+                return best
+    except Exception:
+        pass
+    return body.Shape
+
+
 def _reapply_trims(shape, obj_ref):
     """Re-apply TrimmedProfile cuts to a shape by intersecting with each
     TrimmedProfile's result shape. This is needed because _get_body_to_cut
@@ -438,7 +468,7 @@ class WhistleConnector:
             return
 
         body = _get_body_to_cut(drill_obj)
-        body_shape = body.Shape
+        body_shape = _get_working_shape(body, fp)
         if body_shape.isNull():
             App.Console.PrintWarning("WhistleConnector: body null\n")
             return
@@ -525,6 +555,7 @@ class WhistleConnector:
         # 1) Try -normal (into body) — this is the CORRECT direction
         result = _cut_test(-drill_normal, "-normal")
         if result is not None:
+            result = _reapply_trims(result, drill_obj)
             removed = orig_vol - result.Volume
             if removed > min_ok:
                 fp.Shape = result
@@ -537,6 +568,7 @@ class WhistleConnector:
         # 2) Try +normal (out of body) — only if -normal didn't work
         result = _cut_test(drill_normal, "+normal")
         if result is not None:
+            result = _reapply_trims(result, drill_obj)
             removed = orig_vol - result.Volume
             if removed > min_ok:
                 fp.Shape = result
@@ -555,6 +587,7 @@ class WhistleConnector:
             for d, lbl in [(perp, "+perp"), (-perp, "-perp")]:
                 result = _cut_test(d, lbl)
                 if result is not None:
+                    result = _reapply_trims(result, drill_obj)
                     removed = orig_vol - result.Volume
                     if removed > min_ok:
                         fp.Shape = result
@@ -648,7 +681,7 @@ class WhistleConnector:
         # Direction: drill into B body (opposite to drill_face normal)
         drill_dir = -drill_normal
 
-        body_b_shape = _get_body_to_cut(drill_obj).Shape
+        body_b_shape = _get_working_shape(_get_body_to_cut(drill_obj), fp)
         if body_b_shape.isNull():
             App.Console.PrintWarning("TJointConnector: B body is null\n")
             return
@@ -675,7 +708,7 @@ class WhistleConnector:
         step1 = _cut_cylinder(proj, drill_dir, csink_dia, csink_depth, body_b_shape)
         if step1 is None or step1.isNull():
             App.Console.PrintWarning("TJointConnector: countersink cut failed\n")
-            fp.Shape = body_b_shape
+            fp.Shape = _reapply_trims(body_b_shape, drill_obj)
             return
 
         # Step 2: Through hole (inner, deep) — cut from original surface deeper
@@ -683,9 +716,9 @@ class WhistleConnector:
         through_start = proj + drill_dir * (csink_depth - 0.02)
         step2 = _cut_cylinder(through_start, drill_dir, through_dia, extrude_through, step1)
         if step2 is None or step2.isNull():
-            fp.Shape = step1  # at least keep the counterbore
+            fp.Shape = _reapply_trims(step1, drill_obj)
         else:
-            fp.Shape = step2
+            fp.Shape = _reapply_trims(step2, drill_obj)
 
         removed = orig_vol - fp.Shape.Volume
         App.Console.PrintMessage(
@@ -781,22 +814,11 @@ class ViewProviderWhistleConnector:
     def claimChildren(self):
         parent = self._get_parent()
         if parent:
-            if self._both_faces_set():
-                try:
-                    parent.ViewObject.Visibility = False
-                except Exception:
-                    pass
             return [parent]
         return []
 
     def onChanged(self, vp, prop):
-        if prop in ("EndFace", "DrillFace") and self._both_faces_set():
-            parent = self._get_parent()
-            if parent:
-                try:
-                    parent.ViewObject.Visibility = False
-                except Exception:
-                    pass
+        pass
 
     def onDelete(self, vobj, sub):
         parent = self._get_parent()
