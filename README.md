@@ -32,7 +32,7 @@ FrameForge is a FreeCAD workbench for designing beams and frames with cut, miter
 ![](https://github.com/q921057310-byte/FrameForge_Mod/blob/master/docs/images/%E5%B0%81%E6%9D%BF.png)
 ![](https://github.com/q921057310-byte/FrameForge_Mod/blob/master/docs/images/Quicker_20260509_073148.png)
 ![]()
-[![GitHub视频](https://img.youtube.com/vi/视频ID/0.jpg)%5D(https://www.youtube.com/watch?v=leSm4V5qcts)
+[![GitHub视频](https://img.youtube.com/vi/leSm4V5qcts/0.jpg)%5D(https://www.youtube.com/watch?v=leSm4V5qcts)
 
 
 
