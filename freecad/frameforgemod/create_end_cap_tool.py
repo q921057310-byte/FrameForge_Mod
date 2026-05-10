@@ -9,7 +9,7 @@ try:
 except ImportError:
     QtWidgets = QtGui
 
-from freecad.frameforgemod.end_cap import EndCap, ViewProviderEndCap
+from freecad.frameforgemod.end_cap import EndCap, ViewProviderEndCap, _save_endcap_defaults
 from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
 
 
@@ -260,6 +260,7 @@ class CreateEndCapTaskPanel:
         self.obj.BaseObject = None
         self.face_label.setText(translate("frameforgemod", "No face selected"))
         App.ActiveDocument.commitTransaction()
+        _save_endcap_defaults(self.obj)
         try:
             self.obj.recompute()
         except Exception:
@@ -276,6 +277,7 @@ class CreateEndCapTaskPanel:
 
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create End Cap\n"))
+        _save_endcap_defaults(self.obj)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
         Gui.ActiveDocument.resetEdit()

@@ -25,6 +25,49 @@ THREAD_SPECS = {
 }
 
 
+def _endcap_params():
+    return App.ParamGet("User parameter:BaseApp/Preferences/Frameforge/EndCap")
+
+
+def _load_endcap_defaults(obj):
+    p = _endcap_params()
+    obj.Thickness = p.GetFloat("Thickness", float(obj.Thickness))
+    obj.Offset = p.GetFloat("Offset", float(obj.Offset))
+    obj.Reverse = p.GetBool("Reverse", obj.Reverse)
+    obj.CapType = p.GetInt("CapType", obj.CapType)
+    obj.PlugOffset = p.GetFloat("PlugOffset", float(obj.PlugOffset))
+    obj.ChamferEnabled = p.GetBool("ChamferEnabled", obj.ChamferEnabled)
+    obj.ChamferSize = p.GetFloat("ChamferSize", float(obj.ChamferSize))
+    obj.FilletEnabled = p.GetBool("FilletEnabled", obj.FilletEnabled)
+    obj.FilletSize = p.GetFloat("FilletSize", float(obj.FilletSize))
+    obj.HoleEnabled = p.GetBool("HoleEnabled", obj.HoleEnabled)
+    obj.HoleThreaded = p.GetBool("HoleThreaded", obj.HoleThreaded)
+    try:
+        spec = p.GetString("HoleThreadSpec", str(obj.HoleThreadSpec))
+        if spec in THREAD_SPECS:
+            obj.HoleThreadSpec = spec
+    except Exception:
+        pass
+    obj.HoleDiameter = p.GetFloat("HoleDiameter", float(obj.HoleDiameter))
+
+
+def _save_endcap_defaults(obj):
+    p = _endcap_params()
+    p.SetFloat("Thickness", float(obj.Thickness))
+    p.SetFloat("Offset", float(obj.Offset))
+    p.SetBool("Reverse", bool(obj.Reverse))
+    p.SetInt("CapType", int(obj.CapType))
+    p.SetFloat("PlugOffset", float(obj.PlugOffset))
+    p.SetBool("ChamferEnabled", bool(obj.ChamferEnabled))
+    p.SetFloat("ChamferSize", float(obj.ChamferSize))
+    p.SetBool("FilletEnabled", bool(obj.FilletEnabled))
+    p.SetFloat("FilletSize", float(obj.FilletSize))
+    p.SetBool("HoleEnabled", bool(obj.HoleEnabled))
+    p.SetBool("HoleThreaded", bool(obj.HoleThreaded))
+    p.SetString("HoleThreadSpec", str(obj.HoleThreadSpec))
+    p.SetFloat("HoleDiameter", float(obj.HoleDiameter))
+
+
 class EndCap:
     def __init__(self, obj, selected_face):
         _register_profile_metadata(obj)
@@ -124,6 +167,8 @@ class EndCap:
             "EndCap",
             translate("App::Property", "Hole diameter"),
         ).HoleDiameter = 6.0
+
+        _load_endcap_defaults(obj)
 
         obj.Proxy = self
         self._cached_key = None
