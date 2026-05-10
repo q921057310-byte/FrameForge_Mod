@@ -179,17 +179,19 @@ Edit the JSON file for the material type:
 }
 ```
 
-### 2. Cross-Section Sketch / 截面草图
+### 2. Cross-Section Sketch / Sheet Body / 截面草图 / 片体
 
-For aluminum extrusions with custom cross-sections, add a `.FCStd` file:
+Profile outlines are loaded from `.FCStd` files in the profiles directory:
 
-对于有自定义截面的铝型材，添加 `.FCStd` 文件：
+型材轮廓从 `profiles` 目录下的 `.FCStd` 文件加载：
 
-`freecad/frameforgemod/resources/profiles/aluminum/`
+`freecad/frameforgemod/resources/profiles/`
 
-- Create a sketch of the cross-section in FreeCAD / 在 FreeCAD 中绘制截面草图
-- Save as `YourProfileName.FCStd` / 保存为 `YourProfileName.FCStd`
-- The sketch name inside should match the filename / 内部草图名称需与文件名一致
+- File name must match the `<label>` in JSON / 文件名必须与 JSON 中的 `<label>` 一致
+- Supported content / 支持的内容：
+  - **Sketch** — closed wire sketch of the cross-section / 闭合截面草图
+  - **Sheet Body / 片体** — face body representing the cross-section / 表示截面的片体
+- Each `.FCStd` should contain ONE sketch or sheet body named the same as the file / 每个 `.FCStd` 文件应包含一个与文件同名的草图或片体
 
 ### 3. SVG Outline (Optional) / SVG 轮廓（可选）
 
