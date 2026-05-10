@@ -17,11 +17,13 @@ from freecad.frameforgemod.ff_tools import ICONPATH, PROFILEIMAGES_PATH, PROFILE
 THREAD_SPECS = {
     "Custom": 0,
     "M3": 2.5,
+    "M4": 3.3,
     "M5": 4.2,
     "M6": 5.0,
     "M8": 6.8,
     "M10": 8.5,
     "M12": 10.2,
+    "M14": 12.0,
 }
 
 
@@ -49,6 +51,7 @@ def _load_endcap_defaults(obj):
     except Exception:
         pass
     obj.HoleDiameter = p.GetFloat("HoleDiameter", float(obj.HoleDiameter))
+    obj.HoleDepth = p.GetFloat("HoleDepth", float(obj.HoleDepth))
 
 
 def _save_endcap_defaults(obj):
@@ -66,6 +69,7 @@ def _save_endcap_defaults(obj):
     p.SetBool("HoleThreaded", bool(obj.HoleThreaded))
     p.SetString("HoleThreadSpec", str(obj.HoleThreadSpec))
     p.SetFloat("HoleDiameter", float(obj.HoleDiameter))
+    p.SetFloat("HoleDepth", float(obj.HoleDepth))
 
 
 class EndCap:
@@ -168,11 +172,29 @@ class EndCap:
             translate("App::Property", "Hole diameter"),
         ).HoleDiameter = 6.0
 
+        obj.addProperty(
+            "App::PropertyLength",
+            "HoleDepth",
+            "EndCap",
+            translate("App::Property", "Hole depth (0 = through all)"),
+        ).HoleDepth = 0.0
+
         _load_endcap_defaults(obj)
 
         obj.Proxy = self
         self._cached_key = None
         self._cached_shape = None
+
+    def onChanged(self, fp, prop):
+        if prop == "HoleThreadSpec":
+            dia = THREAD_SPECS.get(str(fp.HoleThreadSpec))
+            if dia and dia > 0:
+                fp.HoleDiameter = dia
+        if prop in ("HoleEnabled", "HoleDiameter", "HoleDepth", "HoleThreaded", "HoleThreadSpec",
+                     "Thickness", "Offset", "ChamferEnabled", "ChamferSize",
+                     "FilletEnabled", "FilletSize", "CapType", "PlugOffset", "Reverse"):
+            self._cached_key = None
+            self._cached_shape = None
 
     def dumps(self):
         return None
@@ -184,7 +206,7 @@ class EndCap:
     def _endcap_key(self, fp):
         try:
             key_parts = [fp.CapType, fp.Reverse, fp.Thickness, fp.Offset, fp.PlugOffset,
-                         fp.HoleEnabled, fp.HoleDiameter, fp.HoleThreaded, fp.HoleThreadSpec,
+                         fp.HoleEnabled, fp.HoleDiameter, fp.HoleDepth, fp.HoleThreaded, fp.HoleThreadSpec,
                          fp.ChamferEnabled, fp.ChamferSize, fp.FilletEnabled, fp.FilletSize]
             if fp.BaseObject and len(fp.BaseObject) >= 2:
                 try:
@@ -279,20 +301,24 @@ class EndCap:
         if fp.HoleEnabled and fp.HoleDiameter > 0:
             try:
                 hdia = float(fp.HoleDiameter)
+                hdepth = float(fp.HoleDepth)
                 center = face.CenterOfGravity
-                hole_len = t + 10
+                if hdepth > 0:
+                    hole_len = min(hdepth, t + 10)
+                else:
+                    hole_len = t + 10
                 if fp.HoleThreaded:
                     csink_r = hdia * 0.65
                     cone_h = csink_r - hdia / 2.0
                     cone = Part.makeCone(csink_r, hdia / 2.0, cone_h, center, extrude_dir)
-                    cyl = Part.makeCylinder(hdia / 2.0, hole_len, center, n)
+                    cyl = Part.makeCylinder(hdia / 2.0, hole_len, center, extrude_dir)
                     hole = cyl.fuse(cone)
-                    hole.translate(n * (-5))
+                    hole.translate(extrude_dir * (-5))
                 else:
-                    circle = Part.makeCircle(hdia / 2.0, center, n)
+                    circle = Part.makeCircle(hdia / 2.0, center, extrude_dir)
                     hole_face = Part.Face(Part.Wire(circle))
-                    hole = hole_face.extrude(n * hole_len)
-                    hole.translate(n * (-5))
+                    hole = hole_face.extrude(extrude_dir * hole_len)
+                    hole.translate(extrude_dir * (-5))
                 if not hole.isNull() and hole.isValid():
                     cap = cap.cut(hole)
             except Exception:
