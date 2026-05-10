@@ -1,10 +1,26 @@
-# FrameForge / 型材框架工作台 (Mod 版本)
+# FrameForge / 型材框架工作台 (Mod 版本 v0.1)
 
 FrameForge is a FreeCAD workbench for designing beams and frames with cut, miter joins, BOM export, and more.
 
 型材框架 是一个 FreeCAD 工作台，用于设计梁和框架结构，支持切割、斜接、BOM 导出等功能。
 
 > **注意**：这是一个 AI 辅助开发的 Mod 版本，安装在 `FrameForge_mod` 目录。代码由 AI 生成，使用前请先测试，操作前备份文件。
+
+---
+
+## v0.1 — Mod 新增功能 / New in Mod
+
+- **自定义型材 (Custom Profile)** — 从选中边创建任意截面的型材
+- **钻孔 (Hole)** — 基于草图点/圆/线在型材上打孔，自动生成 Part::Cut
+- **哨子连接器 / T 型连接器** — 自动检测 QY 规格，支持内置连接件钻孔
+- **图案填充 (Pattern Fill)** — 六边形/圆形/三角形/自定义图案阵列填充
+- **通风口 (Vent)** — 基于草图创建带加强筋的通风开口
+- **端盖 (End Cap)** — 板式/插入式，支持倒角、圆角、螺纹孔 (M3~M12)
+- **角撑板 (Gusset)** — 三角支撑板，带倒角选项
+- **铝型材库** — 集成国标/欧标铝型材截面库
+- **BOM 动态更新** — 表格单元格使用公式引用型材属性，修改即更新
+- **端盖/角撑板参数记忆** — 下次创建自动恢复上次数值
+- **BOM 角度修复** — 斜接角度计算修正为 A/2
 
 ---
 
