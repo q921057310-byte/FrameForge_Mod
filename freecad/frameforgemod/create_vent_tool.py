@@ -822,9 +822,9 @@ if App.GuiUp:
             self._end_pick()
             try:
                 if hasattr(self.obj, "baseObject") and self.obj.baseObject:
-                    self.obj.baseObject[0].ViewObject.Visibility = True
+                    self.obj.baseObject[0].ViewObject.Visibility = False
                 if hasattr(self.obj, "Sketch") and self.obj.Sketch:
-                    self.obj.Sketch.ViewObject.Visibility = True
+                    self.obj.Sketch.ViewObject.Visibility = False
                 self.obj.ViewObject.Visibility = True
             except Exception:
                 pass

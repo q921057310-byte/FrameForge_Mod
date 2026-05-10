@@ -305,7 +305,40 @@ class Gusset:
 
         # Re-create triangle face with possibly shifted vertices
         try:
-            wire = Part.makePolygon([v0, v1, v2, v0])
+            # Build polygon vertices — apply chamfer by cutting triangle corners
+            ch_ra = float(fp.ChamferRightAngleSize) if fp.ChamferRightAngle else 0.0
+            ch_ac = float(fp.ChamferAcuteSize) if fp.ChamferAcute else 0.0
+
+            pts = [v0, v1, v2]
+            if ch_ra > 0 or ch_ac > 0:
+                d01 = (v1 - v0).normalize()
+                d12 = (v2 - v1).normalize()
+                d20 = (v0 - v2).normalize()
+
+                def offset(a, dir, ch):
+                    return a + dir * ch if ch > 0 else a
+
+                # Walk perimeter: v0→v1→v2→v0
+                poly = []
+                # Edge v0→v1 (right-angle chamfer)
+                poly.append(offset(v0, d01, ch_ra))
+                poly.append(offset(v1, -d01, ch_ra))
+                # Edge v1→v2 (acute chamfer)
+                poly.append(offset(v1, d12, ch_ac))
+                poly.append(offset(v2, -d12, ch_ac))
+                # Edge v2→v0 (right-angle chamfer)
+                poly.append(offset(v2, d20, ch_ra))
+                poly.append(offset(v0, -d20, ch_ra))
+
+                # Remove duplicate consecutive points
+                pts = []
+                for p in poly:
+                    if not pts or (p - pts[-1]).Length > 0.001:
+                        pts.append(p)
+                if len(pts) >= 3:
+                    pts.append(pts[0])
+
+            wire = Part.makePolygon(pts if len(pts) >= 4 else [v0, v1, v2, v0])
             tri_face = Part.Face(wire)
         except Exception as e:
             App.Console.PrintWarning(f"Gusset: face construction failed: {e}\n")
@@ -334,41 +367,6 @@ class Gusset:
             except Exception:
                 pass
 
-        # Chamfers — find face-triangle edges (perpendicular to thickness direction)
-        try:
-            dir1_n = dir1.normalize()
-            dir2_n = dir2.normalize()
-            hyp_dir = (v2 - v1).normalize()
-            tri_n = tri_normal
-
-            def _classify_edges(shape):
-                ra, ac = [], []
-                for e in shape.Edges:
-                    if len(e.Vertexes) < 2:
-                        continue
-                    ed = e.Vertexes[-1].Point - e.Vertexes[0].Point
-                    el = ed.Length
-                    if el < 0.01:
-                        continue
-                    ed_n = ed / el
-                    if abs(ed_n.dot(tri_n)) > 0.5:
-                        continue
-                    if abs(ed_n.dot(dir1_n)) > 0.9 or abs(ed_n.dot(dir2_n)) > 0.9:
-                        ra.append(e)
-                    elif abs(ed_n.dot(hyp_dir)) > 0.9:
-                        ac.append(e)
-                return ra, ac
-
-            if fp.ChamferRightAngle and fp.ChamferRightAngleSize > 0:
-                ra, _ = _classify_edges(gusset)
-                if ra:
-                    gusset = gusset.makeChamfer(float(fp.ChamferRightAngleSize), ra)
-            if fp.ChamferAcute and fp.ChamferAcuteSize > 0:
-                _, ac = _classify_edges(gusset)
-                if ac:
-                    gusset = gusset.makeChamfer(float(fp.ChamferAcuteSize), ac)
-        except Exception:
-            pass
 
         fp.Shape = gusset
         self._cached_key = cache_key
