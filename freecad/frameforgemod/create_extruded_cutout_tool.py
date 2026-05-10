@@ -108,7 +108,7 @@ class CreateExtrudedCutoutTaskPanel:
         except Exception:
             pass
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create Extrude Cutout\n"))

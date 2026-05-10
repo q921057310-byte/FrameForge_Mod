@@ -235,7 +235,7 @@ class CreateTrimmedProfileTaskPanel:
         self.trimmed_bodies = []
         self.form.bodies_list_widget.clear()
         self.form.boundaries_list_widget.clear()
-        App.Console.PrintMessage("Ready. Continue adding trims or click OK.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready. Continue adding trims or click OK.\n"))
 
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create Trimmed Profile\n"))

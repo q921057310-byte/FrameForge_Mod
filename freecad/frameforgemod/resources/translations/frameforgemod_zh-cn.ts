@@ -865,6 +865,14 @@ Select Edges or set Length</source>
         <translation>用于端盖的面</translation>
     </message>
     <message>
+        <source>Hole depth (0 = through all)</source>
+        <translation>孔深（0=打通）</translation>
+    </message>
+    <message>
+        <source>Gap (distance from face)</source>
+        <translation>间隙（距面距离）</translation>
+    </message>
+    <message>
         <source>Chamfer on the two edges along the profiles (right angle side)</source>
         <translation>直角边倒角（靠型材的两条边）</translation>
     </message>
@@ -895,6 +903,68 @@ Select Edges or set Length</source>
     <message>
         <source>AC chamfer size</source>
         <translation>锐角边倒角尺寸</translation>
+    </message>
+    <message>
+        <source>Ready.\n</source>
+        <translation>就绪。
+</translation>
+    </message>
+    <message>
+        <source>Ready. Continue adding trims or click OK.\n</source>
+        <translation>就绪。继续添加修剪或点击确定。
+</translation>
+    </message>
+    <message>
+        <source>Ready. Select next edge or click OK.\n</source>
+        <translation>就绪。选择下一条边或点击确定。
+</translation>
+    </message>
+    <message>
+        <source>Ready. Press Apply or OK.\n</source>
+        <translation>就绪。点击应用或确定。
+</translation>
+    </message>
+    <message>
+        <source>Depth</source>
+        <translation>深度</translation>
+    </message>
+    <message>
+        <source>WhistleConnector: bad drill face</source>
+        <translation>哨子连接器：钻孔面错误</translation>
+    </message>
+    <message>
+        <source>WhistleConnector: position failed</source>
+        <translation>哨子连接器：定位失败</translation>
+    </message>
+    <message>
+        <source>TJointConnector: missing face references\n</source>
+        <translation>T型连接器：缺少面引用
+</translation>
+    </message>
+    <message>
+        <source>TJointConnector: end face not found\n</source>
+        <translation>T型连接器：未找到端面
+</translation>
+    </message>
+    <message>
+        <source>TJointConnector: drill face not found\n</source>
+        <translation>T型连接器：未找到钻孔面
+</translation>
+    </message>
+    <message>
+        <source>TJointConnector: face is on self\n</source>
+        <translation>T型连接器：面在自身上
+</translation>
+    </message>
+    <message>
+        <source>TJointConnector: no hole detected on reference end face\n</source>
+        <translation>T型连接器：参考端面上未检测到孔
+</translation>
+    </message>
+    <message>
+        <source>TJointConnector: detected hole {:.1f}mm outside matching range\n</source>
+        <translation>T型连接器：检测到的孔 {:.1f}mm 超出匹配范围
+</translation>
     </message>
 </context>
 </TS>

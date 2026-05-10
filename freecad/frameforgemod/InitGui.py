@@ -262,7 +262,8 @@ class FrameForgemod(Gui.Workbench):
             utilities,
         )
         from freecad.frameforgemod.dynamicdata import DynamicDataCmd
-        from freecad.frameforgemod.ff_tools import translate
+        from freecad.frameforgemod.ff_tools import translate, UIPATH
+        Gui.addPreferencePage(os.path.join(UIPATH, "preferences.ui"), "Frameforge")
 
         App.Console.PrintMessage(translate("frameforgemod", "Switching to frameforge") + "\n")
 

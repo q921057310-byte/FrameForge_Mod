@@ -91,7 +91,7 @@ class EditProfileTaskPanel(BaseProfileTaskPanel):
         if hasattr(self, 'dump') and hasattr(self.profile, 'dumpContent'):
             self.dump = self.profile.dumpContent()
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         self.proceed()

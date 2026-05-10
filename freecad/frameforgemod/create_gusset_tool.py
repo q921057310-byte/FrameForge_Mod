@@ -306,7 +306,7 @@ class CreateGussetTaskPanel:
         if hasattr(self, 'dump') and hasattr(self.obj, 'dumpContent'):
             self.dump = self.obj.dumpContent()
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create Gusset\n"))

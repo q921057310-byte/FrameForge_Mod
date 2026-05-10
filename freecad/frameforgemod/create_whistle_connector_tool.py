@@ -145,7 +145,7 @@ class WhistleConnectorTaskPanel:
         if hasattr(self, 'dump') and hasattr(self.obj, 'dumpContent'):
             self.dump = self.obj.dumpContent()
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         if self._obs:
@@ -505,7 +505,7 @@ class TJointConnectorTaskPanel:
 
         self._detect_and_match(face)
         self.obj.recompute()
-        App.Console.PrintMessage("Ready. Press Apply or OK.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready. Press Apply or OK.\n"))
 
     def _detect_and_match(self, face):
         dia, err = _detect_hole_diameter_from_face(face)

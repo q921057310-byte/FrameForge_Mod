@@ -443,7 +443,7 @@ class CreateProfileTaskPanel(BaseProfileTaskPanel):
             pass
         App.ActiveDocument.openTransaction("Continue editing")
         self.form_proxy.sb_length.setValue(0)
-        App.Console.PrintMessage("Ready. Select next edge or click OK.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready. Select next edge or click OK.\n"))
 
     def accept(self):
         if len(Gui.Selection.getSelectionEx()) or self.form_proxy.sb_length.value() != 0:

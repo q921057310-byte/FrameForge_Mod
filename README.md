@@ -1,6 +1,6 @@
 # FrameForge / 型材框架工作台 (Mod 版本 v0.1)
 
-<video src="https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223" width="100%" controls></video>
+https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223
 
 FrameForge is a FreeCAD workbench for designing beams and frames with cut, miter joins, BOM export, and more.
 

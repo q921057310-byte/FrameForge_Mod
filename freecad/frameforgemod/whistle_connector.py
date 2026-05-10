@@ -4,6 +4,7 @@ import Part
 
 from freecad.frameforgemod._utils import _register_profile_metadata, get_profile_from_trimmedbody, is_trimmedbody
 from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
+from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
 
 
 # Connector specification table
@@ -459,7 +460,7 @@ class WhistleConnector:
             drill_normal = drill_face.normalAt(0.5, 0.5)
             drill_center = drill_face.CenterOfGravity
         except Exception as e:
-            App.Console.PrintWarning(f"WhistleConnector: bad drill face: {e}\n")
+            App.Console.PrintWarning(translate("frameforgemod", "WhistleConnector: bad drill face") + f": {e}\n")
             return
 
         hole_center = drill_center
@@ -496,7 +497,7 @@ class WhistleConnector:
                     proj = side_center - end_dir * (side_center - end_ref).dot(end_dir)
                     hole_center = proj + end_dir * hole_dist
             except Exception as e:
-                App.Console.PrintWarning(f"WhistleConnector: position failed: {e}\n")
+                App.Console.PrintWarning(translate("frameforgemod", "WhistleConnector: position failed") + f": {e}\n")
 
         hole_r = float(fp.HoleDiameter) / 2.0
         hole_depth = float(fp.HoleDepth)
@@ -555,22 +556,22 @@ class WhistleConnector:
 
     def _execute_tjoint(self, fp):
         if fp.EndFace is None or fp.DrillFace is None:
-            App.Console.PrintMessage("TJointConnector: missing face references\n")
+            App.Console.PrintMessage(translate("frameforgemod", "TJointConnector: missing face references\n"))
             return
 
         end_obj, end_names = fp.EndFace
         end_face = end_obj.getSubObject(end_names[0])
         if end_face is None:
-            App.Console.PrintWarning("TJointConnector: end face not found\n")
+            App.Console.PrintWarning(translate("frameforgemod", "TJointConnector: end face not found\n"))
             return
 
         drill_obj, drill_names = fp.DrillFace
         drill_face = drill_obj.getSubObject(drill_names[0])
         if drill_face is None:
-            App.Console.PrintWarning("TJointConnector: drill face not found\n")
+            App.Console.PrintWarning(translate("frameforgemod", "TJointConnector: drill face not found\n"))
             return
         if drill_obj is fp:
-            App.Console.PrintMessage("TJointConnector: face is on self\n")
+            App.Console.PrintMessage(translate("frameforgemod", "TJointConnector: face is on self\n"))
             return
 
         # ── Reference profiles: A = end face owner, B = drill face owner ──
@@ -580,7 +581,7 @@ class WhistleConnector:
         # ── Hole center on A's end face ──
         holes = _detect_holes_from_face(end_face)
         if not holes:
-            App.Console.PrintWarning("TJointConnector: no hole detected on reference end face\n")
+            App.Console.PrintWarning(translate("frameforgemod", "TJointConnector: no hole detected on reference end face\n"))
             return
 
         # Always find the best hole center regardless of diameter override

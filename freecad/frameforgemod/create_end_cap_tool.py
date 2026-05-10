@@ -146,6 +146,16 @@ class CreateEndCapTaskPanel:
         self.spin_hole_dia.valueChanged.connect(self.on_hole_dia_changed)
         hole_layout.addRow(translate("frameforgemod", "Diameter"), self.spin_hole_dia)
 
+        self.spin_hole_depth = QtWidgets.QDoubleSpinBox()
+        self.spin_hole_depth.setRange(0.0, 1000.0)
+        self.spin_hole_depth.setDecimals(1)
+        self.spin_hole_depth.setValue(float(obj.HoleDepth))
+        self.spin_hole_depth.setSuffix(" mm")
+        self.spin_hole_depth.setEnabled(obj.HoleEnabled)
+        self.spin_hole_depth.setToolTip("0 = through all")
+        self.spin_hole_depth.valueChanged.connect(self.on_hole_depth_changed)
+        hole_layout.addRow(translate("frameforgemod", "Depth"), self.spin_hole_depth)
+
         layout.addWidget(hole_group)
 
         layout.addStretch()
@@ -221,6 +231,7 @@ class CreateEndCapTaskPanel:
     def on_hole_toggled(self, checked):
         self.obj.HoleEnabled = checked
         self.spin_hole_dia.setEnabled(checked)
+        self.spin_hole_depth.setEnabled(checked)
         self.cb_hole_threaded.setEnabled(checked)
         self.obj.recompute()
 
@@ -230,6 +241,10 @@ class CreateEndCapTaskPanel:
 
     def on_hole_dia_changed(self, val):
         self.obj.HoleDiameter = val
+        self.obj.recompute()
+
+    def on_hole_depth_changed(self, val):
+        self.obj.HoleDepth = val
         self.obj.recompute()
 
     def update_ui(self):
@@ -273,7 +288,7 @@ class CreateEndCapTaskPanel:
         if hasattr(self, 'dump') and hasattr(self.obj, 'dumpContent'):
             self.dump = self.obj.dumpContent()
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create End Cap\n"))

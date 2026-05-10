@@ -1519,88 +1519,94 @@ class ViewProviderProfile:
         vobj.Proxy = self
 
     def _ensureHelpers(self):
+        from freecad.frameforgemod.preferences import (
+            profile_show_helpers, profile_sphere_scale,
+            profile_show_endpoints, profile_show_guide_lines, profile_show_labels,
+            profile_point_size, profile_line_width,
+        )
+
         if hasattr(self, "helpersSwitch") and self.helpersSwitch:
             self.ViewObject.RootNode.removeChild(self.helpersSwitch)
             self.helpersSwitch = None
 
+        if not profile_show_helpers():
+            return
+
         self.helpersSwitch = coin.SoSwitch()
         self.helpersSwitch.whichChild = coin.SO_SWITCH_NONE
 
-        sph_d = max(self.Object.Width.Value, self.Object.Height.Value) / 6
+        sph_d = profile_point_size() * profile_sphere_scale()
+        lw = profile_line_width()
         font_size = int(1.4 * max(self.Object.Width.Value, self.Object.Height.Value))
 
         # Point 1
-        self.p1_tr = coin.SoTranslation()
-        p1_sep = coin.SoSeparator()
-        p1_sep.addChild(self.p1_tr)
-        p1_sep.addChild(self._makeSphere(sph_d, (0, 0, 1)))  # blue
+        if profile_show_endpoints():
+            self.p1_tr = coin.SoTranslation()
+            p1_sep = coin.SoSeparator()
+            p1_sep.addChild(self.p1_tr)
+            p1_sep.addChild(self._makeSphere(sph_d, (0, 0, 1)))  # blue
 
-        # Point 2
-        self.p2_tr = coin.SoTranslation()
-        p2_sep = coin.SoSeparator()
-        p2_sep.addChild(self.p2_tr)
-        p2_sep.addChild(self._makeSphere(sph_d, (1, 0.25, 0)))  # orange
+            # Point 2
+            self.p2_tr = coin.SoTranslation()
+            p2_sep = coin.SoSeparator()
+            p2_sep.addChild(self.p2_tr)
+            p2_sep.addChild(self._makeSphere(sph_d, (1, 0.25, 0)))  # orange
+
+            self.helpersSwitch.addChild(p1_sep)
+            self.helpersSwitch.addChild(p2_sep)
 
         # Line
         dir_sep = coin.SoSeparator()
+        dir_style = coin.SoDrawStyle()
+        dir_style.lineWidth = lw
+        dir_sep.addChild(dir_style)
         self.dir_coords = coin.SoCoordinate3()
         self.dir_line = coin.SoLineSet()
         dir_sep.addChild(self.dir_coords)
         dir_sep.addChild(self.dir_line)
-
-        self.helpersSwitch.addChild(p1_sep)
-        self.helpersSwitch.addChild(p2_sep)
         self.helpersSwitch.addChild(dir_sep)
 
-        # Guides P1
-        self.p1_x_sep, self.p1_x_coords = self._makeGuideLine((1, 0, 0))  # red
-        self.p1_y_sep, self.p1_y_coords = self._makeGuideLine((0, 1, 0))  # green
+        # Guides
+        if profile_show_guide_lines():
+            self.p1_x_sep, self.p1_x_coords = self._makeGuideLine((1, 0, 0), lw)  # red
+            self.p1_y_sep, self.p1_y_coords = self._makeGuideLine((0, 1, 0), lw)  # green
+            self.p2_x_sep, self.p2_x_coords = self._makeGuideLine((1, 0, 0), lw)
+            self.p2_y_sep, self.p2_y_coords = self._makeGuideLine((0, 1, 0), lw)
+            self.helpersSwitch.addChild(self.p1_x_sep)
+            self.helpersSwitch.addChild(self.p1_y_sep)
+            self.helpersSwitch.addChild(self.p2_x_sep)
+            self.helpersSwitch.addChild(self.p2_y_sep)
 
-        # Guides P2
-        self.p2_x_sep, self.p2_x_coords = self._makeGuideLine((1, 0, 0))
-        self.p2_y_sep, self.p2_y_coords = self._makeGuideLine((0, 1, 0))
+        # Labels
+        if profile_show_labels():
+            self.p1_label_tr = coin.SoTranslation()
+            p1_label_sep = coin.SoSeparator()
+            p1_label_sep.addChild(self.p1_label_tr)
+            mat1 = coin.SoMaterial()
+            mat1.diffuseColor = (1, 1, 1)
+            p1_label_sep.addChild(mat1)
+            font1 = coin.SoFont()
+            font1.size = font_size
+            p1_label_sep.addChild(font1)
+            txt1 = coin.SoText2()
+            txt1.string = "A"
+            p1_label_sep.addChild(txt1)
 
-        self.helpersSwitch.addChild(self.p1_x_sep)
-        self.helpersSwitch.addChild(self.p1_y_sep)
-        self.helpersSwitch.addChild(self.p2_x_sep)
-        self.helpersSwitch.addChild(self.p2_y_sep)
+            self.p2_label_tr = coin.SoTranslation()
+            p2_label_sep = coin.SoSeparator()
+            p2_label_sep.addChild(self.p2_label_tr)
+            mat2 = coin.SoMaterial()
+            mat2.diffuseColor = (1, 1, 1)
+            p2_label_sep.addChild(mat2)
+            font2 = coin.SoFont()
+            font2.size = font_size
+            p2_label_sep.addChild(font2)
+            txt2 = coin.SoText2()
+            txt2.string = "B"
+            p2_label_sep.addChild(txt2)
 
-        # Label 1
-        self.p1_label_tr = coin.SoTranslation()
-        p1_label_sep = coin.SoSeparator()
-        p1_label_sep.addChild(self.p1_label_tr)
-
-        mat1 = coin.SoMaterial()
-        mat1.diffuseColor = (1, 1, 1)
-        p1_label_sep.addChild(mat1)
-
-        font1 = coin.SoFont()
-        font1.size = font_size
-        p1_label_sep.addChild(font1)
-
-        txt1 = coin.SoText2()
-        txt1.string = "A"
-        p1_label_sep.addChild(txt1)
-
-        # Label 2
-        self.p2_label_tr = coin.SoTranslation()
-        p2_label_sep = coin.SoSeparator()
-        p2_label_sep.addChild(self.p2_label_tr)
-
-        mat2 = coin.SoMaterial()
-        mat2.diffuseColor = (1, 1, 1)
-        p2_label_sep.addChild(mat2)
-
-        font2 = coin.SoFont()
-        font2.size = font_size
-        p2_label_sep.addChild(font2)
-
-        txt2 = coin.SoText2()
-        txt2.string = "B"
-        p2_label_sep.addChild(txt2)
-
-        self.helpersSwitch.addChild(p1_label_sep)
-        self.helpersSwitch.addChild(p2_label_sep)
+            self.helpersSwitch.addChild(p1_label_sep)
+            self.helpersSwitch.addChild(p2_label_sep)
 
         self.ViewObject.RootNode.addChild(self.helpersSwitch)
 
@@ -1655,8 +1661,12 @@ class ViewProviderProfile:
 
         return U, V
 
-    def _makeGuideLine(self, color):
+    def _makeGuideLine(self, color, line_width=2):
         sep = coin.SoSeparator()
+
+        style = coin.SoDrawStyle()
+        style.lineWidth = line_width
+        sep.addChild(style)
 
         mat = coin.SoMaterial()
         mat.diffuseColor = color
@@ -1740,6 +1750,15 @@ class ViewProviderProfile:
         )
 
     def updateData(self, fp, prop):
+        from PySide import QtCore
+        def _apply_style():
+            try:
+                from freecad.frameforgemod.preferences import profile_line_width, profile_point_size
+                self.ViewObject.LineWidth = profile_line_width()
+                self.ViewObject.PointSize = profile_point_size()
+            except Exception:
+                pass
+        QtCore.QTimer.singleShot(0, _apply_style)
         if prop in ["Target", "OffsetA", "OffsetB", "RotationAngle"]:
             try:
                 self._updatePoints()

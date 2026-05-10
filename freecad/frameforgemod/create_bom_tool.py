@@ -80,7 +80,7 @@ class CreateBOMTaskPanel:
         except Exception:
             pass
         App.ActiveDocument.openTransaction("Continue editing")
-        App.Console.PrintMessage("Ready.\n")
+        App.Console.PrintMessage(translate("frameforgemod", "Ready.\n"))
 
     def accept(self):
         sel = Gui.Selection.getSelection()
