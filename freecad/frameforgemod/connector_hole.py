@@ -269,6 +269,10 @@ class ViewProviderHoleFeature:
     def setEdit(self, vobj, mode):
         if mode != 0:
             return None
+        try:
+            vobj.Visibility = True
+        except Exception:
+            pass
         import freecad.frameforgemod.create_connector_hole_tool as tools
         fp = self.Object
         taskd = tools.HoleFeatureTaskPanel(fp)

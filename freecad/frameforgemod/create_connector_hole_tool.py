@@ -22,31 +22,33 @@ class _SelObserver:
 
 
 class HoleFeatureTaskPanel:
-    def __init__(self, obj):
+    def __init__(self, obj, newly_created=False):
         self.obj = obj
+        self._newly_created = newly_created
         self._obs = None
 
         self.form = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(self.form)
 
-        top_bar = QtWidgets.QHBoxLayout()
-        top_bar.addStretch()
-        ok_btn = QtWidgets.QPushButton(translate("frameforgemod", "OK"))
-        ok_btn.setFixedWidth(60)
-        ok_btn.setFixedHeight(22)
-        ok_btn.clicked.connect(self.accept)
-        top_bar.addWidget(ok_btn)
-        apply_btn = QtWidgets.QPushButton(translate("frameforgemod", "Apply"))
-        apply_btn.setFixedWidth(60)
-        apply_btn.setFixedHeight(22)
-        apply_btn.clicked.connect(self.apply)
-        top_bar.addWidget(apply_btn)
-        cancel_btn = QtWidgets.QPushButton(translate("frameforgemod", "Cancel"))
-        cancel_btn.setFixedWidth(60)
-        cancel_btn.setFixedHeight(22)
-        cancel_btn.clicked.connect(self.reject)
-        top_bar.addWidget(cancel_btn)
-        layout.addLayout(top_bar)
+        # Removed custom OK/Apply/Cancel — use FreeCAD built-in buttons only
+        # top_bar = QtWidgets.QHBoxLayout()
+        # top_bar.addStretch()
+        # ok_btn = QtWidgets.QPushButton(translate("frameforgemod", "OK"))
+        # ok_btn.setFixedWidth(60)
+        # ok_btn.setFixedHeight(22)
+        # ok_btn.clicked.connect(self.accept)
+        # top_bar.addWidget(ok_btn)
+        # apply_btn = QtWidgets.QPushButton(translate("frameforgemod", "Apply"))
+        # apply_btn.setFixedWidth(60)
+        # apply_btn.setFixedHeight(22)
+        # apply_btn.clicked.connect(self.apply)
+        # top_bar.addWidget(apply_btn)
+        # cancel_btn = QtWidgets.QPushButton(translate("frameforgemod", "Cancel"))
+        # cancel_btn.setFixedWidth(60)
+        # cancel_btn.setFixedHeight(22)
+        # cancel_btn.clicked.connect(self.reject)
+        # top_bar.addWidget(cancel_btn)
+        # layout.addLayout(top_bar)
 
         info = QtWidgets.QLabel(translate("frameforgemod",
             "<b>Hole</b><br>"
@@ -318,7 +320,8 @@ class HoleFeatureTaskPanel:
             Gui.Selection.removeObserver(self._obs)
             self._obs = None
         self.obj.recompute()
-        self._do_cut()
+        if self._newly_created:
+            self._do_cut()
 
         App.ActiveDocument.recompute()
         Gui.updateGui()
@@ -382,7 +385,7 @@ class HoleFeatureCommand:
                 pass
 
         App.ActiveDocument.recompute()
-        panel = HoleFeatureTaskPanel(obj)
+        panel = HoleFeatureTaskPanel(obj, newly_created=True)
         Gui.Control.showDialog(panel)
 
 

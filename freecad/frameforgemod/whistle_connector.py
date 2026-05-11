@@ -802,6 +802,10 @@ class ViewProviderWhistleConnector:
     def setEdit(self, vobj, mode):
         if mode != 0:
             return None
+        try:
+            vobj.Visibility = True
+        except Exception:
+            pass
         import freecad.frameforgemod.create_whistle_connector_tool as tools
         fp = self.Object
         if hasattr(fp, "ConnectorType") and fp.ConnectorType == "TJoint":

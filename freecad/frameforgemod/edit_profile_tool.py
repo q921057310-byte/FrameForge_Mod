@@ -11,6 +11,7 @@ except ImportError:
     QtWidgets = QtGui
 
 from freecad.frameforgemod.create_profiles_tool import BaseProfileTaskPanel
+from freecad.frameforgemod.ff_tools import translate
 from freecad.frameforgemod.profile import ANCHOR_X, ANCHOR_Y, Profile, ViewProviderProfile
 
 

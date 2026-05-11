@@ -335,13 +335,19 @@ def make_trimmed_profile(trimmedBody=None, trimmingBoundary=None):
     trimmed_profile.TrimmedProfileType = "End Trim"
     trimmed_profile.CutType = "Simple fit"
 
+    if trimmedBody is not None:
+        try:
+            trimmedBody.ViewObject.Visibility = False
+        except Exception:
+            pass
+
     return trimmed_profile
 
 
 class TrimToolGroup:
     """Group: adjust ends + trim profile."""
     def GetCommands(self):
-        return ("frameforgemod_AdjustEnds", "frameforgemod_TrimProfiles")
+        return ("frameforgemod_AdjustEnds", "frameforgemod_TrimProfile")
 
     def GetDefaultCommand(self):
         return 0
@@ -359,3 +365,4 @@ class TrimToolGroup:
 
 
 Gui.addCommand("frameforgemod_TrimProfiles", TrimToolGroup())
+Gui.addCommand("frameforgemod_TrimProfile", TrimProfileCommand())

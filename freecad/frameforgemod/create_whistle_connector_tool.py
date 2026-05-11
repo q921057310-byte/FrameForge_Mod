@@ -167,7 +167,8 @@ class WhistleConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        self._do_cut()
+        if self._newly_created:
+            self._do_cut()
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -194,116 +195,10 @@ class WhistleConnectorTaskPanel:
         except Exception as e:
             App.Console.PrintWarning(f"Connector: cut failed: {e}\n")
 
-    # ── Selection handler ──────────────────────────────────
 
-    def _on_selection(self, doc_name, obj_name, sub):
-        if not sub:
-            return
-        if not sub.startswith("Face"):
-            return
-        if self.obj is None or obj_name == self.obj.Name:
-            return
-
-        doc = App.getDocument(doc_name)
-        obj = doc.getObject(obj_name)
-        if obj is None:
-            return
-
-        sub_obj = obj.getSubObject(sub)
-        if not isinstance(sub_obj, Part.Face):
-            return
-
-        # Toggle: clicking same face again clears it
-        for slot, label in [("DrillFace", self.drill_label), ("EndFace", self.end_label)]:
-            stored = getattr(self.obj, slot)
-            if stored and len(stored) > 0 and stored[0] is obj and stored[1] == (sub,):
-                setattr(self.obj, slot, None)
-                label.setText(translate("frameforgemod", "Not set"))
-                App.Console.PrintMessage(f"Cleared {slot}\n")
-                self.obj.recompute()
-                return
-
-        # Ordered: click drill face first, then optionally end face
-        if self.obj.DrillFace is None:
-            self.obj.DrillFace = (obj, (sub,))
-            self.drill_label.setText(
-                f"{translate('frameforgemod', 'Drill')}: {obj.Label} ({sub})")
-            self._update_qy()
-            self.obj.recompute()
-            App.Console.PrintMessage(f"Drill set: {obj.Label} {sub}\n")
-            App.Console.PrintMessage("Click END FACE for distance (optional), or press OK.\n")
-        else:
-            self.obj.EndFace = (obj, (sub,))
-            self.end_label.setText(
-                f"{translate('frameforgemod', 'End face')}: {obj.Label} ({sub})")
-            App.Console.PrintMessage(f"End face set: {obj.Label} {sub}\n")
-            self.obj.recompute()
-            App.Console.PrintMessage("End face applied. OK to finish.\n")
-
-    def _update_qy(self):
-        try:
-            if self.obj.DrillFace:
-                from freecad.frameforgemod._utils import get_profile_from_trimmedbody
-                prof = get_profile_from_trimmedbody(self.obj.DrillFace[0])
-                qy = _get_qy_specs(prof)
-                if qy:
-                    self.obj.QYModel = qy["model"]
-                    self.obj.HoleDiameter = qy["hole_dia"]
-                    self.obj.HoleDepth = qy["hole_depth"]
-                    self.obj.HoleDistance = qy["hole_distance"]
-                    # Block signals to avoid recompute per setValue
-                    self.spin_dia.blockSignals(True)
-                    self.spin_depth.blockSignals(True)
-                    self.spin_dist.blockSignals(True)
-                    self.spin_dia.setValue(qy["hole_dia"])
-                    self.spin_depth.setValue(qy["hole_depth"])
-                    self.spin_dist.setValue(qy["hole_distance"])
-                    self.spin_dia.blockSignals(False)
-                    self.spin_depth.blockSignals(False)
-                    self.spin_dist.blockSignals(False)
-                    self.qy_label.setText(
-                        f"QY: {qy['model']} {qy['hole_dia']}x{qy['hole_depth']}@{qy['hole_distance']}mm ({qy['bolt']})")
-                    # Sync combo to matched model
-                    idx = self.qy_combo.findText(qy["model"], QtCore.Qt.MatchContains)
-                    if idx >= 0:
-                        self.qy_combo.blockSignals(True)
-                        self.qy_combo.setCurrentIndex(idx)
-                        self.qy_combo.blockSignals(False)
-                    self.obj.recompute()
-                    App.Console.PrintMessage(f"QY auto-set: {qy['model']}\n")
-                    return
-                else:
-                    App.Console.PrintMessage("QY: no matching series (try manual input)\n")
-        except Exception as e:
-            App.Console.PrintWarning(f"QY detection failed: {e}\n")
-        self.qy_label.setText("QY: not detected")
-        self.qy_combo.blockSignals(True)
-        self.qy_combo.setCurrentIndex(0)
-        self.qy_combo.blockSignals(False)
-
-    def _on_qy_changed(self, idx):
-        if idx <= 0:
-            # "Auto" - re-detect
-            self._update_qy()
-            return
-        # Manual selection
-        spec = list(QY_SPECS.values())[idx - 1]
-        self.obj.QYModel = spec["model"]
-        self.obj.HoleDiameter = spec["hole_dia"]
-        self.obj.HoleDepth = spec["hole_depth"]
-        self.obj.HoleDistance = spec["hole_distance"]
-        self.spin_dia.blockSignals(True)
-        self.spin_depth.blockSignals(True)
-        self.spin_dist.blockSignals(True)
-        self.spin_dia.setValue(spec["hole_dia"])
-        self.spin_depth.setValue(spec["hole_depth"])
-        self.spin_dist.setValue(spec["hole_distance"])
-        self.spin_dia.blockSignals(False)
-        self.spin_depth.blockSignals(False)
-        self.spin_dist.blockSignals(False)
-        self.qy_label.setText(
-            f"QY: {spec['model']} {spec['hole_dia']}x{spec['hole_depth']}@{spec['hole_distance']}mm ({spec['bolt']})")
-        self.obj.recompute()
+# ─────────────────────────────────────────────────────
+# WhistleConnectorCommand
+# ─────────────────────────────────────────────────────
 
 
 class WhistleConnectorCommand:
@@ -506,7 +401,8 @@ class TJointConnectorTaskPanel:
             Gui.Selection.removeObserver(self._obs)
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
-        self._do_cut()
+        if self._newly_created:
+            self._do_cut()
         Gui.ActiveDocument.resetEdit()
         return True
 
