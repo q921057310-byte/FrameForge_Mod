@@ -79,10 +79,7 @@ class EditProfileTaskPanel(BaseProfileTaskPanel):
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
         App.ActiveDocument.commitTransaction()
-        try:
-            self.profile.recompute()
-        except Exception:
-            pass
+        # self.profile.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()
@@ -108,4 +105,4 @@ class EditProfileTaskPanel(BaseProfileTaskPanel):
     def proceed(self):
         self.update_profile(self.profile)
 
-        self.profile.recompute()
+        # self.profile.recompute()  # skip: accept() does doc.recompute() after

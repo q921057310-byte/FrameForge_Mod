@@ -158,17 +158,13 @@ class HoleFeatureTaskPanel:
 
     def _set_and_recompute(self, prop, value):
         setattr(self.obj, prop, value)
-        self.obj.touch()
         self.obj.recompute()
-        App.ActiveDocument.recompute()
         App.Console.PrintMessage(f"HoleFeature: {prop} = {value}\n")
 
     def _on_type_changed(self, hole_type):
         self.obj.HoleType = hole_type
         self._update_visibility(hole_type)
-        self.obj.touch()
         self.obj.recompute()
-        App.ActiveDocument.recompute()
 
     def _on_bolt_changed(self, spec):
         self.obj.BoltSpec = spec
@@ -178,10 +174,15 @@ class HoleFeatureTaskPanel:
             self.obj.HoleDepth = preset["depth"]
             self.obj.CounterSinkDiameter = preset["csink_dia"]
             self.obj.CounterSinkDepth = preset["csink_depth"]
+            # Block signals to avoid multiple recomputes from setValue
+            for sp in [self.spin_dia, self.spin_depth, self.spin_csink_dia, self.spin_csink_depth]:
+                sp.blockSignals(True)
             self.spin_dia.setValue(preset["hole_dia"])
             self.spin_depth.setValue(preset["depth"])
             self.spin_csink_dia.setValue(preset["csink_dia"])
             self.spin_csink_depth.setValue(preset["csink_depth"])
+            for sp in [self.spin_dia, self.spin_depth, self.spin_csink_dia, self.spin_csink_depth]:
+                sp.blockSignals(False)
 
             is_pin = spec.startswith("Pin")
             if is_pin:
@@ -189,10 +190,7 @@ class HoleFeatureTaskPanel:
                 self.obj.HoleType = "Blind"
                 self._update_visibility("Blind")
 
-        self.obj.touch()
         self.obj.recompute()
-        App.ActiveDocument.recompute()
-        App.Console.PrintMessage(f"HoleFeature: BoltSpec = {spec}\n")
 
     def _update_visibility(self, hole_type):
         is_blind = hole_type == "Blind"
@@ -229,10 +227,8 @@ class HoleFeatureTaskPanel:
 
         if self.obj.Base is None and sub.startswith("Face"):
             self.obj.Base = (sel_obj, (sub,))
-            self.obj.touch()
             self._refresh_labels()
             self.obj.recompute()
-            App.ActiveDocument.recompute()
             App.Console.PrintMessage(f"HoleFeature: Base = {sel_obj.Label}.{sub}\n")
             return
 
@@ -265,10 +261,8 @@ class HoleFeatureTaskPanel:
             App.Console.PrintMessage(f"HoleFeature: added {sel_obj.Label}.{sub}\n")
 
         self.obj.Positions = positions
-        self.obj.touch()
         self._refresh_labels()
         self.obj.recompute()
-        App.ActiveDocument.recompute()
 
     def open(self):
         App.Console.PrintMessage("HoleFeature: open\n")
@@ -311,7 +305,7 @@ class HoleFeatureTaskPanel:
                     label = base_obj.Label
                     name = label.split("_Profile_")[0] if "_Profile_" in label else label
                 cut_obj.Label = f"{name}_Cut"
-                self.obj.CutResult = cut_obj
+                # self.obj.CutResult = cut_obj  # removed: creates cyclic dependency DAG error
                 base_obj.ViewObject.Visibility = False
                 self.obj.ViewObject.Visibility = False
                 App.Console.PrintMessage(f"HoleFeature: Cut = {cut_obj.Label}\n")
@@ -324,7 +318,6 @@ class HoleFeatureTaskPanel:
             Gui.Selection.removeObserver(self._obs)
             self._obs = None
         self.obj.recompute()
-        App.ActiveDocument.recompute()
         self._do_cut()
 
         App.ActiveDocument.recompute()
@@ -336,7 +329,7 @@ class HoleFeatureTaskPanel:
 class HoleFeatureCommand:
     def GetResources(self):
         return {
-            "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
+            "Pixmap": os.path.join(ICONPATH, "hole.svg"),
             "MenuText": translate("frameforgemod", "Hole"),
             "ToolTip": translate("frameforgemod",
                 "Drill holes on profiles. Select profile face, then sketch points/circles."),

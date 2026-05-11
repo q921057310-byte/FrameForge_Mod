@@ -6,6 +6,7 @@ sys.modules["freecad.frameforge2"] = _ffm
 
 _submodules = [
     "_utils",
+    "adjust_profile_end_tool",
     "best_fit",
     "create_aluminum_profile",
     "create_bom",
@@ -39,7 +40,6 @@ _submodules = [
     "utilities",
     "version",
     "connector_hole",
-    "preferences",
     "whistle_connector",
 ]
 

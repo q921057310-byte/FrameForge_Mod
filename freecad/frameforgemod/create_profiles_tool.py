@@ -98,7 +98,7 @@ class BaseProfileTaskPanel(ABC):
             self.form_proxy.combo_rotation.addItem(deg)
         self.form_proxy.combo_rotation.setCurrentIndex(0)
 
-        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         if not param.IsEmpty():
             default_material_index = self.form_proxy.combo_material.findText(
                 param.GetString("Default Profile Material")
@@ -449,7 +449,7 @@ class CreateProfileTaskPanel(BaseProfileTaskPanel):
         if len(Gui.Selection.getSelectionEx()) or self.form_proxy.sb_length.value() != 0:
             App.Console.PrintMessage(translate("frameforgemod", "Accepting CreateProfile\n"))
 
-            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
             param.SetString("Default Profile Material", self.form_proxy.combo_material.currentText())
             param.SetString("Default Profile Family", self.form_proxy.combo_family.currentText())
             param.SetString("Default Profile Size", self.form_proxy.combo_size.currentText())

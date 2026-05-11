@@ -59,7 +59,7 @@ class CreateTrimmedProfileTaskPanel:
         self.form.rb_simplefit.setIconSize(QSize)
         self.form.rb_simplefit.toggled.connect(lambda: self.update_cuttype("Simple fit"))
 
-        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         if param.GetString("Default Cut Type") == "Perfect fit":
             self.form.rb_perfectfit.toggle()
         elif param.GetString("Default Cut Type") == "Simple fit":
@@ -174,7 +174,7 @@ class CreateTrimmedProfileTaskPanel:
             item.setData(1, bound)
             self.form.boundaries_list_widget.addItem(item)
 
-        self.fp.recompute()
+        # self.fp.recompute()  # skip: App.ActiveDocument.recompute() handles all
         App.ActiveDocument.recompute()
 
     def open(self):
@@ -223,7 +223,7 @@ class CreateTrimmedProfileTaskPanel:
             if not self.fp.TrimmedBody:
                 App.ActiveDocument.removeObject(self.fp.Name)
         App.ActiveDocument.commitTransaction()
-        self.fp.recompute()
+        # self.fp.recompute()  # skip: App.ActiveDocument.recompute() handles all
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()
@@ -240,7 +240,7 @@ class CreateTrimmedProfileTaskPanel:
     def accept(self):
         App.Console.PrintMessage(translate("frameforgemod", "Accepting Create Trimmed Profile\n"))
 
-        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         param.SetString("Default Cut Type", self.fp.CutType)
 
         if self.mode == "creation" and len(self.trimmed_bodies) >= 1:

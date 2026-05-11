@@ -147,9 +147,9 @@ class CreateEndCapTaskPanel:
         hole_layout.addRow(translate("frameforgemod", "Diameter"), self.spin_hole_dia)
 
         self.spin_hole_depth = QtWidgets.QDoubleSpinBox()
-        self.spin_hole_depth.setRange(0.0, 1000.0)
+        self.spin_hole_depth.setRange(-1000.0, 1000.0)
         self.spin_hole_depth.setDecimals(1)
-        self.spin_hole_depth.setValue(float(obj.HoleDepth))
+        self.spin_hole_depth.setValue(float(obj.HoleDepth) if hasattr(obj, "HoleDepth") else 0.0)
         self.spin_hole_depth.setSuffix(" mm")
         self.spin_hole_depth.setEnabled(obj.HoleEnabled)
         self.spin_hole_depth.setToolTip("0 = through all")
@@ -244,8 +244,9 @@ class CreateEndCapTaskPanel:
         self.obj.recompute()
 
     def on_hole_depth_changed(self, val):
-        self.obj.HoleDepth = val
-        self.obj.recompute()
+        if hasattr(self.obj, "HoleDepth"):
+            self.obj.HoleDepth = val
+            self.obj.recompute()
 
     def update_ui(self):
         self.spin_plug_offset.setEnabled(self.obj.CapType == 1)
@@ -276,10 +277,7 @@ class CreateEndCapTaskPanel:
         self.face_label.setText(translate("frameforgemod", "No face selected"))
         App.ActiveDocument.commitTransaction()
         _save_endcap_defaults(self.obj)
-        try:
-            self.obj.recompute()
-        except Exception:
-            pass
+        # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()

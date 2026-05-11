@@ -68,7 +68,7 @@ class PopulateIDsTaskPanel:
         _top_row.addWidget(_apply_btn)
         self.form.layout().insertLayout(0, _top_row)
 
-        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         if not param.IsEmpty():
             self.form.cb_allow_duplicated.setChecked(param.GetBool("Allow Duplicating IDs", False))
             self.form.cb_group_ids_for_identical.setChecked(param.GetBool("Group IDs", False))
@@ -121,7 +121,7 @@ class PopulateIDsTaskPanel:
             ]
         ):
 
-            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
             param.SetBool("Allow Duplicating IDs", self.form.cb_allow_duplicated.isChecked())
             param.SetBool("Group IDs", self.form.cb_group_ids_for_identical.isChecked())
             param.SetBool("Include Count", self.form.cb_include_part_count_in_pid.isChecked())

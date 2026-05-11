@@ -1,7 +1,9 @@
 """Import sketches from AluminumProfiles.FCStd and create profiles along edges."""
 import math
 import os
+import time
 import re
+import Part
 import shutil
 import tempfile
 import zipfile
@@ -81,6 +83,7 @@ class ImportAluminumProfileTaskPanel:
         self._category_dirs = {}  # name -> path
         self._last_category_text = ""
         self._preview_objects = []  # names of preview-created objects
+        self._old_preview_objects = []  # names of hidden (overflow) preview objects
         self._preview_pairs = []    # (profile_obj_name, sel_dict) for corner handling
         self._previewing = False     # guard against re-entrant calls
         self._preview_timer = QtCore.QTimer()
@@ -102,14 +105,17 @@ class ImportAluminumProfileTaskPanel:
 
         group_layout.addWidget(QtGui.QLabel("Category"))
         self.combo_category = QtGui.QComboBox()
+        self.combo_category.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_category)
 
         group_layout.addWidget(QtGui.QLabel("File"))
         self.combo_file = QtGui.QComboBox()
+        self.combo_file.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_file)
 
         group_layout.addWidget(QtGui.QLabel("Section"))
         self.combo_section = QtGui.QComboBox()
+        self.combo_section.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_section)
 
         info_layout = QtGui.QHBoxLayout()
@@ -131,6 +137,7 @@ class ImportAluminumProfileTaskPanel:
         rot_vbox = QtGui.QVBoxLayout()
         rot_vbox.addWidget(QtGui.QLabel("Corner:"))
         self.combo_corner = QtGui.QComboBox()
+        self.combo_corner.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.combo_corner.addItems(["Off", u"45\u00b0 Miter", "A \u538b B", "B \u538b A"])
         rot_vbox.addWidget(self.combo_corner)
         self.combo_corner.currentIndexChanged.connect(self._on_corner_changed)
@@ -141,7 +148,7 @@ class ImportAluminumProfileTaskPanel:
         gap_layout.addWidget(self.cb_gap)
         self.cb_gap.toggled.connect(self._on_corner_changed)
         self.sb_gap = QtGui.QDoubleSpinBox()
-        self.sb_gap.setRange(-50, 50)
+        self.sb_gap.setRange(-100000, 100000)
         self.sb_gap.setValue(0)
         self.sb_gap.setSuffix(" mm")
         self.sb_gap.setEnabled(False)
@@ -154,6 +161,7 @@ class ImportAluminumProfileTaskPanel:
         rot_vbox.addSpacing(6)
         rot_vbox.addWidget(QtGui.QLabel("Rotation:"))
         self.combo_rotation = QtGui.QComboBox()
+        self.combo_rotation.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.combo_rotation.addItems(["0", "90", "180", "270"])
         self.combo_rotation.setCurrentIndex(0)
         rot_vbox.addWidget(self.combo_rotation)
@@ -181,17 +189,6 @@ class ImportAluminumProfileTaskPanel:
         self.selection_label.setStyleSheet("color: #888;")
         layout.addWidget(self.selection_label)
 
-        len_layout = QtGui.QHBoxLayout()
-        len_layout.addWidget(QtGui.QLabel("Length:"))
-        self.sb_length = QtGui.QDoubleSpinBox()
-        self.sb_length.setRange(0.1, 24000.0)
-        self.sb_length.setValue(100.0)
-        self.sb_length.setSuffix(" mm")
-        self.sb_length.setDecimals(1)
-        len_layout.addWidget(self.sb_length)
-        len_layout.addStretch()
-        layout.addLayout(len_layout)
-
         self.btn_refresh = QtGui.QPushButton("Refresh selection from 3D view")
         self.btn_refresh.clicked.connect(self._read_edge_selection)
         layout.addWidget(self.btn_refresh)
@@ -216,6 +213,40 @@ class ImportAluminumProfileTaskPanel:
         self.btn_reload.setStyleSheet("font-size:10px; color:#888;")
         self.btn_reload.clicked.connect(self._reload_modules)
         layout.addWidget(self.btn_reload)
+
+        self.cb_disable_preview = QtGui.QCheckBox("Disable live preview (faster)")
+        self.cb_disable_preview.setToolTip("Skip real-time preview when selecting edges. Click OK to generate.")
+        preview_param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
+        self.cb_disable_preview.setChecked(preview_param.GetBool("DisablePreview", False))
+        self.cb_disable_preview.toggled.connect(lambda v: preview_param.SetBool("DisablePreview", v))
+
+        self.cb_simple_preview = QtGui.QCheckBox("Simple preview (faster)")
+        self.cb_simple_preview.setToolTip("Show boxes instead of full profiles during preview")
+        self.cb_simple_preview.setChecked(preview_param.GetBool("SimplePreview", True))
+        self.cb_simple_preview.toggled.connect(lambda v: preview_param.SetBool("SimplePreview", v))
+
+        preview_group = QtGui.QGroupBox("Preview")
+        preview_group.setCheckable(True)
+        preview_group.setChecked(True)
+        preview_layout = QtGui.QVBoxLayout(preview_group)
+        preview_layout.addWidget(self.cb_disable_preview)
+        preview_layout.addWidget(self.cb_simple_preview)
+        layout.addWidget(preview_group)
+
+        len_layout = QtGui.QHBoxLayout()
+        self.cb_manual_len = QtGui.QCheckBox("Manual length:")
+        self.cb_manual_len.setChecked(False)
+        len_layout.addWidget(self.cb_manual_len)
+        self.sb_length = QtGui.QDoubleSpinBox()
+        self.sb_length.setRange(0.1, 24000.0)
+        self.sb_length.setValue(100.0)
+        self.sb_length.setSuffix(" mm")
+        self.sb_length.setDecimals(1)
+        self.sb_length.setEnabled(False)
+        self.cb_manual_len.toggled.connect(self.sb_length.setEnabled)
+        len_layout.addWidget(self.sb_length)
+        len_layout.addStretch()
+        layout.addLayout(len_layout)
 
         # --- Wire signals ---
         self.combo_category.currentIndexChanged.connect(self._on_category_changed)
@@ -403,12 +434,14 @@ class ImportAluminumProfileTaskPanel:
             self._update_preview(cached["shape"])
         # Debounce preview
         if self.edge_selection:
-            self._preview_timer.start(100)
+            if not self.cb_disable_preview.isChecked():
+                self._preview_timer.start(250)
 
     def _on_corner_changed(self, index=None):
         """Re-trigger preview when corner mode or gap changes."""
         if self.edge_selection:
-            self._preview_timer.start(100)
+            if not self.cb_disable_preview.isChecked():
+                self._preview_timer.start(250)
 
     def _on_section_changed(self, index):
         self.label_image.clear()
@@ -437,7 +470,8 @@ class ImportAluminumProfileTaskPanel:
         self.label_section_type.setText(info)
         self._update_preview(shape)
         if self.edge_selection:
-            self._preview_timer.start(100)
+            if not self.cb_disable_preview.isChecked():
+                self._preview_timer.start(250)
 
     def _update_preview(self, shape):
         try:
@@ -786,8 +820,9 @@ class ImportAluminumProfileTaskPanel:
         # Debounce preview: wait 100ms after last selection before creating
         sketch_data = self._get_selected_section()
         if sketch_data is not None and self.edge_selection:
-            self._preview_timer.start(100)
-            App.Console.PrintMessage(f"Timer: start (100ms), edges={[e for s in self.edge_selection for e in s.SubElementNames]}\n")
+            if not self.cb_disable_preview.isChecked():
+                self._preview_timer.start(250)
+                App.Console.PrintMessage(f"Preview timer: edges={[e for s in self.edge_selection for e in s.SubElementNames]}\n")
 
     def clearSelection(self, doc):
         self._read_edge_selection()
@@ -831,11 +866,11 @@ class ImportAluminumProfileTaskPanel:
                 parts.append(f"{sel.ObjectName} / {','.join(sel.SubElementNames)}")
             self.selection_label.setText("\n".join(parts))
             self.selection_label.setStyleSheet("color: #000;")
-            self.sb_length.setEnabled(False)
+            self.sb_length.setEnabled(self.cb_manual_len.isChecked())
         else:
             self.selection_label.setText("(no edge selected)")
             self.selection_label.setStyleSheet("color: #888;")
-            self.sb_length.setEnabled(True)
+            self.sb_length.setEnabled(self.cb_manual_len.isChecked())
 
     # ---- Real-time Preview ----
     def _on_preview_timer(self):
@@ -850,28 +885,26 @@ class ImportAluminumProfileTaskPanel:
         """Read any pre-existing selection when the panel opens."""
         self._read_edge_selection()
         if self.edge_selection and self._get_selected_section():
-            self._preview_timer.start(100)
+            if not self.cb_disable_preview.isChecked():
+                self._preview_timer.start(250)
 
     def _do_preview(self, sketch_data):
+        _t = time.time()
         """Create/update profile preview from current edge selection."""
         if self._previewing:
             return
         self._previewing = True
         sel_list = [s for s in self.edge_selection if s is not None and s.SubElementNames]
-        # Log what edges are selected
         edges = []
         for s in sel_list:
             edges.extend(s.SubElementNames)
         App.Console.PrintMessage(f"Preview: {len(edges)} edges: {edges}\n")
         if not sel_list:
-            if self.sb_length.value() <= 0:
+            if not self.cb_manual_len.isChecked() or self.sb_length.value() <= 0:
                 self._previewing = False
                 return
 
         try:
-            self._clear_preview()
-            before = {o.Name for o in App.ActiveDocument.Objects}
-
             # Build deduplicated (selection_object, edge_name) pairs
             pairs = []
             seen = set()
@@ -883,47 +916,146 @@ class ImportAluminumProfileTaskPanel:
                         pairs.append((sel, en))
             App.Console.PrintMessage(f"Preview: {len(pairs)} pairs: {[(p[0].ObjectName, p[1]) for p in pairs]}\n")
 
-            self._preview_pairs = []  # reset pairs
-            # Group by parent object → one shared Shape per parent
-            parent_shapes = {}
-            for sel, edge_name in pairs:
-                key = sel.ObjectName
-                if key not in parent_shapes:
-                    doc = App.ActiveDocument
-                    name_base = sketch_data["label"].replace(" ", "_")
-                    feat = doc.addObject("Part::Feature", f"{name_base}_Shape_{key}_shared")
-                    feat.Shape = sketch_data["shape"]
-                    source_file = sketch_data.get("source_file", "")
-                    if source_file and not hasattr(feat, "SourceFile"):
-                        feat.addProperty("App::PropertyString", "SourceFile", "frameforgemod", "Source FCStd file path")
-                        feat.SourceFile = source_file
-                        feat.setEditorMode("SourceFile", 2)
+            # Reuse existing preview objects where possible
+            old_names = set(self._preview_objects)
+            new_names = set()
+            old_profile_names = []
+
+            doc = App.ActiveDocument
+            name_base = sketch_data["label"].replace(" ", "_")
+
+            # Check if simplified preview is enabled
+            use_simple = self.cb_simple_preview.isChecked() if hasattr(self, "cb_simple_preview") else False
+
+            if use_simple:
+                # Simplified preview: extrude outer wire instead of full profile
+                self._preview_pairs = []
+                counter = 0
+                # Get the outer wire of the cross-section
+                cross_shape = sketch_data["shape"]
+                outer_wire = None
+                max_area = 0
+                for w in cross_shape.Wires:
                     try:
-                        feat.ViewObject.Visibility = False
+                        f = Part.Face(w)
+                        if abs(f.Area) > max_area:
+                            max_area = abs(f.Area)
+                            outer_wire = w
+                    except Exception:
+                        continue
+                if outer_wire is None:
+                    outer_wire = cross_shape.OuterWire
+
+                face = Part.Face(outer_wire)
+                # Center the face at origin so NormalToEdge places it correctly
+                face.translate(-face.CenterOfMass)
+                rot_deg = float(self.combo_rotation.currentText()) if hasattr(self, "combo_rotation") else 0.0
+                gap_val = self._get_gap() if hasattr(self, "_get_gap") else 0.0
+
+                z_axis = App.Vector(0, 0, 1)
+                for sel, edge_name in pairs:
+                    try:
+                        edge_obj = sel.Object.getSubObject(edge_name)
+                        if not edge_obj:
+                            continue
+                        if self.cb_manual_len.isChecked():
+                            edge_len = self.sb_length.value()
+                        else:
+                            edge_len = edge_obj.Length if hasattr(edge_obj, "Length") and edge_obj.Length > 0 else self.sb_length.value()
+
+                        effective_len = max(edge_len - gap_val, 0.1)
+                        z_shift = gap_val / 2.0
+
+                        rface = face.copy()
+                        if rot_deg != 0:
+                            rface.rotate(App.Vector(0, 0, 0), z_axis, rot_deg)
+                        # Extrude along +Z, then translate so shape goes from -len to 0
+                        # (NormalToEdge + MapPathParameter=1 places origin at edge end)
+                        extruded = rface.extrude(z_axis * effective_len)
+                        extruded.translate(-z_axis * effective_len)
+                        extruded.translate(z_axis * z_shift)
+
+                        name = f"{name_base}_Prev_{counter:03d}"
+                        feat = doc.addObject("Part::Feature", name)
+                        feat.Shape = extruded
+                        try:
+                            feat.addExtension("Part::AttachExtensionPython")
+                            class _EdgeSel:
+                                pass
+                            es = _EdgeSel()
+                            es.Object = sel.Object
+                            es.SubElementNames = [edge_name]
+                            self._apply_placement(feat, es)
+                        except Exception:
+                            pass
+                        try:
+                            feat.ViewObject.Transparency = 60
+                            feat.ViewObject.ShapeColor = (0.3, 0.5, 0.9)
+                        except Exception:
+                            pass
+                        self._preview_pairs.append((feat.Name, _Sel(sel.Object, [edge_name])))
+                        new_names.add(feat.Name)
+                        counter += 1
+                    except Exception as e:
+                        App.Console.PrintError(f"Preview: {e}\n")
+            if use_simple:
+                App.ActiveDocument.recompute()
+            else:
+                # Full preview: create real profiles with shape objects
+                # Group by parent object → one shared Shape per parent
+                parent_shapes = {}
+                for sel, edge_name in pairs:
+                    key = sel.ObjectName
+                    if key not in parent_shapes:
+                        feat = doc.addObject("Part::Feature", f"{name_base}_Shape_{key}_shared")
+                        feat.Shape = sketch_data["shape"]
+                        source_file = sketch_data.get("source_file", "")
+                        if source_file and not hasattr(feat, "SourceFile"):
+                            feat.addProperty("App::PropertyString", "SourceFile", "frameforgemod", "Source FCStd file path")
+                            feat.SourceFile = source_file
+                            feat.setEditorMode("SourceFile", 2)
+                        try:
+                            feat.ViewObject.Visibility = False
+                        except Exception:
+                            pass
+                        parent_shapes[key] = feat
+
+                self._preview_pairs = []
+                counter = 0
+                for sel, edge_name in pairs:
+                    try:
+                        shared = parent_shapes.get(sel.ObjectName)
+                        obj = self.create_profile(sketch_data, sel, edge_name, counter, existing_shape=shared)
+                        if obj is not None:
+                            self._preview_pairs.append((obj.Name, _Sel(sel.Object, [edge_name])))
+                            new_names.add(obj.Name)
+                        counter += 1
+                    except Exception as e:
+                        App.Console.PrintError(f"Preview: {e}\n")
+
+            # Hide leftover old objects (not reused)
+            for oname in old_names:
+                o = doc.getObject(oname)
+                if o:
+                    try:
+                        o.ViewObject.Visibility = False
+                    except Exception:
+                        pass
+            for oname in old_profile_names:
+                o = doc.getObject(oname)
+                if o:
+                    try:
+                        o.ViewObject.Visibility = False
                     except Exception:
                         pass
 
-                    parent_shapes[key] = feat
-
-            counter = 0
-            for sel, edge_name in pairs:
-                try:
-                    shared = parent_shapes.get(sel.ObjectName)
-                    obj = self.create_profile(sketch_data, sel, edge_name, counter, existing_shape=shared)
-                    if obj is not None:
-                        self._preview_pairs.append((obj.Name, _Sel(sel.Object, [edge_name])))
-                    counter += 1
-                except Exception as e:
-                    App.Console.PrintError(f"Preview: {e}\n")
-
-            # Apply placement + corner ops using the SAME code accept() uses
-            created = [(App.ActiveDocument.getObject(n), s)
+            # Apply placement + corner ops
+            created = [(doc.getObject(n), s)
                        for n, s in self._preview_pairs
-                       if App.ActiveDocument.getObject(n)]
+                       if doc.getObject(n)]
             for obj, sel in created:
                 if sel is not None and obj.TypeId == "Part::FeaturePython":
                     self._apply_placement(obj, sel)
-            App.ActiveDocument.recompute()
             cm = self.combo_corner.currentIndex()
             if len(created) > 1:
                 if cm == 1:
@@ -937,24 +1069,43 @@ class ImportAluminumProfileTaskPanel:
                         if obj.TypeId == "Part::FeaturePython":
                             obj.OffsetA = -gap / 2.0
                             obj.OffsetB = -gap / 2.0
-            App.ActiveDocument.recompute()
+            if not use_simple:
+                App.ActiveDocument.recompute()
 
-            after = {o.Name for o in App.ActiveDocument.Objects}
-            self._preview_objects = list(after - before)
-            App.Console.PrintMessage(f"Preview: done ({len(self._preview_objects)} new objects)\n")
+            # Track TrimmedProfiles created by corner operations
+            for o in doc.Objects:
+                if o.Name.endswith("_Mt") and o.Name not in new_names and o.Name not in old_names:
+                    new_names.add(o.Name)
+
+            # Hide base profiles after miter/overlap (their _Mt replacements are visible)
+            if cm in (1, 2, 3):
+                for obj, sel in created:
+                    if obj and obj.TypeId == "Part::FeaturePython":
+                        try:
+                            obj.ViewObject.Visibility = False
+                            new_names.discard(obj.Name)
+                        except Exception:
+                            pass
+
+            self._preview_objects = list(new_names)
+            # Track hidden (not reused) + old hidden
+            hidden = set(old_names) - new_names
+            hidden.update(getattr(self, "_old_preview_objects", []))
+            self._old_preview_objects = list(hidden)
+            App.Console.PrintMessage(f"Preview: done ({len(self._preview_objects)} visible, {len(self._old_preview_objects)} hidden, {time.time()-_t:.2f}s)\n")
         finally:
             self._previewing = False
 
     def _clear_preview(self):
-        """Remove all preview objects using name snapshot (only deletes new objects)."""
-        if not self._preview_objects:
-            return
-        for name in self._preview_objects:
+        """Remove all preview objects (visible and hidden)."""
+        all_names = list(self._preview_objects) + list(getattr(self, "_old_preview_objects", []))
+        for name in all_names:
             try:
                 App.ActiveDocument.removeObject(name)
             except Exception:
                 pass
         self._preview_objects = []
+        self._old_preview_objects = []
 
     # ---- Accept / Reject ----
     def accept(self):
@@ -1036,67 +1187,87 @@ class ImportAluminumProfileTaskPanel:
 
         App.Console.PrintMessage("AluminumProfile: creating new profile\n")
 
-        # If preview objects already exist, just finalize them
+        # Clean up any preview boxes before creating real profiles
         if self._preview_objects:
-            # Corner ops already done in preview — just save and close
-            self._preview_pairs = []
-            self._preview_objects = []
-            self._preview_timer.stop()
-            self._save_last_selection()
-            Gui.Selection.removeObserver(self)
-            Gui.Selection.clearSelection()
-            Gui.Control.closeDialog()
-            return True
-        else:
-            selections = self.edge_selection
-            if not selections:
-                if self.sb_length.value() > 0:
-                    selections = [None]
-                else:
-                    QtGui.QMessageBox.warning(
-                        self.form, "No Edge",
-                        "Please select an edge in the 3D view, or set a Length value.\n\n"
-                        "Tip: Click on an edge (line) in the 3D view, not in the tree view.",
-                    )
-                    return
-
-            Gui.Selection.removeObserver(self)
-
-            group_in_part = self.cb_group_in_part.isChecked()
-            group_in_folder = self.cb_group_in_folder.isChecked()
-            container = None
-            if group_in_part:
-                container = App.ActiveDocument.addObject("App::Part", "ProfileGroup")
-            elif group_in_folder:
-                container = App.ActiveDocument.addObject("App::DocumentObjectGroup", "ProfileGroup")
-
-            created = []
-            counter = 0
-            for sel in selections:
-                if sel is None:
+            # Check if these are simplified boxes (Part::Feature) or real profiles
+            has_real = any(App.ActiveDocument.getObject(n) and App.ActiveDocument.getObject(n).TypeId == "Part::FeaturePython"
+                           for n in self._preview_objects)
+            if has_real:
+                # Real profiles already created — just finalize
+                for name in getattr(self, "_old_preview_objects", []):
                     try:
-                        obj = self.create_profile_standalone(sketch_data, counter)
-                        if obj is not None:
-                            created.append((obj, None))
-                            if container:
-                                container.addObject(obj)
-                        counter += 1
-                    except Exception as e:
-                        App.Console.PrintError(f"Failed to create standalone profile: {e}\n")
-                    continue
-                edge_names = [n for n in sel.SubElementNames if n.startswith("Edge")]
-                if not edge_names and hasattr(sel.Object, "Shape") and sel.Object.Shape.Edges:
-                    edge_names = [f"Edge{i + 1}" for i in range(len(sel.Object.Shape.Edges))]
-                for edge_name in edge_names:
+                        App.ActiveDocument.removeObject(name)
+                    except Exception:
+                        pass
+                self._preview_pairs = []
+                self._preview_objects = []
+                self._old_preview_objects = []
+                self._preview_timer.stop()
+                self._save_last_selection()
+                Gui.Selection.removeObserver(self)
+                Gui.Selection.clearSelection()
+                Gui.Control.closeDialog()
+                return True
+            else:
+                # Simplified boxes — delete and create real profiles below
+                for name in list(self._preview_objects) + list(getattr(self, "_old_preview_objects", [])):
                     try:
-                        obj = self.create_profile(sketch_data, sel, edge_name, counter)
-                        if obj is not None:
-                            created.append((obj, _Sel(sel.Object, [edge_name])))
-                            if container:
-                                container.addObject(obj)
-                        counter += 1
-                    except Exception as e:
-                        App.Console.PrintError(f"Failed to create profile on edge: {e}\n")
+                        App.ActiveDocument.removeObject(name)
+                    except Exception:
+                        pass
+                self._preview_pairs = []
+                self._preview_objects = []
+                self._old_preview_objects = []
+
+        selections = self.edge_selection
+        if not selections:
+            if self.cb_manual_len.isChecked() and self.sb_length.value() > 0:
+                selections = [None]
+            else:
+                QtGui.QMessageBox.warning(
+                    self.form, "No Edge",
+                    "Please select an edge in the 3D view, or set a Length value.\n\n"
+                    "Tip: Click on an edge (line) in the 3D view, not in the tree view.",
+                )
+                return
+
+        Gui.Selection.removeObserver(self)
+
+        group_in_part = self.cb_group_in_part.isChecked()
+        group_in_folder = self.cb_group_in_folder.isChecked()
+        container = None
+        if group_in_part:
+            container = App.ActiveDocument.addObject("App::Part", "ProfileGroup")
+        elif group_in_folder:
+            container = App.ActiveDocument.addObject("App::DocumentObjectGroup", "ProfileGroup")
+
+        created = []
+        counter = 0
+        for sel in selections:
+            if sel is None:
+                try:
+                    obj = self.create_profile_standalone(sketch_data, counter)
+                    if obj is not None:
+                        created.append((obj, None))
+                        if container:
+                            container.addObject(obj)
+                    counter += 1
+                except Exception as e:
+                    App.Console.PrintError(f"Failed to create standalone profile: {e}\n")
+                continue
+            edge_names = [n for n in sel.SubElementNames if n.startswith("Edge")]
+            if not edge_names and hasattr(sel.Object, "Shape") and sel.Object.Shape.Edges:
+                edge_names = [f"Edge{i + 1}" for i in range(len(sel.Object.Shape.Edges))]
+            for edge_name in edge_names:
+                try:
+                    obj = self.create_profile(sketch_data, sel, edge_name, counter)
+                    if obj is not None:
+                        created.append((obj, _Sel(sel.Object, [edge_name])))
+                        if container:
+                            container.addObject(obj)
+                    counter += 1
+                except Exception as e:
+                    App.Console.PrintError(f"Failed to create profile on edge: {e}\n")
 
         corner_mode = self.combo_corner.currentIndex()
         App.Console.PrintMessage(f"Corner mode: {corner_mode}, profiles: {len(created)}\n")
@@ -1120,6 +1291,7 @@ class ImportAluminumProfileTaskPanel:
                         obj.OffsetB = -gap / 2.0
 
         App.ActiveDocument.recompute()
+        self._clear_preview()
         self._save_last_selection()
         self._preview_timer.stop()
         Gui.Selection.removeObserver(self)
@@ -1314,6 +1486,13 @@ class ImportAluminumProfileTaskPanel:
             except Exception:
                 pass
         App.ActiveDocument.commitTransaction()
+        # Recompute each _Mt to ensure TrimmedProfile.execute runs
+        for obj in App.ActiveDocument.Objects:
+            if obj.Name.endswith("_Mt"):
+                try:
+                    obj.recompute()
+                except Exception:
+                    pass
 
     def _profile_face_dim_at_corner(self, profile, my_edge, other_edge, corner_pt):
         """Return the cross-section dimension (Width or Height) of `profile`
@@ -1613,7 +1792,29 @@ class ImportAluminumProfileTaskPanel:
             pass
 
 
-class CreateAluminumProfileCommand:
+class AluminumProfileGroup:
+    """Group: aluminum library + create profile + custom profile."""
+    def GetResources(self):
+        return {
+            "Pixmap": os.path.join(ICONPATH, "warehouse_profiles_lib.svg"),
+            "MenuText": translate("frameforgemod", "Profile Tools"),
+            "ToolTip": translate("frameforgemod", "Aluminum profile library, create profile, custom profile"),
+        }
+
+    def GetCommands(self):
+        return ("frameforgemod_LibraryDialog",
+                "frameforgemod_CreateProfiles",
+                "frameforgemod_CreateCustomProfiles")
+
+    def GetDefaultCommand(self):
+        return 0
+
+    def IsActive(self):
+        return App.ActiveDocument is not None
+
+
+class LibraryDialogCommand:
+    """Open the aluminum profile library dialog."""
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "warehouse_profiles_lib.svg"),
@@ -1630,4 +1831,5 @@ class CreateAluminumProfileCommand:
         return App.ActiveDocument is not None
 
 
-Gui.addCommand("frameforgemod_AluminumProfileLibrary", CreateAluminumProfileCommand())
+Gui.addCommand("frameforgemod_AluminumProfileLibrary", AluminumProfileGroup())
+Gui.addCommand("frameforgemod_LibraryDialog", LibraryDialogCommand())

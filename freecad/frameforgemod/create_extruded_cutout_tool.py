@@ -98,10 +98,7 @@ class CreateExtrudedCutoutTaskPanel:
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
         App.ActiveDocument.commitTransaction()
-        try:
-            self.obj.recompute()
-        except Exception:
-            pass
+        # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()

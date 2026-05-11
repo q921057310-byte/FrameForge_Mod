@@ -1990,3 +1990,24 @@ class ViewProviderCustomProfile(ViewProviderProfile):
 
     def edit(self):
         FreeCADGui.ActiveDocument.setEdit(self.Object, 0)
+
+    def onDelete(self, vobj, sub):
+        """Delete associated Shape object if no other profile references it."""
+        try:
+            obj = vobj.Object
+            if not hasattr(obj, "CustomProfile"):
+                return True
+            shape = obj.CustomProfile
+            if shape is None or "_Shape_" not in shape.Name:
+                return True
+            doc = obj.Document
+            for o in doc.Objects:
+                if o is obj:
+                    continue
+                if hasattr(o, "CustomProfile") and o.CustomProfile is shape:
+                    return True  # another profile still uses this shape
+            # No other references: delete shape too
+            doc.removeObject(shape.Name)
+        except Exception:
+            pass
+        return True

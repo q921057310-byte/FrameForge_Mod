@@ -88,6 +88,11 @@ class PropertyTableEditor(QtGui.QDialog):
         self.setWindowFlags(QtCore.Qt.WindowTitleHint | QtCore.Qt.WindowCloseButtonHint)
         self.setupUI()
         self.loadProperties()
+        # Auto-refresh result column after document recompute
+        self._refresh_timer = QtCore.QTimer()
+        self._refresh_timer.setInterval(500)
+        self._refresh_timer.timeout.connect(self._refreshResults)
+        self._refresh_timer.start()
 
     def setupUI(self):
         self.setWindowTitle("Property Table Editor")
@@ -117,6 +122,7 @@ class PropertyTableEditor(QtGui.QDialog):
         self.table.horizontalHeader().setSectionResizeMode(5, QtGui.QHeaderView.Stretch)
         self.table.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.table.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
+        self.table.setEditTriggers(QtGui.QAbstractItemView.DoubleClicked)
         self.table.cellChanged.connect(self.onCellChanged)
         layout.addWidget(self.table)
 
@@ -261,6 +267,18 @@ class PropertyTableEditor(QtGui.QDialog):
             if reply != QtGui.QMessageBox.Yes:
                 return
         self.table.removeRow(row)
+
+    def _refreshResults(self):
+        """Re-evaluate all expression results (auto-refresh after recompute)."""
+        for row in range(self.table.rowCount()):
+            widget = self.table.cellWidget(row, 2)
+            if widget and hasattr(widget, 'text'):
+                text = widget.text()
+                if text.startswith("="):
+                    result = self._evaluateResult(text)
+                    result_item = self.table.item(row, 3)
+                    if result_item and result_item.text() != result:
+                        result_item.setText(result)
 
     def _onValueChanged(self, row, text):
         result = self._evaluateResult(text)

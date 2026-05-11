@@ -28,7 +28,7 @@ THREAD_SPECS = {
 
 
 def _endcap_params():
-    return App.ParamGet("User parameter:BaseApp/Preferences/Frameforge/EndCap")
+    return App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod/EndCap")
 
 
 def _load_endcap_defaults(obj):
@@ -221,12 +221,6 @@ class EndCap:
         except Exception:
             return None
 
-    def onChanged(self, fp, prop):
-        if prop == "HoleThreadSpec":
-            spec = str(fp.HoleThreadSpec)
-            if spec in THREAD_SPECS and THREAD_SPECS[spec] > 0:
-                fp.HoleDiameter = THREAD_SPECS[spec]
-
     def execute(self, fp):
         if fp.BaseObject is None:
             return
@@ -313,12 +307,12 @@ class EndCap:
                     cone = Part.makeCone(csink_r, hdia / 2.0, cone_h, center, extrude_dir)
                     cyl = Part.makeCylinder(hdia / 2.0, hole_len, center, extrude_dir)
                     hole = cyl.fuse(cone)
-                    hole.translate(extrude_dir * (-5))
+                    hole.translate(extrude_dir * (gap - 5))
                 else:
                     circle = Part.makeCircle(hdia / 2.0, center, extrude_dir)
                     hole_face = Part.Face(Part.Wire(circle))
                     hole = hole_face.extrude(extrude_dir * hole_len)
-                    hole.translate(extrude_dir * (-5))
+                    hole.translate(extrude_dir * (gap - 5))
                 if not hole.isNull() and hole.isValid():
                     cap = cap.cut(hole)
             except Exception:

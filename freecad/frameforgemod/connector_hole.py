@@ -64,8 +64,35 @@ class HoleFeature:
         obj.addProperty("App::PropertyAngle", "RotZ", "Direction",
                         translate("App::Property", "Rotate around Z")).RotZ = 0.0
 
-        obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
-        obj.setEditorMode("CutResult", 2)
+        # CutResult removed to avoid cyclic dependency (DAG error)
+        # obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
+        # obj.setEditorMode("CutResult", 2)
+
+        self._cached_key = None
+        self._cached_shape = None
+
+    def _hole_key(self, fp):
+        try:
+            key = [fp.HoleType, fp.BoltSpec, float(fp.HoleDiameter), float(fp.HoleDepth),
+                   float(fp.CounterSinkDiameter), float(fp.CounterSinkDepth),
+                   int(fp.Reverse), float(fp.RotX), float(fp.RotY), float(fp.RotZ)]
+            if fp.Base and len(fp.Base) >= 2:
+                obase = fp.Base[0]
+                key.append(obase.Name)
+                key.append(fp.Base[1][0])
+            if fp.Positions:
+                for tup in fp.Positions:
+                    key.append(tup[0].Name)
+                    key.extend(tup[1])
+            return hash(tuple(key))
+        except Exception:
+            return None
+
+    def onChanged(self, fp, prop):
+        if prop in ("Base", "Positions", "HoleType", "BoltSpec", "HoleDiameter", "HoleDepth",
+                     "CounterSinkDiameter", "CounterSinkDepth", "Reverse", "RotX", "RotY", "RotZ"):
+            self._cached_key = None
+            self._cached_shape = None
 
     def dumps(self):
         return None
@@ -76,9 +103,15 @@ class HoleFeature:
     def execute(self, fp):
         App.Console.PrintMessage("HoleFeature.execute: start\n")
         try:
+            cache_key = self._hole_key(fp)
+            if cache_key is not None and getattr(self, "_cached_key", None) == cache_key and getattr(self, "_cached_shape", None) is not None:
+                fp.Shape = self._cached_shape
+                return
             result = self._execute(fp)
             if result is not None:
                 fp.Shape = result
+                self._cached_key = cache_key
+                self._cached_shape = result
             self._sync_cut_label(fp)
         except Exception as e:
             App.Console.PrintWarning(f"HoleFeature.execute error: {e}\n")

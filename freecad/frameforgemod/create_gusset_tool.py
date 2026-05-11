@@ -206,58 +206,45 @@ class CreateGussetTaskPanel:
 
     def on_leg1_changed(self, val):
         self.obj.LegLength1 = val
-        self.obj.recompute()
 
     def on_leg2_changed(self, val):
         self.obj.LegLength2 = val
-        self.obj.recompute()
 
     def on_offset_changed(self, val):
         self.obj.Offset = val
-        self.obj.recompute()
 
     def on_thickness_changed(self, val):
         self.obj.Thickness = val
-        self.obj.recompute()
 
     def on_thick_align_changed(self, idx):
         self.obj.ThicknessAlign = idx
-        self.obj.recompute()
 
     def on_pos_align_changed(self, idx):
         self.obj.PositionAlign = idx
-        self.obj.recompute()
 
     def on_pos_offset_changed(self, val):
         self.obj.PositionOffset = val
-        self.obj.recompute()
 
     def on_hole_toggled(self, checked):
         self.obj.HoleEnabled = checked
         self.spin_hole_dia.setEnabled(checked)
-        self.obj.recompute()
 
     def on_hole_dia_changed(self, val):
         self.obj.HoleDiameter = val
-        self.obj.recompute()
 
     def on_chamfer_ra_toggled(self, checked):
         self.obj.ChamferRightAngle = checked
         self.spin_chamfer_ra.setEnabled(checked)
-        self.obj.recompute()
 
     def on_chamfer_ra_size_changed(self, val):
         self.obj.ChamferRightAngleSize = val
-        self.obj.recompute()
 
     def on_chamfer_ac_toggled(self, checked):
         self.obj.ChamferAcute = checked
         self.spin_chamfer_ac.setEnabled(checked)
-        self.obj.recompute()
 
     def on_chamfer_ac_size_changed(self, val):
         self.obj.ChamferAcuteSize = val
-        self.obj.recompute()
 
     def update_ui(self):
         try:
@@ -294,10 +281,7 @@ class CreateGussetTaskPanel:
         self.face1_label.setText(translate("frameforgemod", "Not selected"))
         self.face2_label.setText(translate("frameforgemod", "Not selected"))
         App.ActiveDocument.commitTransaction()
-        try:
-            self.obj.recompute()
-        except Exception:
-            pass
+        # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()

@@ -180,12 +180,12 @@ class FrameForgemod(Gui.Workbench):
         "          d.e.f.f.g.h.          "};
     """
 
-    toolbox_drawing = ["Sketcher_NewSketch", "frameforgemod_ParametricLine", "PartDesign_SubShapeBinder"]
+    toolbox_drawing = ["Sketcher_NewSketch", "Part_Box", "frameforgemod_ParametricLine", "PartDesign_SubShapeBinder"]
 
     toolbox_frameforge = [
-        "frameforgemod_ProfileGroup",
         "frameforgemod_AluminumProfileLibrary",
         "frameforgemod_TrimProfiles",
+        "frameforgemod_AdjustEnds",
         "frameforgemod_EndMiter",
         "frameforgemod_AddExtrudeCutout",
         "frameforgemod_EndCap",
@@ -238,32 +238,35 @@ class FrameForgemod(Gui.Workbench):
         except Exception:
             pass
 
-        from freecad.frameforgemod import (
-            create_aluminum_profile,
-            create_bom_tool,
-            create_custom_profiles_tool,
-            create_edit_balloons_tool,
-            create_end_cap_tool,
-            create_end_miter_tool,
-            create_extruded_cutout_tool,
-            create_gusset_tool,
-            create_link,
-            create_offset_plane_tool,
-            create_pattern_fill_tool,
-            create_profiles_tool,
-            create_trimmed_profiles_tool,
-            create_vent_tool,
-            create_connector_hole_tool,
-            create_whistle_connector_tool,
-            edit_profile_tool,
-            isolate_tool,
-            parametric_line,
-            populate_ids_tool,
-            utilities,
-        )
-        from freecad.frameforgemod.dynamicdata import DynamicDataCmd
-        from freecad.frameforgemod.ff_tools import translate, UIPATH
-        Gui.addPreferencePage(os.path.join(UIPATH, "preferences.ui"), "Frameforge")
+        from freecad.frameforgemod.ff_tools import translate
+
+        import importlib
+        for _m in [
+            "freecad.frameforgemod.create_aluminum_profile",
+            "freecad.frameforgemod.create_bom_tool",
+            "freecad.frameforgemod.create_custom_profiles_tool",
+            "freecad.frameforgemod.create_edit_balloons_tool",
+            "freecad.frameforgemod.create_end_cap_tool",
+            "freecad.frameforgemod.create_end_miter_tool",
+            "freecad.frameforgemod.create_extruded_cutout_tool",
+            "freecad.frameforgemod.create_gusset_tool",
+            "freecad.frameforgemod.create_link",
+            "freecad.frameforgemod.create_offset_plane_tool",
+            "freecad.frameforgemod.create_pattern_fill_tool",
+            "freecad.frameforgemod.create_profiles_tool",
+            "freecad.frameforgemod.create_trimmed_profiles_tool",
+            "freecad.frameforgemod.create_vent_tool",
+            "freecad.frameforgemod.create_connector_hole_tool",
+            "freecad.frameforgemod.create_whistle_connector_tool",
+            "freecad.frameforgemod.edit_profile_tool",
+            "freecad.frameforgemod.isolate_tool",
+            "freecad.frameforgemod.parametric_line",
+            "freecad.frameforgemod.populate_ids_tool",
+            "freecad.frameforgemod.utilities",
+            "freecad.frameforgemod.adjust_profile_end_tool",
+        ]:
+            importlib.import_module(_m)
+        importlib.import_module("freecad.frameforgemod.dynamicdata.DynamicDataCmd")
 
         App.Console.PrintMessage(translate("frameforgemod", "Switching to frameforge") + "\n")
 

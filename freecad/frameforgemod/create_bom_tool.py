@@ -48,7 +48,7 @@ class CreateBOMTaskPanel:
         _top_row.addWidget(_apply_btn)
         self.form.layout().insertLayout(0, _top_row)
 
-        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+        param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         if not param.IsEmpty():
             self.form.full_parent_path.setChecked(param.GetBool("Full Parent Path", False))
             self.form.include_links_cb.setChecked(param.GetBool("Include Links in BOM", False))
@@ -117,7 +117,7 @@ class CreateBOMTaskPanel:
                 for s in sel
             ]
         ):
-            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge")
+            param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
             param.SetBool("Full Parent Path", self.form.full_parent_path.isChecked())
             param.SetBool("Include Links in BOM", self.form.include_links_cb.isChecked())
             param.SetBool("Group BOM Items by Material/Size/Family", self.form.group_profiles_cb.isChecked())

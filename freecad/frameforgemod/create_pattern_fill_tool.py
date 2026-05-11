@@ -11,7 +11,7 @@ if App.GuiUp:
 from freecad.frameforgemod.ff_tools import ICONPATH, translate
 from freecad.frameforgemod.frameforgemod_exceptions import FrameForgemodException
 
-TOOL_ICON = os.path.join(ICONPATH, "extruded-cutout.svg")
+TOOL_ICON = os.path.join(ICONPATH, "pattern-fill.svg")
 smEpsilon = App.Base.Precision.approximation()
 
 PATTERN_TYPES = ["hexagon", "circle", "triangle", "user sketch"]

@@ -133,10 +133,7 @@ class WhistleConnectorTaskPanel:
         self.end_label.setText(translate("frameforgemod", "Waiting for end face..."))
         self.drill_label.setText(translate("frameforgemod", "Waiting for drill face..."))
         App.ActiveDocument.commitTransaction()
-        try:
-            self.obj.recompute()
-        except Exception:
-            pass
+        # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()
@@ -235,9 +232,16 @@ class WhistleConnectorTaskPanel:
                     self.obj.HoleDiameter = qy["hole_dia"]
                     self.obj.HoleDepth = qy["hole_depth"]
                     self.obj.HoleDistance = qy["hole_distance"]
+                    # Block signals to avoid recompute per setValue
+                    self.spin_dia.blockSignals(True)
+                    self.spin_depth.blockSignals(True)
+                    self.spin_dist.blockSignals(True)
                     self.spin_dia.setValue(qy["hole_dia"])
                     self.spin_depth.setValue(qy["hole_depth"])
                     self.spin_dist.setValue(qy["hole_distance"])
+                    self.spin_dia.blockSignals(False)
+                    self.spin_depth.blockSignals(False)
+                    self.spin_dist.blockSignals(False)
                     self.qy_label.setText(
                         f"QY: {qy['model']} {qy['hole_dia']}×{qy['hole_depth']}@{qy['hole_distance']}mm")
                     self.obj.recompute()
@@ -416,10 +420,7 @@ class TJointConnectorTaskPanel:
 
     def apply(self):
         App.ActiveDocument.commitTransaction()
-        try:
-            self.obj.recompute()
-        except Exception:
-            pass
+        # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
         try:
             Gui.updateGui()

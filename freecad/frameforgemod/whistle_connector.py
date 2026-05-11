@@ -36,6 +36,8 @@ TJOINT_MATCH_TABLE = [
     (4.5, 5.5, "M6", {"through_dia": 6.5, "csink_dia": 11.0, "csink_depth": 6.0}),
     (6.0, 7.5, "M8", {"through_dia": 8.5, "csink_dia": 14.0, "csink_depth": 8.0}),
     (8.0, 9.5, "M10", {"through_dia": 10.5, "csink_dia": 18.0, "csink_depth": 10.0}),
+    (10.0, 11.9, "M12", {"through_dia": 13.0, "csink_dia": 22.0, "csink_depth": 12.0}),
+    (12.0, 15.0, "M14", {"through_dia": 15.0, "csink_dia": 24.0, "csink_depth": 14.0}),
 ]
 
 
@@ -428,14 +430,40 @@ class WhistleConnector:
         obj.setEditorMode("CutResult", 2)
 
         obj.Proxy = self
+        self._cached_key = None
+        self._cached_shape = None
 
-    def dumps(self):
+    def _connector_key(self, fp):
+        try:
+            key = [fp.ConnectorType, float(fp.HoleDiameter), float(fp.HoleDepth), float(fp.HoleDistance),
+                   int(fp.Reverse), float(fp.ThroughHoleDiameter), float(fp.CounterSinkDiameter),
+                   float(fp.CounterSinkDepth)]
+            if fp.DrillFace and len(fp.DrillFace) >= 2:
+                key.append(fp.DrillFace[0].Name)
+                key.append(fp.DrillFace[1][0])
+            if fp.EndFace and len(fp.EndFace) >= 2:
+                key.append(fp.EndFace[0].Name)
+                key.append(fp.EndFace[1][0])
+            return hash(tuple(key))
+        except Exception:
+            return None
+
+    def onChanged(self, fp, prop):
+        if prop in ("DrillFace", "EndFace", "HoleDiameter", "HoleDepth", "HoleDistance",
+                     "Reverse", "ConnectorType", "ThroughHoleDiameter",
+                     "CounterSinkDiameter", "CounterSinkDepth"):
+            self._cached_key = None
+            self._cached_shape = None
         return None
 
     def loads(self, state):
         return None
 
     def execute(self, fp):
+        ck = self._connector_key(fp)
+        if ck is not None and getattr(self, "_cached_key", None) == ck and getattr(self, "_cached_shape", None) is not None:
+            fp.Shape = self._cached_shape
+            return
         if fp.ConnectorType == "TJoint":
             if fp.EndFace is not None and fp.DrillFace is not None:
                 self._execute_tjoint(fp)
@@ -444,6 +472,8 @@ class WhistleConnector:
                     fp.Shape = Part.Compound([])
                 except Exception:
                     pass
+            self._cached_key = ck
+            self._cached_shape = fp.Shape
             return
 
         if fp.DrillFace is None:
@@ -534,6 +564,8 @@ class WhistleConnector:
                 if cyl is not None:
                     fp.Shape = cyl
                     self._sync_cut_label(fp)
+                    self._cached_key = ck
+                    self._cached_shape = cyl
                     return
 
     def _sync_cut_label(self, fp):
@@ -579,26 +611,33 @@ class WhistleConnector:
         prof_b = get_profile_from_trimmedbody(drill_obj)
 
         # ── Hole center on A's end face ──
-        holes = _detect_holes_from_face(end_face)
-        if not holes:
+        narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(end_face)
+        outer_vertices = end_face.OuterWire.Vertexes
+        center_pt = end_face.CenterOfMass
+        center_tol = narrow_size * 0.3
+
+        # Find all inner wires (circular or not), pick the one closest to face center
+        best = None
+        best_dist = center_tol
+        for w in end_face.Wires:
+            if w.isSame(end_face.OuterWire):
+                continue
+            try:
+                w_center = Part.Face(w).CenterOfMass
+                d = w_center.distanceToPoint(center_pt)
+                if d < best_dist:
+                    best_dist = d
+                    # Approximate diameter from bounding box
+                    w_dia = max(w.BoundBox.XLength, w.BoundBox.YLength, w.BoundBox.ZLength)
+                    best = (w_center, w_dia, w)
+            except Exception:
+                continue
+
+        if best is None:
             App.Console.PrintWarning(translate("frameforgemod", "TJointConnector: no hole detected on reference end face\n"))
             return
 
-        # Always find the best hole center regardless of diameter override
-        narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(end_face)
-        outer_vertices = end_face.OuterWire.Vertexes
-
-        non_corner = []
-        for center, dia, wire in holes:
-            min_corner = min(center.distanceToPoint(v.Point) for v in outer_vertices)
-            if min_corner >= narrow_size * 0.25:
-                non_corner.append((center, dia, wire))
-
-        if not non_corner:
-            non_corner = holes
-
-        non_corner.sort(key=lambda h: _point_to_axis_distance(h[0], axis_pt, axis_dir))
-        hole_center_a, detected_dia, _ = non_corner[0]
+        hole_center_a, detected_dia, _ = best
 
         # Use the DetectedHoleDiameter override if set
         use_dia = float(fp.DetectedHoleDiameter) if float(fp.DetectedHoleDiameter) > 0 else detected_dia
