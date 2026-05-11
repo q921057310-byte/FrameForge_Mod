@@ -24,9 +24,9 @@ SERIES_TO_SIZE = {
 # QY built-in connector drilling specs (Chinese standard 内置连接件)
 # Used to auto-fill HoleDiameter / HoleDepth / HoleDistance when a profile is selected
 QY_SPECS = {
-    30: {"model": "QY16-8-30", "hole_dia": 15.0, "hole_depth": 13.0, "hole_distance": 20.0, "bolt": "M6"},
-    40: {"model": "QY20-8-40", "hole_dia": 20.0, "hole_depth": 16.8, "hole_distance": 20.5, "bolt": "M8"},
-    45: {"model": "QY20-10-45", "hole_dia": 20.0, "hole_depth": 16.8, "hole_distance": 20.5, "bolt": "M8"},
+    30: {"model": "QY16-8-30", "hole_dia": 15.0, "hole_depth": 13.0, "hole_distance": 20.0, "bolt": "M6x25"},
+    40: {"model": "QY20-8-40", "hole_dia": 20.0, "hole_depth": 16.8, "hole_distance": 20.5, "bolt": "M8x25"},
+    45: {"model": "QY20-10-45", "hole_dia": 20.0, "hole_depth": 16.8, "hole_distance": 20.5, "bolt": "M8x30"},
 }
 
 # T-Joint connector: detected hole diameter → screw specification matching
@@ -425,8 +425,9 @@ class WhistleConnector:
         ).QYModel = ""
         obj.setEditorMode("QYModel", 1)
 
-        obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
-        obj.setEditorMode("CutResult", 2)
+        # CutResult removed to avoid cyclic dependency (DAG error)
+        # obj.addProperty("App::PropertyLink", "CutResult", "Hole", "").CutResult = None
+        # obj.setEditorMode("CutResult", 2)
 
         obj.Proxy = self
         self._cached_key = None
@@ -453,6 +454,9 @@ class WhistleConnector:
                      "CounterSinkDiameter", "CounterSinkDepth"):
             self._cached_key = None
             self._cached_shape = None
+        return None
+
+    def dumps(self):
         return None
 
     def loads(self, state):
@@ -612,33 +616,26 @@ class WhistleConnector:
         prof_b = get_profile_from_trimmedbody(drill_obj)
 
         # ── Hole center on A's end face ──
-        narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(end_face)
-        outer_vertices = end_face.OuterWire.Vertexes
-        center_pt = end_face.CenterOfMass
-        center_tol = narrow_size * 0.3
-
-        # Find all inner wires (circular or not), pick the one closest to face center
-        best = None
-        best_dist = center_tol
-        for w in end_face.Wires:
-            if w.isSame(end_face.OuterWire):
-                continue
-            try:
-                w_center = Part.Face(w).CenterOfMass
-                d = w_center.distanceToPoint(center_pt)
-                if d < best_dist:
-                    best_dist = d
-                    # Approximate diameter from bounding box
-                    w_dia = max(w.BoundBox.XLength, w.BoundBox.YLength, w.BoundBox.ZLength)
-                    best = (w_center, w_dia, w)
-            except Exception:
-                continue
-
-        if best is None:
+        holes = _detect_holes_from_face(end_face)
+        if not holes:
             App.Console.PrintWarning(translate("frameforgemod", "TJointConnector: no hole detected on reference end face\n"))
             return
 
-        hole_center_a, detected_dia, _ = best
+        narrow_size, wide_size, axis_pt, axis_dir = _get_face_narrow_side_info(end_face)
+        outer_vertices = end_face.OuterWire.Vertexes
+
+        # Filter out corner holes (holes very close to outer vertices)
+        non_corner = []
+        for center, dia, wire in holes:
+            min_corner = min(center.distanceToPoint(v.Point) for v in outer_vertices)
+            if min_corner >= narrow_size * 0.25:
+                non_corner.append((center, dia, wire))
+
+        if not non_corner:
+            non_corner = holes
+
+        non_corner.sort(key=lambda h: _point_to_axis_distance(h[0], axis_pt, axis_dir))
+        hole_center_a, detected_dia, _ = non_corner[0]
 
         # Use the DetectedHoleDiameter override if set
         use_dia = float(fp.DetectedHoleDiameter) if float(fp.DetectedHoleDiameter) > 0 else detected_dia

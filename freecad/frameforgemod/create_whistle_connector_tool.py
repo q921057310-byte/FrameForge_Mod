@@ -17,6 +17,8 @@ from freecad.frameforgemod.whistle_connector import (
     _detect_hole_diameter_from_face,
     _match_tjoint_spec,
     _get_all_holes_info,
+    TJOINT_MATCH_TABLE,
+    QY_SPECS,
 )
 
 
@@ -31,10 +33,11 @@ class _SelObserver:
 
 
 class WhistleConnectorTaskPanel:
-    def __init__(self, obj):
+    def __init__(self, obj, newly_created=False):
         self.obj = obj
         self.dump = obj.dumpContent()
-        self._is_new = not (obj.DrillFace or obj.EndFace)
+        self._newly_created = newly_created
+        self._applied = False
         self._obs = None
 
         self.form = QtWidgets.QWidget()
@@ -63,6 +66,20 @@ class WhistleConnectorTaskPanel:
         layout.addWidget(info)
         layout.addWidget(self.end_label)
         layout.addWidget(self.drill_label)
+
+        # QY model selector (manual override) - at top for quick access
+        qy_group = QtWidgets.QGroupBox(translate("frameforgemod", "QY Model"))
+        qy_layout = QtWidgets.QVBoxLayout(qy_group)
+        self.qy_combo = QtWidgets.QComboBox()
+        qy_labels = ["Auto"] + [v["model"] + " (" + v["bolt"] + ")" for v in QY_SPECS.values()]
+        self.qy_combo.addItems(qy_labels)
+        self.qy_combo.setCurrentIndex(0)
+        self.qy_combo.currentIndexChanged.connect(self._on_qy_changed)
+        qy_layout.addWidget(self.qy_combo)
+        self.qy_label = QtWidgets.QLabel("")
+        qy_layout.addWidget(self.qy_label)
+        layout.addWidget(qy_group)
+        self._update_qy()
 
         # Hole parameters
         hole_group = QtWidgets.QGroupBox(translate("frameforgemod", "Hole Dimensions"))
@@ -99,11 +116,6 @@ class WhistleConnectorTaskPanel:
 
         layout.addWidget(hole_group)
 
-        # QY info
-        self.qy_label = QtWidgets.QLabel("")
-        layout.addWidget(self.qy_label)
-        self._update_qy()
-
         layout.addStretch()
 
     # ── Selection observer ──────────────────────────────────
@@ -117,15 +129,21 @@ class WhistleConnectorTaskPanel:
     def reject(self):
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
+            self._obs = None
         try:
-            App.ActiveDocument.removeObject(self.obj.Name)
+            App.ActiveDocument.abortTransaction()
         except Exception:
             pass
-        App.ActiveDocument.abortTransaction()
+        if self._newly_created and not self._applied:
+            try:
+                self.obj.Document.removeObject(self.obj.Name)
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
     def apply(self):
+        self._applied = True
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
         self._do_cut()
         self.obj.EndFace = None
@@ -167,7 +185,8 @@ class WhistleConnectorTaskPanel:
                     label = base.Label
                     name = label.split("_Profile_")[0] if "_Profile_" in label else label
                 cut_obj.Label = f"{name}_Cut"
-                self.obj.CutResult = cut_obj
+                # CutResult removed to avoid DAG cycle
+                # self.obj.CutResult = cut_obj
                 base.ViewObject.Visibility = False
                 self.obj.ViewObject.Visibility = False
                 App.ActiveDocument.recompute()
@@ -243,7 +262,13 @@ class WhistleConnectorTaskPanel:
                     self.spin_depth.blockSignals(False)
                     self.spin_dist.blockSignals(False)
                     self.qy_label.setText(
-                        f"QY: {qy['model']} {qy['hole_dia']}×{qy['hole_depth']}@{qy['hole_distance']}mm")
+                        f"QY: {qy['model']} {qy['hole_dia']}x{qy['hole_depth']}@{qy['hole_distance']}mm ({qy['bolt']})")
+                    # Sync combo to matched model
+                    idx = self.qy_combo.findText(qy["model"], QtCore.Qt.MatchContains)
+                    if idx >= 0:
+                        self.qy_combo.blockSignals(True)
+                        self.qy_combo.setCurrentIndex(idx)
+                        self.qy_combo.blockSignals(False)
                     self.obj.recompute()
                     App.Console.PrintMessage(f"QY auto-set: {qy['model']}\n")
                     return
@@ -252,6 +277,33 @@ class WhistleConnectorTaskPanel:
         except Exception as e:
             App.Console.PrintWarning(f"QY detection failed: {e}\n")
         self.qy_label.setText("QY: not detected")
+        self.qy_combo.blockSignals(True)
+        self.qy_combo.setCurrentIndex(0)
+        self.qy_combo.blockSignals(False)
+
+    def _on_qy_changed(self, idx):
+        if idx <= 0:
+            # "Auto" - re-detect
+            self._update_qy()
+            return
+        # Manual selection
+        spec = list(QY_SPECS.values())[idx - 1]
+        self.obj.QYModel = spec["model"]
+        self.obj.HoleDiameter = spec["hole_dia"]
+        self.obj.HoleDepth = spec["hole_depth"]
+        self.obj.HoleDistance = spec["hole_distance"]
+        self.spin_dia.blockSignals(True)
+        self.spin_depth.blockSignals(True)
+        self.spin_dist.blockSignals(True)
+        self.spin_dia.setValue(spec["hole_dia"])
+        self.spin_depth.setValue(spec["hole_depth"])
+        self.spin_dist.setValue(spec["hole_distance"])
+        self.spin_dia.blockSignals(False)
+        self.spin_depth.blockSignals(False)
+        self.spin_dist.blockSignals(False)
+        self.qy_label.setText(
+            f"QY: {spec['model']} {spec['hole_dia']}x{spec['hole_depth']}@{spec['hole_distance']}mm ({spec['bolt']})")
+        self.obj.recompute()
 
 
 class WhistleConnectorCommand:
@@ -310,7 +362,7 @@ class WhistleConnectorCommand:
                 pass
 
         App.ActiveDocument.commitTransaction()
-        panel = WhistleConnectorTaskPanel(obj)
+        panel = WhistleConnectorTaskPanel(obj, newly_created=True)
         Gui.Control.showDialog(panel)
 
 
@@ -318,10 +370,11 @@ Gui.addCommand("frameforgemod_WhistleConnector", WhistleConnectorCommand())
 
 
 class TJointConnectorTaskPanel:
-    def __init__(self, obj):
+    def __init__(self, obj, newly_created=False):
         self.obj = obj
         self.dump = obj.dumpContent()
-        self._is_new = not (obj.DrillFace or obj.EndFace)
+        self._newly_created = newly_created
+        self._applied = False
         self._obs = None
 
         self.form = QtWidgets.QWidget()
@@ -353,6 +406,17 @@ class TJointConnectorTaskPanel:
 
         self.match_label = QtWidgets.QLabel(translate("frameforgemod", "Matched spec: --"))
         layout.addWidget(self.match_label)
+
+        # Screw size selector
+        screw_group = QtWidgets.QGroupBox(translate("frameforgemod", "Screw Size"))
+        screw_layout = QtWidgets.QHBoxLayout(screw_group)
+        self.screw_combo = QtWidgets.QComboBox()
+        screw_labels = ["Auto"] + [row[2] for row in TJOINT_MATCH_TABLE] + ["Manual"]
+        self.screw_combo.addItems(screw_labels)
+        self.screw_combo.setCurrentIndex(0)
+        self.screw_combo.currentIndexChanged.connect(self._on_screw_changed)
+        screw_layout.addWidget(self.screw_combo)
+        layout.addWidget(screw_group)
 
         param_group = QtWidgets.QGroupBox(translate("frameforgemod", "T-Joint Parameters"))
         param_layout = QtWidgets.QFormLayout(param_group)
@@ -410,15 +474,21 @@ class TJointConnectorTaskPanel:
     def reject(self):
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
+            self._obs = None
         try:
-            App.ActiveDocument.removeObject(self.obj.Name)
+            App.ActiveDocument.abortTransaction()
         except Exception:
             pass
-        App.ActiveDocument.abortTransaction()
+        if self._newly_created and not self._applied:
+            try:
+                self.obj.Document.removeObject(self.obj.Name)
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
     def apply(self):
+        self._applied = True
         App.ActiveDocument.commitTransaction()
         # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
@@ -454,7 +524,8 @@ class TJointConnectorTaskPanel:
                     label = base.Label
                     name = label.split("_Profile_")[0] if "_Profile_" in label else label
                 cut_obj.Label = f"{name}_Cut"
-                self.obj.CutResult = cut_obj
+                # CutResult removed to avoid DAG cycle
+                # self.obj.CutResult = cut_obj
                 base.ViewObject.Visibility = False
                 self.obj.ViewObject.Visibility = False
                 App.ActiveDocument.recompute()
@@ -533,6 +604,38 @@ class TJointConnectorTaskPanel:
             else:
                 self.detected_label.setText(translate("frameforgemod", err or "No hole detected on face"))
 
+    def _on_screw_changed(self, idx):
+        text = self.screw_combo.currentText()
+        if text == "Auto":
+            self._rematch_spec()
+            return
+        if text == "Manual":
+            self.obj.MatchedScrewSize = "Manual"
+            self.match_label.setText(translate("frameforgemod", "Matched spec: Manual"))
+            return
+        # Specific screw size selected
+        for r in TJOINT_MATCH_TABLE:
+            if r[2] == text:
+                spec = r[3]
+                self.obj.MatchedScrewSize = text
+                self.obj.ThroughHoleDiameter = spec["through_dia"]
+                self.obj.CounterSinkDiameter = spec["csink_dia"]
+                self.obj.CounterSinkDepth = spec["csink_depth"]
+                self.spin_through.blockSignals(True)
+                self.spin_through.setValue(spec["through_dia"])
+                self.spin_through.blockSignals(False)
+                self.spin_csink_dia.blockSignals(True)
+                self.spin_csink_dia.setValue(spec["csink_dia"])
+                self.spin_csink_dia.blockSignals(False)
+                self.spin_csink_depth.blockSignals(True)
+                self.spin_csink_depth.setValue(spec["csink_depth"])
+                self.spin_csink_depth.blockSignals(False)
+                self.match_label.setText(
+                    f"{translate('frameforgemod', 'Selected')}: {text}  "
+                    f"Thru\u2300{spec['through_dia']:.1f} + Cbore\u2300{spec['csink_dia']:.1f}x{spec['csink_depth']:.1f} mm")
+                self.obj.recompute()
+                return
+
     def _rematch_spec(self):
         dia = float(self.spin_detected_dia.value())
         if dia <= 0:
@@ -544,16 +647,31 @@ class TJointConnectorTaskPanel:
             self.obj.ThroughHoleDiameter = spec["through_dia"]
             self.obj.CounterSinkDiameter = spec["csink_dia"]
             self.obj.CounterSinkDepth = spec["csink_depth"]
+            self.spin_through.blockSignals(True)
             self.spin_through.setValue(spec["through_dia"])
+            self.spin_through.blockSignals(False)
+            self.spin_csink_dia.blockSignals(True)
             self.spin_csink_dia.setValue(spec["csink_dia"])
+            self.spin_csink_dia.blockSignals(False)
+            self.spin_csink_depth.blockSignals(True)
             self.spin_csink_depth.setValue(spec["csink_depth"])
+            self.spin_csink_depth.blockSignals(False)
+            # Update combo to matched size
+            idx = self.screw_combo.findText(screw)
+            if idx >= 0:
+                self.screw_combo.blockSignals(True)
+                self.screw_combo.setCurrentIndex(idx)
+                self.screw_combo.blockSignals(False)
             self.match_label.setText(
                 f"{translate('frameforgemod', 'Matched')}: {screw}  "
-                f"Thru⌀{spec['through_dia']:.1f} + Cbore⌀{spec['csink_dia']:.1f}x{spec['csink_depth']:.1f} mm")
+                f"Thru\u2300{spec['through_dia']:.1f} + Cbore\u2300{spec['csink_dia']:.1f}x{spec['csink_depth']:.1f} mm")
             App.Console.PrintMessage(
                 f"T-Joint: matched {screw} for {dia:.1f}mm hole\n")
         else:
             self.obj.MatchedScrewSize = "Manual"
+            self.screw_combo.blockSignals(True)
+            self.screw_combo.setCurrentIndex(self.screw_combo.count() - 1)
+            self.screw_combo.blockSignals(False)
             self.match_label.setText(
                 f"{translate('frameforgemod', 'Diameter {:.1f} out of range, manual adjust needed').format(dia)}")
             App.Console.PrintWarning(
@@ -588,7 +706,7 @@ class TJointConnectorCommand:
 
         App.ActiveDocument.commitTransaction()
 
-        panel = TJointConnectorTaskPanel(obj)
+        panel = TJointConnectorTaskPanel(obj, newly_created=True)
         Gui.Control.showDialog(panel)
 
 

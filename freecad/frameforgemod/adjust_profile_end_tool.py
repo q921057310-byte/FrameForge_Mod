@@ -19,7 +19,7 @@ class _SelObserver:
 class AdjustEndTaskPanel:
     def __init__(self, objs):
         self.objs = objs
-        self.target_faces = []  # list of (obj_name, sub_name, face)
+        self.target_faces = []
         self._sbs = {}  # obj.Name -> {side: sb}
 
         self.form = QtGui.QWidget()
@@ -33,12 +33,10 @@ class AdjustEndTaskPanel:
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        # Target faces display
         self.target_label = QtGui.QLabel(translate("AdjustEnds", "No target faces selected."))
         self.target_label.setStyleSheet("color: #888; font-size: 10px;")
         layout.addWidget(self.target_label)
 
-        # A group
         self.group_a = QtGui.QGroupBox(translate("AdjustEnds", "A end (start)"))
         self.group_a.setCheckable(True)
         self.group_a.setChecked(True)
@@ -49,7 +47,6 @@ class AdjustEndTaskPanel:
         self.a_layout.addWidget(self.a_placeholder)
         layout.addWidget(self.group_a)
 
-        # B group
         self.group_b = QtGui.QGroupBox(translate("AdjustEnds", "B end (end)"))
         self.group_b.setCheckable(True)
         self.group_b.setChecked(True)
@@ -67,28 +64,14 @@ class AdjustEndTaskPanel:
         Gui.Selection.addObserver(self.obs)
 
     def _build_initial_rows(self):
-        """Show one row per profile with A/B spinboxes pre-filled from properties."""
         self._clear_groups()
-
-        has_a = False
-        has_b = False
-
         for obj in self.objs:
             val_a = float(getattr(obj, "OffsetA", 0))
             val_b = float(getattr(obj, "OffsetB", 0))
-
-            # A side row
-            if True:  # always show, user can adjust
-                self._add_row(self.a_layout, obj, "A", val_a, "")
-                has_a = True
-
-            # B side row
-            if True:
-                self._add_row(self.b_layout, obj, "B", val_b, "")
-                has_b = True
-
-        self.a_placeholder.setVisible(not has_a)
-        self.b_placeholder.setVisible(not has_b)
+            self._add_row(self.a_layout, obj, "A", val_a, "")
+            self._add_row(self.b_layout, obj, "B", val_b, "")
+        self.a_placeholder.setVisible(len(self.objs) == 0)
+        self.b_placeholder.setVisible(len(self.objs) == 0)
 
     def _add_row(self, layout_, obj, side, value, ref_label):
         row = QtGui.QWidget()
@@ -122,93 +105,81 @@ class AdjustEndTaskPanel:
         self._sbs.setdefault(obj.Name, {})[side] = sb
 
     def _clear_groups(self):
-        for layout_, in [
-            (self.a_layout,),
-            (self.b_layout,),
-        ]:
+        for layout_ in [self.a_layout, self.b_layout]:
             while layout_.count():
                 item = layout_.takeAt(0)
-                if item.widget() and item.widget() is not self.a_placeholder and item.widget() is not self.b_placeholder:
-                    item.widget().setParent(None)
+                w = item.widget()
+                if w and w is not self.a_placeholder and w is not self.b_placeholder:
+                    w.setParent(None)
         self._sbs.clear()
 
-    def _find_nearest_face(self, obj):
-        """Return (face, face_label) nearest to profile's midpoint, or (None, '')"""
+    def _get_edge_data(self, obj):
+        """Return (a_pt, b_pt, edge_dir, edge_len) or None."""
         if not hasattr(obj, "Target") or not obj.Target:
-            return None, "no path"
+            return None
         edge = obj.Target[0].getSubObject(obj.Target[1][0])
         if not edge:
-            return None, "no edge"
+            return None
+        a_pt = edge.Vertexes[1].Point
+        b_pt = edge.Vertexes[0].Point
+        edge_dir = (b_pt - a_pt).normalize()
+        edge_len = (b_pt - a_pt).Length
+        return (a_pt, b_pt, edge_dir, edge_len)
 
-        mid_pt = (edge.Vertexes[0].Point + edge.Vertexes[1].Point) * 0.5
+    def _nearest_face_to_point(self, pt):
+        """Return nearest target face to a point, or None."""
         nearest = None
         nearest_dist = float("inf")
         for tup in self.target_faces:
-            d = (tup[2].CenterOfMass - mid_pt).Length
+            d = (tup[2].CenterOfMass - pt).Length
             if d < nearest_dist:
                 nearest_dist = d
                 nearest = tup
-        return nearest, ""
+        return nearest
+
+    def _calc_offset(self, t, edge_len):
+        """Given t (projection from A along edge), return (side, offset)."""
+        if t <= 0:
+            return "A", -t
+        elif t >= edge_len:
+            return "B", t - edge_len
+        else:
+            d_a, d_b = t, edge_len - t
+            if d_a <= d_b:
+                return "A", -d_a
+            else:
+                return "B", -d_b
 
     def _rebuild_from_faces(self):
-        """Auto-fill spinbox values from target faces."""
-        # Build lookup: obj.Name -> (face, label)
-        assignments = {}
-        unmatched = []
         for obj in self.objs:
-            best, note = self._find_nearest_face(obj)
-            if best is None:
-                unmatched.append((obj.Label, note))
-            else:
-                assignments[obj.Name] = (obj, best)
-
-        # Update spinbox values
-        for obj in self.objs:
-            if obj.Name not in self._sbs:
+            ed = self._get_edge_data(obj)
+            if ed is None:
                 continue
-            if obj.Name not in assignments:
-                # No match - set to 0
-                for side_sb in self._sbs[obj.Name].values():
-                    side_sb.blockSignals(True)
-                    side_sb.setValue(0)
-                    side_sb.blockSignals(False)
-                continue
+            a_pt, b_pt, edge_dir, edge_len = ed
+            sbs = self._sbs.get(obj.Name, {})
 
-            obj_, (tup) = assignments[obj.Name]
-            if len(tup) != 3:
-                continue
-            face = tup[2]
-            label = f"{tup[0]}.{tup[1]}"
+            face_for_a = self._nearest_face_to_point(a_pt)
+            if face_for_a:
+                t = (face_for_a[2].CenterOfMass - a_pt).dot(edge_dir)
+                side, val = self._calc_offset(t, edge_len)
+                self._set_spinbox(obj, sbs, side, val)
 
-            edge = obj.Target[0].getSubObject(obj.Target[1][0])
-            a_pt = edge.Vertexes[1].Point
-            b_pt = edge.Vertexes[0].Point
-            edge_dir = (b_pt - a_pt).normalize()
-            edge_len = (b_pt - a_pt).Length
-            t = (face.CenterOfMass - a_pt).dot(edge_dir)
+            face_for_b = self._nearest_face_to_point(b_pt)
+            if face_for_b:
+                t = (face_for_b[2].CenterOfMass - a_pt).dot(edge_dir)
+                side, val = self._calc_offset(t, edge_len)
+                self._set_spinbox(obj, sbs, side, val)
 
-            if t <= 0:
-                side, val = "A", -t
-            elif t >= edge_len:
-                side, val = "B", t - edge_len
-            else:
-                d_a, d_b = t, edge_len - t
-                if d_a <= d_b:
-                    side, val = "A", -d_a
-                else:
-                    side, val = "B", -d_b
+        self._update_target_label()
 
-            # Set the calculated side's spinbox
-            sbs = self._sbs[obj.Name]
-            for s, sb in sbs.items():
-                sb.blockSignals(True)
-                sb.setValue(val if s == side else 0)
-                sb.blockSignals(False)
-                obj.OffsetA = val if s == "A" else 0
-                obj.OffsetB = val if s == "B" else 0
-                obj.recompute()
-
-			self._update_target_label()
+    def _set_spinbox(self, obj, sbs, side, val):
+        if side in sbs:
+            sb = sbs[side]
+            sb.blockSignals(True)
+            sb.setValue(val)
+            sb.blockSignals(False)
+            setattr(obj, "OffsetA" if side == "A" else "OffsetB", val)
+            obj.recompute()
 
     def _update_target_label(self):
         if not self.target_faces:
@@ -230,14 +201,12 @@ class AdjustEndTaskPanel:
             if not isinstance(face, Part.Face):
                 return
 
-            # Toggle: clicking same face again removes it
             for i, tup in enumerate(self.target_faces):
                 if tup[0] == obj_name and tup[1] == sub:
                     self.target_faces.pop(i)
                     self._rebuild_from_faces()
                     return
 
-            # New target face
             self.target_faces.append((obj_name, sub, face))
             self._rebuild_from_faces()
         except Exception as e:
@@ -258,7 +227,6 @@ class AdjustEndTaskPanel:
         if self.obs:
             Gui.Selection.removeObserver(self.obs)
             self.obs = None
-        # All changes already applied via spinbox handlers in real time
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()
         return True

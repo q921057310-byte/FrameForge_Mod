@@ -916,16 +916,30 @@ class ImportAluminumProfileTaskPanel:
                         pairs.append((sel, en))
             App.Console.PrintMessage(f"Preview: {len(pairs)} pairs: {[(p[0].ObjectName, p[1]) for p in pairs]}\n")
 
-            # Reuse existing preview objects where possible
-            old_names = set(self._preview_objects)
-            new_names = set()
-            old_profile_names = []
+            # Build pairs for comparison (ObjectName, edge_name) tuples only
+            pair_keys = [(sel.ObjectName, en) for sel, en in pairs]
+            last_pairs = getattr(self, "_last_preview_pairs", None)
+            gap_val = self._get_gap() if hasattr(self, "_get_gap") else 0.0
+            rot_deg = float(self.combo_rotation.currentText()) if hasattr(self, "combo_rotation") else 0.0
+            cm = self.combo_corner.currentIndex()
+            use_simple = self.cb_simple_preview.isChecked() if hasattr(self, "cb_simple_preview") else False
 
             doc = App.ActiveDocument
             name_base = sketch_data["label"].replace(" ", "_")
 
-            # Check if simplified preview is enabled
-            use_simple = self.cb_simple_preview.isChecked() if hasattr(self, "cb_simple_preview") else False
+            # Option A: same edge selection → update parameters in-place
+            if (last_pairs is not None and pair_keys == last_pairs
+                    and not use_simple and (gap_val, cm, rot_deg) != getattr(self, "_last_preview_params", (None, None, None))):
+                self._update_preview_inplace(doc, pairs, gap_val, cm, rot_deg)
+                self._last_preview_params = (gap_val, cm, rot_deg)
+                App.Console.PrintMessage(f"Preview: in-place update (gap={gap_val}, corner={cm}, rot={rot_deg}, {time.time()-_t:.2f}s)\n")
+                self._previewing = False
+                return
+
+            # Reuse existing preview objects where possible
+            old_names = set(self._preview_objects)
+            new_names = set()
+            old_profile_names = []
 
             if use_simple:
                 # Simplified preview: extrude outer wire instead of full profile
@@ -1019,6 +1033,7 @@ class ImportAluminumProfileTaskPanel:
                         except Exception:
                             pass
                         parent_shapes[key] = feat
+                        new_names.add(feat.Name)  # track for cleanup on reject
 
                 self._preview_pairs = []
                 counter = 0
@@ -1093,6 +1108,8 @@ class ImportAluminumProfileTaskPanel:
             hidden.update(getattr(self, "_old_preview_objects", []))
             self._old_preview_objects = list(hidden)
             App.Console.PrintMessage(f"Preview: done ({len(self._preview_objects)} visible, {len(self._old_preview_objects)} hidden, {time.time()-_t:.2f}s)\n")
+            self._last_preview_pairs = pair_keys
+            self._last_preview_params = (gap_val, cm, rot_deg)
         finally:
             self._previewing = False
 
@@ -1417,21 +1434,67 @@ class ImportAluminumProfileTaskPanel:
             return "Face1"
         return self._face_containing_obj(profile, corner_pt) or "Face1"
 
-    def _trim_at_corner(self, prof_a, face_a, prof_b, face_b):
-        doc = App.ActiveDocument
-        mt_a = doc.addObject("Part::FeaturePython", f"{prof_a.Name}_Mt")
-        TrimmedProfile(mt_a)
-        ViewProviderTrimmedProfile(mt_a.ViewObject)
-        mt_a.TrimmedBody = prof_a
-        mt_a.TrimmingBoundary = [(prof_b, [face_b])]
-        mt_a.TrimmedProfileType = "End Miter"
+    def _update_preview_inplace(self, doc, pairs, gap_val, cm, rot_deg):
+        """Option A: update existing preview in-place (same edges, different params)."""
+        created = []
+        for name, sel in self._preview_pairs:
+            obj = doc.getObject(name)
+            if obj and getattr(obj, "TypeId", "") == "Part::FeaturePython":
+                created.append((obj, sel))
+        if not created:
+            return
 
-        mt_b = doc.addObject("Part::FeaturePython", f"{prof_b.Name}_Mt")
-        TrimmedProfile(mt_b)
-        ViewProviderTrimmedProfile(mt_b.ViewObject)
-        mt_b.TrimmedBody = prof_b
-        mt_b.TrimmingBoundary = [(prof_a, [face_a])]
-        mt_b.TrimmedProfileType = "End Miter"
+        prev_cm = getattr(self, "_last_preview_params", (0, 0, 0))[1]
+        prev_gap = getattr(self, "_last_preview_params", (0, 0, 0))[0]
+
+        # Corner mode changed or corner → none → delete old _Mt, unhide base
+        if cm != prev_cm:
+            for obj, sel in created:
+                mt_name = f"{obj.Name}_Mt"
+                mt = doc.getObject(mt_name)
+                if mt:
+                    try:
+                        doc.removeObject(mt_name)
+                    except Exception:
+                        pass
+                try:
+                    obj.ViewObject.Visibility = True
+                except Exception:
+                    pass
+
+        if cm == 0:
+            # No corner: just update offsets
+            for obj, sel in created:
+                obj.OffsetA = -gap_val / 2.0
+                obj.OffsetB = -gap_val / 2.0
+                obj.recompute()
+            doc.recompute()
+        elif cm == prev_cm and gap_val != prev_gap:
+            # Same corner mode, only gap changed: update Gap on existing _Mt
+            for obj, sel in created:
+                mt_name = f"{obj.Name}_Mt"
+                mt = doc.getObject(mt_name)
+                if mt and hasattr(mt, "Gap"):
+                    mt.Gap = gap_val
+                    mt.recompute()
+            doc.recompute()
+        elif cm != prev_cm and cm in (1, 2, 3) and len(created) > 1:
+            # Corner mode changed → re-run full corner operation
+            if cm == 1:
+                self._do_miter_corners(created)
+            elif cm in (2, 3):
+                self._do_overlap_corners(created, cm)
+            doc.recompute()
+
+        # Update preview tracking to include any new _Mt objects
+        base_names = set(o.Name for o, s in created)
+        self._preview_objects = list(base_names)
+        for o in doc.Objects:
+            if o.Name.endswith("_Mt"):
+                for n in base_names:
+                    if o.Name == f"{n}_Mt":
+                        self._preview_objects.append(o.Name)
+                        break
 
     def _do_miter_corners(self, created):
         profiles = [(obj, sel) for obj, sel in created if sel is not None and obj.TypeId == "Part::FeaturePython"]
@@ -1486,13 +1549,14 @@ class ImportAluminumProfileTaskPanel:
             except Exception:
                 pass
         App.ActiveDocument.commitTransaction()
-        # Recompute each _Mt to ensure TrimmedProfile.execute runs
-        for obj in App.ActiveDocument.Objects:
-            if obj.Name.endswith("_Mt"):
-                try:
-                    obj.recompute()
-                except Exception:
-                    pass
+        # Removed: redundant per-_Mt recompute after commitTransaction() already
+        # did a full document recompute. Caused performance regression in miter mode.
+        # for obj in App.ActiveDocument.Objects:
+        #     if obj.Name.endswith("_Mt"):
+        #         try:
+        #             obj.recompute()
+        #         except Exception:
+        #             pass
 
     def _profile_face_dim_at_corner(self, profile, my_edge, other_edge, corner_pt):
         """Return the cross-section dimension (Width or Height) of `profile`
