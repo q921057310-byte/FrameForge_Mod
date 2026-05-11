@@ -14,16 +14,27 @@ from freecad.frameforgemod.frameforgemod_exceptions import FrameForgemodExceptio
 TOOL_ICON = os.path.join(ICONPATH, "pattern-fill.svg")
 smEpsilon = App.Base.Precision.approximation()
 
-PATTERN_TYPES = ["circle", "user sketch"]
+PATTERN_TYPES = ["circle", "hexagon", "user sketch"]
 GRID_MODES = ["staggered", "rectangular"]
 PATTERN_LABELS = {
     "circle": "Circle 圆形",
+    "hexagon": "Hexagon 六边形",
     "user sketch": "User Sketch 自绘草图",
 }
 GRID_LABELS = {
     "staggered": "Staggered 交错",
     "rectangular": "Rectangular 矩形",
 }
+
+
+def _make_hexagon_face(center, size):
+    pts = []
+    for i in range(6):
+        angle = math.pi / 6 + i * math.pi / 3
+        pts.append(App.Vector(center.x + size * math.cos(angle),
+                              center.y + size * math.sin(angle), center.z))
+    wire = Part.makePolygon(pts + [pts[0]])
+    return Part.Face(wire)
 
 
 def _make_circle_face(center, radius):
@@ -44,6 +55,8 @@ def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_cent
         actual_size = max(size * factor, size * 0.1)
     if pattern_type == "circle":
         return _make_circle_face(center, actual_size)
+    elif pattern_type == "hexagon":
+        return _make_hexagon_face(center, actual_size)
     return None
 
 
@@ -70,8 +83,12 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing_
             return True
 
     elements = []
-    el_spacing = max(size * 2 + spacing_x, 0.001)
-    row_spacing = max(size * 2 + spacing_y, 0.001)
+    if pattern_type == "hexagon":
+        el_spacing = max(size * math.sqrt(3) + spacing_x, 0.001)
+        row_spacing = max(size * 1.5 + spacing_y, 0.001)
+    else:
+        el_spacing = max(size * 2 + spacing_x, 0.001)
+        row_spacing = max(size * 2 + spacing_y, 0.001)
     if grid_mode == "staggered":
         row_spacing = min(row_spacing, el_spacing * math.sqrt(3) / 2.0)
     row = 0
