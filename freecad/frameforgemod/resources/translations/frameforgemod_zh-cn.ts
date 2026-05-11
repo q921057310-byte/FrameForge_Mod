@@ -966,5 +966,41 @@ Select Edges or set Length</source>
         <translation>T型连接器：检测到的孔 {:.1f}mm 超出匹配范围
 </translation>
     </message>
+    <message>
+        <source>Click a face on the target object to extend selected profiles toward it.</source>
+        <translation>点击目标面上的一个面，将选中的型材延伸至该面。</translation>
+    </message>
+    <message>
+        <source>No target face selected.</source>
+        <translation>未选择目标面。</translation>
+    </message>
+    <message>
+        <source>A end (start)</source>
+        <translation>A端（起点）</translation>
+    </message>
+    <message>
+        <source>B end (end)</source>
+        <translation>B端（终点）</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>无</translation>
+    </message>
+    <message>
+        <source>OK (no change)</source>
+        <translation>无需调整</translation>
+    </message>
+    <message>
+        <source>Apply to All</source>
+        <translation>应用全部</translation>
+    </message>
+    <message>
+        <source>Adjust Ends</source>
+        <translation>调整端头</translation>
+    </message>
+    <message>
+        <source>Click a target face to extend selected profiles toward it.</source>
+        <translation>点击目标面，将选中的型材延伸至该面。</translation>
+    </message>
 </context>
 </TS>

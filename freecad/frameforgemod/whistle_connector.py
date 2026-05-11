@@ -4,7 +4,6 @@ import Part
 
 from freecad.frameforgemod._utils import _register_profile_metadata, get_profile_from_trimmedbody, is_trimmedbody
 from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
-from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
 
 
 # Connector specification table
@@ -551,6 +550,8 @@ class WhistleConnector:
             cyl = _make_cyl(d)
             if cyl is not None:
                 fp.Shape = cyl
+                self._cached_key = ck
+                self._cached_shape = cyl
                 self._sync_cut_label(fp)
                 return
 

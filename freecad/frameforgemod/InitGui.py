@@ -185,7 +185,6 @@ class FrameForgemod(Gui.Workbench):
     toolbox_frameforge = [
         "frameforgemod_AluminumProfileLibrary",
         "frameforgemod_TrimProfiles",
-        "frameforgemod_AdjustEnds",
         "frameforgemod_EndMiter",
         "frameforgemod_AddExtrudeCutout",
         "frameforgemod_EndCap",

@@ -42,7 +42,7 @@ class EditProfileTaskPanel(BaseProfileTaskPanel):
         self.form_proxy.sb_weight.setValue(self.profile.ApproxWeight)
         try:
             self.form_proxy.sb_unitprice.setValue(self.profile.UnitPrice)
-        except:
+        except Exception:
             App.Console.PrintMessage(f"Frameforge : can't find Unit Price for {self.profile.Label}\n")
         self.form_proxy.cb_make_fillet.setChecked(self.profile.MakeFillet)
         if hasattr(self.profile, "AnchorX"):

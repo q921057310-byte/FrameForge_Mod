@@ -1762,7 +1762,7 @@ class ViewProviderProfile:
         if prop in ["Target", "OffsetA", "OffsetB", "RotationAngle"]:
             try:
                 self._updatePoints()
-            except:
+            except Exception:
                 App.Console.PrintMessage(
                     f"Can't update profile {fp.Label} and helper in 3D, maybe linked to a migration\n"
                 )
