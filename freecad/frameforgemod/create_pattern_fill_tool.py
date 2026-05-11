@@ -14,40 +14,16 @@ from freecad.frameforgemod.frameforgemod_exceptions import FrameForgemodExceptio
 TOOL_ICON = os.path.join(ICONPATH, "pattern-fill.svg")
 smEpsilon = App.Base.Precision.approximation()
 
-PATTERN_TYPES = ["hexagon", "circle", "triangle", "user sketch"]
+PATTERN_TYPES = ["circle", "user sketch"]
 GRID_MODES = ["staggered", "rectangular"]
 PATTERN_LABELS = {
-    "hexagon": "Hexagon 六边形",
     "circle": "Circle 圆形",
-    "triangle": "Triangle 三角形",
     "user sketch": "User Sketch 自绘草图",
 }
 GRID_LABELS = {
     "staggered": "Staggered 交错",
     "rectangular": "Rectangular 矩形",
 }
-
-
-def _make_hexagon_face(center, size):
-    pts = []
-    for i in range(6):
-        angle = math.pi / 6 + i * math.pi / 3
-        pts.append(App.Vector(center.x + size * math.cos(angle),
-                              center.y + size * math.sin(angle), center.z))
-    wire = Part.makePolygon(pts + [pts[0]])
-    return Part.Face(wire)
-
-
-def _make_triangle_face(center, size, angle=-math.pi/2):
-    h = size * math.sqrt(3) / 2.0
-    r = h * 2.0 / 3.0
-    pts = []
-    for i in range(3):
-        a = angle + i * 2 * math.pi / 3
-        pts.append(App.Vector(center.x + r * math.cos(a),
-                              center.y + r * math.sin(a), center.z))
-    wire = Part.makePolygon(pts + [pts[0]])
-    return Part.Face(wire)
 
 
 def _make_circle_face(center, radius):
@@ -60,18 +36,14 @@ def _make_circle_face(center, radius):
 
 
 
-def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_center, angle=None):
+def _make_element(center, size, pattern_type, size_decrease, max_dist, bbox_center):
     actual_size = size
     if size_decrease > 0 and max_dist > 0:
         dist = (center - bbox_center).Length
         factor = 1.0 - size_decrease * (dist / max_dist)
         actual_size = max(size * factor, size * 0.1)
-    if pattern_type == "hexagon":
-        return _make_hexagon_face(center, actual_size)
-    elif pattern_type == "circle":
+    if pattern_type == "circle":
         return _make_circle_face(center, actual_size)
-    elif pattern_type == "triangle":
-        return _make_triangle_face(center, actual_size, angle if angle is not None else -math.pi/2)
     return None
 
 
@@ -98,70 +70,27 @@ def _generate_pattern(boundary_face, boundary_wire, pattern_type, size, spacing_
             return True
 
     elements = []
-    if pattern_type == "hexagon":
-        col_spacing = max(size * math.sqrt(3) + spacing_x, 0.001)
-        row_spacing = max(size * 1.5 + spacing_y, 0.001)
-        row = 0
-        y = min_y
-        while y <= max_y:
-            offset_x = col_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
-            x = min_x - size + offset_x
-            while x <= max_x + size:
-                if _is_inside_2d(x, y):
-                    center = App.Vector(x, y, 0)
-                    local_face = _make_element(center, size, pattern_type,
-                                               size_decrease, max_dist, bbox_center)
-                    if local_face:
-                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
-                        if world_face:
-                            elements.append(world_face)
-                x += col_spacing
-            y += row_spacing
-            row += 1
-    elif pattern_type == "triangle":
-        col_spacing = max(size + spacing_x, 0.001)
-        row_spacing = max(size * math.sqrt(3) / 2 + spacing_y, 0.001)
-        row = 0
-        y = min_y
-        while y <= max_y:
-            do_stagger = (grid_mode == "staggered")
-            offset_x = col_spacing / 2.0 if (do_stagger and row % 2 == 1) else 0
-            x = min_x - size + offset_x
-            while x <= max_x + size:
-                if _is_inside_2d(x, y):
-                    center = App.Vector(x, y, 0)
-                    angle = (-math.pi/2 if row % 2 == 0 else math.pi/2) if do_stagger else -math.pi/2
-                    local_face = _make_element(center, size, pattern_type,
-                                               size_decrease, max_dist, bbox_center, angle)
-                    if local_face:
-                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
-                        if world_face:
-                            elements.append(world_face)
-                x += col_spacing
-            y += row_spacing
-            row += 1
-    else:
-        el_spacing = max(size * 2 + spacing_x, 0.001)
-        row_spacing = max(size * 2 + spacing_y, 0.001)
-        if grid_mode == "staggered":
-            row_spacing = min(row_spacing, el_spacing * math.sqrt(3) / 2.0)
-        row = 0
-        y = min_y
-        while y <= max_y:
-            offset_x = el_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
-            x = min_x - size + offset_x
-            while x <= max_x + size:
-                if _is_inside_2d(x, y):
-                    center = App.Vector(x, y, 0)
-                    local_face = _make_element(center, size, pattern_type,
-                                               size_decrease, max_dist, bbox_center)
-                    if local_face:
-                        world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
-                        if world_face:
-                            elements.append(world_face)
-                x += el_spacing
-            y += row_spacing
-            row += 1
+    el_spacing = max(size * 2 + spacing_x, 0.001)
+    row_spacing = max(size * 2 + spacing_y, 0.001)
+    if grid_mode == "staggered":
+        row_spacing = min(row_spacing, el_spacing * math.sqrt(3) / 2.0)
+    row = 0
+    y = min_y
+    while y <= max_y:
+        offset_x = el_spacing / 2.0 if (grid_mode == "staggered" and row % 2 == 1) else 0
+        x = min_x - size + offset_x
+        while x <= max_x + size:
+            if _is_inside_2d(x, y):
+                center = App.Vector(x, y, 0)
+                local_face = _make_element(center, size, pattern_type,
+                                           size_decrease, max_dist, bbox_center)
+                if local_face:
+                    world_face = _transform_face_to_world(local_face, origin, x_axis, y_axis, normal)
+                    if world_face:
+                        elements.append(world_face)
+            x += el_spacing
+        y += row_spacing
+        row += 1
     return elements
 
 
@@ -321,7 +250,7 @@ class PatternFill:
         obj.addProperty("App::PropertyEnumeration", "PatternType",
                         "Pattern", "")
         obj.PatternType = PATTERN_TYPES
-        obj.PatternType = "user sketch" if pattern_sketch else "hexagon"
+        obj.PatternType = "user sketch" if pattern_sketch else "circle"
         obj.addProperty("App::PropertyDistance", "ElementSize",
                         "Pattern", "").ElementSize = 5.0
         obj.addProperty("App::PropertyDistance", "Spacing",
@@ -557,6 +486,9 @@ if App.GuiUp:
         def __init__(self, obj):
             self.obj = obj
             self._selection_mode = None
+            self._debounce_timer = QtCore.QTimer()
+            self._debounce_timer.setSingleShot(True)
+            self._debounce_timer.timeout.connect(self._do_recompute)
             self.form = QtGui.QWidget()
             self.form.setWindowTitle("Pattern Fill 填充阵列")
             layout = QtGui.QVBoxLayout(self.form)
@@ -666,6 +598,14 @@ if App.GuiUp:
             self.sketch_btn.clicked.connect(self._pick_pattern_sketch)
 
         def _load_values(self):
+            # Block signals to avoid triggering recompute for each setValue
+            for spin in (self.spin_size, self.spin_spacing, self.spin_spacing_y,
+                         self.spin_gradient, self.spin_thk):
+                spin.blockSignals(True)
+            self.combo_pattern.blockSignals(True)
+            self.combo_grid.blockSignals(True)
+            self.link_check.blockSignals(True)
+            self.cut_check.blockSignals(True)
             try:
                 pt = str(self.obj.PatternType)
                 idx = PATTERN_TYPES.index(pt) if pt in PATTERN_TYPES else 0
@@ -714,12 +654,23 @@ if App.GuiUp:
                     self.sketch_txt.setText(sk.Name)
             except Exception:
                 pass
+            finally:
+                for spin in (self.spin_size, self.spin_spacing, self.spin_spacing_y,
+                             self.spin_gradient, self.spin_thk):
+                    spin.blockSignals(False)
+                self.combo_pattern.blockSignals(False)
+                self.combo_grid.blockSignals(False)
+                self.link_check.blockSignals(False)
+                self.cut_check.blockSignals(False)
 
-        def _update(self):
+        def _do_recompute(self):
             try:
                 self.obj.Document.recompute()
             except Exception:
                 pass
+
+        def _update(self):
+            self._debounce_timer.start(300)
 
         def _on_pattern_changed(self, idx):
             if 0 <= idx < len(PATTERN_TYPES):
