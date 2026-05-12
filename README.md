@@ -1,231 +1,295 @@
-# FrameForge / 型材框架工作台 (Mod 版本 v0.1)
+# FrameForge_Mod / 型材框架工作台 (v0.1)
 
-[![功能演示](https://img.youtube.com/vi/CbVGpRtp7rw/hqdefault.jpg)](https://www.youtube.com/watch?v=CbVGpRtp7rw)
+[FrameForge] modified version — AI-assisted FreeCAD workbench for aluminum profile frame design.
 
-https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223
+[FrameForge] 修改版本 — AI 协作开发的 FreeCAD 工作台，用于铝型材框架设计。
 
-FrameForge is a FreeCAD workbench for designing beams and frames with cut, miter joins, BOM export, and more.
-
-型材框架 是一个 FreeCAD 工作台，用于设计梁和框架结构，支持切割、斜接、BOM 导出等功能。
-
-> **注意**：这是一个 AI 辅助开发的 Mod 版本，安装在 `FrameForge_mod` 目录。代码由 AI 生成，使用前请先测试，操作前备份文件。
-
----
-
-## v0.1 — Mod 新增功能 / New in Mod
-
-- **自定义型材 (Custom Profile)** — 从选中边创建任意截面的型材
-- **钻孔 (Hole)** — 基于草图点/圆/线在型材上打孔，自动生成 Part::Cut
-- **哨子连接器 / T 型连接器** — 自动检测 QY 规格，支持内置连接件钻孔
-- **图案填充 (Pattern Fill)** — 六边形/圆形/三角形/自定义图案阵列填充
-- **通风口 (Vent)** — 基于草图创建带加强筋的通风开口
-- **端盖 (End Cap)** — 板式/插入式，支持倒角、圆角、螺纹孔 (M3~M12)
-- **角撑板 (Gusset)** — 三角支撑板，带倒角选项
-- **铝型材库** — 集成国标/欧标铝型材截面库
-- **BOM 动态更新** — 表格单元格使用公式引用型材属性，修改即更新
-- **端盖/角撑板参数记忆** — 下次创建自动恢复上次数值
-- **BOM 角度修复** — 斜接角度计算修正为 A/2
-
----
-
-## Features / 功能
-
-- **Create Beams** from sketches or edges / 从草图或边创建梁（金属、木材）
-- **Trim, offset, cut, miter cut** / 修剪、偏移、切割、斜接切割
-- **Hole** from sketch（打孔）/ 基于草图点/圆/线打孔，自动 Part::Cut
-- **Whistle Connector / T-Joint Connector** / 哨子连接器 / T 型连接器（自动检测 QY 规格）
-- **Extruded Cutout** from sketch / 拉伸切空
-- **Custom Profiles** / 自定义型材
-- **Aluminum Extrusion Library** / 铝合金挤压型材库
-- **End Miter & End Trim** / 端部斜接与端部修剪
-- **Gusset / Corner Bracket** / 角撑板
-- **End Cap** / 端盖（含螺纹孔选项 M3~M12）
-- **Vent / Louver** / 通风口
-- **Pattern Fill** / 图案填充
-- **Offset Plane** / 偏移平面
-- **Export BOM with cut angles, length, material** / 导出物料清单（含切割角度、长度、材料）
-- **TechDraw Balloons** with auto-update / 技术图纸气球标注（自动更新）
-- **Populate IDs** for profile management / 型材 ID 自动编号管理
-- **Dynamic Data** integration (bundled) / 集成动态数据插件
-- **Price / Weight tracking** / 价格/重量追踪
-![](https://github.com/q921057310-byte/FrameForge_Mod/blob/master/docs/images/%E5%8A%A0%E5%BC%BA%E7%AD%8B.png)
-![](https://github.com/q921057310-byte/FrameForge_Mod/blob/master/docs/images/%E5%B0%81%E6%9D%BF.png)
-![](https://github.com/q921057310-byte/FrameForge_Mod/blob/master/docs/images/Quicker_20260509_073148.png)
-![]()
-
-[![GitHub视频](https://img.youtube.com/vi/leSm4V5qcts/hqdefault.jpg)](https://www.youtube.com/watch?v=leSm4V5qcts)
-
-
-
-
-
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/L3L41KKMJR)
-
----
-
-## Prerequisite / 前置要求
-
-- FreeCAD ≥ v1.0.x
+> ⚠️ This mod code is AI(Claude) generated. AI may have inaccurate understanding of FreeCAD API. Test before use, backup files before operations.
+> ⚠️ 本 Mod 代码由 AI (Claude) 辅助生成。AI 对 FreeCAD API 的理解可能不准确，使用前请先测试，操作前备份文件。
 
 ---
 
 ## Installation / 安装
 
-放在 FreeCAD Mod 目录：`%APPDATA%/FreeCAD/v1-1/Mod/FrameForge_mod/`
+```
+%APPDATA%/FreeCAD/v1-1/Mod/FrameForge_mod/
+```
+
+Launch FreeCAD, switch workbench to **FrameForge_mod**.
+
+启动 FreeCAD，工作台下拉选择 **FrameForge_mod**。
+
+## Dependencies / 依赖
+
+- FreeCAD ≥ 0.21.0 (recommended 1.0+)
 
 ---
 
-## Quick Start / 快速开始
+## Features / 功能列表
 
-### Create the skeleton / 创建骨架
+### Aluminium Profile Library / 铝型材库（freely editable / 可以随意编辑修改添加）
 
-Beams are mapped onto Edges or ParametricLine (from a Sketch for instance).
+Select profiles via `.FCStd` cross-section files (AGB 20~60 series, Chinese/European standard).
 
-梁映射到边或参数化线（例如来自草图）。
+通过 `.FCStd` 截面文件选择型材（20/30/40/45/50/60 系列，国标/欧标）。
 
-1. Switch to the **型材框架** workbench / 切换到型材框架工作台
-2. Create a [Sketch](https://wiki.freecad.org/Sketcher_NewSketch) (choose XY orientation) / 创建草图（选择 XY 方向）
-3. Draw a simple square — this is your skeleton / 绘制一个正方形作为骨架
-4. Close the Sketch editor / 关闭草图编辑
+**Profile location / 轮廓库位置：**
+- Aluminum / 铝：`C:\Users\<user>\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge_mod\freecad\frameforgemod\resources\profiles\aluminum`
+- Steel / 钢：`C:\Users\<user>\AppData\Roaming\FreeCAD\v1-1\Mod\FrameForge_mod\freecad\frameforgemod\resources\profiles\steel`
 
-![Create Skeleton](docs/images/02-create-frame-skeleton.png)
+- Each `.FCStd` file is one profile cross-section; filename = model name / 每个 `.FCStd` 文件是一个型材截面，文件名即型号名
+- Simple preview (lightweight box) or full preview (real FeaturePython objects) / 简易预览（轻量盒子）或全预览（完整 FeaturePython 对象）
+- Simple preview does NOT support miter/gap preview / 简单预览不支持斜角、间隙预览
+- Corner mode: Miter / A-over-B / B-over-A / Gap — visible in full preview only / 角模式：斜接 / A叠B / B叠A / 间隙 —— 仅完整预览可见
+- Curved profile support (creates Part::Sweep) / 支持弯曲型材（创建 Part::Sweep）
+- Rotation (0/90/180/270) / 旋转（0/90/180/270）
+- Option A: in-place update — no new objects created when changing params / Option A 原地更新：改参数时不新建对象
 
-### Create the frame / 创建框架
+### Known Bugs / 已知问题
 
-1. Launch the **FrameForge Profile** tool / 启动型材工具
+- `shape` temporary files may remain in the design tree / shape 临时文件残留设计树
+- After drilling (MT), auto-face-hide may not work; manual Space-hide needed / MT 打孔后自动隐藏失效，需手动空格隐藏
+- Creating profiles may occasionally produce extra profiles / 创建型材时可能产生多余的型材
 
-![profile](docs/images/10-profiles.png)
+### Create Profile / 创建型材（标准 Profile）
 
-2. Select a profile from the lists (Material / Family / Size) / 从列表中选择型材（材料/系列/尺寸）
+- Create parametric aluminum profiles from sketch edges / wires / 从草图边或边线创建参数化铝型材
+- `PropertyLinkSub` → linked to skeleton edge / 关联到骨架边线
+- End bevel cuts, mirror, anchor alignment, rotation / 支持 bevel 切割（两端）、镜像、锚点对齐、旋转角
+- Cross-section types: V-Slot, T-Slot (multi-groove), Chinese/European standard / 截面类型：V-Slot、T-Slot（多种槽布局）、国标/欧标系列
 
-![profile](docs/images/10-profiles-task.png)
+### Create Custom Profile / 自定义型材
 
-3. In the 3D view, select edges to apply the profile / 在 3D 视图中选择要应用型材的边
+- Select any sketch as profile cross-section / 用户选择任意草图作为型材截面
+- Links `Part::Feature` as Shape source / 关联 Part::Feature 作为 Shape 源
 
-![Edge Selection](docs/images/13-edge-selection.png)
+### End Miter / 端部斜接
 
-4. Press **OK** — you now have profiles! / 点击确定，型材已创建！
+- Select two adjacent faces → auto-calculates miter angle / 选择两个相邻面 → 自动计算斜接角度
+- Creates `TrimmedProfile` (`_Mt`), supports Gap / 创建 TrimmedProfile（\_Mt），支持 Gap
+- Auto-hides original profile / 自动隐藏原型材
 
-![Profiles](docs/images/14-profiles-done.png)
+### End Trim / 端部裁切
 
-**Voila! Your first frame! / 第一个框架完成！**
+- Select profile face + trimming boundary face → creates TrimmedProfile (`_Tr`) / 选择被裁型材面 + 裁切边界面 → 创建 TrimmedProfile（\_Tr）
+- Auto-hides original profile / 裁切后自动隐藏原型材
 
-For more details, see the [tutorial](docs/tutorial.md) / 更多详情请参阅[教程](docs/tutorial.md)。
+### Adjust Ends / 调整端头
+
+- Multi-select profiles, click target face → auto-detect A/B end / 多选型材，点击目标面自动检测 A/B 端
+- Positive = extend, negative = shorten / 正值延伸、负值缩短
+- Supports multiple target faces / 支持多点目标面累积
+
+### Hole Feature / 打孔
+
+- Select profile face + sketch points/circles/edges → auto boolean cut / 选择型材面 + 草图点/圆/线 → 自动布尔裁切
+- Hole type: Through / Blind / Counterbore / 孔类型：Through / Blind / Counterbore
+- Bolt presets: M3~M12, Pin2.5~Pin10 / 螺栓预设：M3~M12、Pin2.5~Pin10
+- Edit hole size: double-click `HoleFeature` / 编辑孔尺寸：双击 HoleFeature
+- `CutResult` removed (DAG cycle fix) / CutResult 已移除（修复 DAG 循环）
+
+### Whistle Connector / 哨子连接器
+
+- Select groove face + end face → auto-calculate hole position / 选择凹槽面 + 端面 → 自动计算孔位置
+- QY built-in connector model selector (Auto or QY16-8-30/QY20-8-40/QY20-10-45) / QY 内置连接件规格选择
+- Connector specs: M6/M8/M10 / 连接器规格：M6/M8/M10
+
+### T-Joint Connector / T 型连接器
+
+- Select B side face + A end face → auto-detect end face hole / 选择 B 侧面 + A 端面 → 自动检测端面孔
+- Screw size match: M6/M8/M10/M12/M14 / 匹配螺丝规格：M6/M8/M10/M12/M14
+- Manual select / auto match / 手动选择/自动匹配
+
+### End Cap / 端盖
+
+- Plate / Plug type, adjustable thickness / 板式 / 插入式，厚度可调
+- Edge chamfer / fillet / 边线倒角 / 圆角
+- Center threaded hole: M3~M14 / 中心螺纹孔：M3~M14
+- Counterbore / through hole / 沉头 / 通孔
+
+### Gusset / 角撑板
+
+- Two adjacent faces → triangular support plate / 两个相邻面 → 三角支撑板
+- Right-angle chamfer + acute-angle chamfer / 直角边倒角 + 锐角边倒角
+- Optional center hole / 中心孔可选
+- Position alignment (left/center/right), thickness alignment (front/center/rear) / 位置对齐（左/中/右）、厚度对齐（前/中/后）
+
+### Extruded Cutout / 拉伸切空
+
+- Select profile face + sketch → boolean cut along normal / 选择型材面 + 草图 → 沿法向拉伸布尔裁切
+- Through All / specified depth / Through All / 指定深度
+
+### Vent / 通风口
+
+- Select body + sketch in tree, click Vent toolbar / 设计树选择实体+草图，点击工具栏 Vent
+- Boundary + rib edges → opening + reinforcing bars / 选择边界 + 肋条边线 → 开孔 + 加强筋
+- Rib width, fillet / 肋宽、圆角
+
+### Pattern Fill / 填充阵列
+
+- Select body + sketch in tree, click Fill toolbar / 设计树选择实体+草图，点击工具栏 Fill
+- Circle / Hexagon / User sketch pattern fill / 圆形 / 六边形 / 用户草图阵列填充
+- Grid mode: Staggered / Rectangular / 网格模式：Staggered（交错）/ Rectangular（矩形）
+- Gradient scale (center to edge) / 渐变缩放（中心→边缘）
+- Debounced: smooth param dragging / 防抖优化：拖参数不卡
+
+### Offset Plane / 偏移基准面
+
+- Select face → creates PartDesign::Plane at specified distance / 选择面 → 创建指定距离的 PartDesign::Plane
+
+### BOM / 物料清单
+
+- Generates Spreadsheet: Parent, ID, Family, SizeName, Length, CutAngle1, CutAngle2, Drill/Cutout, Qty, Material, Weight, UnitPrice, Name / 生成 Spreadsheet
+- Cut List: stock optimization (first-fit-decreasing algorithm) / Cut List：余料优化
+- Stock length (default 6000mm) / Kerf (default 1mm) / Stock 长度（默认 6000mm）/ Kerf（默认 1mm）
+
+### Populate IDs / ID 自动编号
+
+- ID assignment: numbers / letters / combined / 型材 ID 分配策略：数字/字母/组合
+- Group identical profiles: same ID + xN count / 分组：相同型材同 ID + xN 计数
+- Mode: fill_selection / fill_document / continue_document / start_at / 模式
+
+### TechDraw Balloons / 技术图纸标注
+
+- Create / refresh balloon annotations, auto-linked to profile IDs / 创建/刷新气球标注，自动关联型材 ID
+
+### Isolate / 隔离显示
+
+- Selected → hide all others / 选中对象 → 其余全部隐藏
+- Exit isolate: configurable skip keywords (Constraint/Joint/Revolute/Slider/Plane/Origin/Link etc.) / 退出时配置跳过关键词
+- Assembly support: parent container + LinkedObject auto-kept visible / 支持装配体
+- Settings: customize skip keywords / Settings：定制跳过关键词
+
+### Parametric Line / 参数化线
+
+- Select two vertices → creates Part::LineSegment / 选择两个顶点 → 创建 Part::LineSegment
+
+### Attached Link / 附着链接
+
+- Creates App::Link + Part::AttachExtensionPython, with PID / 创建 App::Link + Part::AttachExtensionPython，带 PID
+
+### Recompute / 强制更新
+
+- Recursively recompute all Profile / TrimmedProfile / ExtrudedCutout / 递归重新计算
+
+### Export TechDraw / 导出技术图纸
+
+- Export all TechDraw pages to PDF / 所有 TechDraw 页面导出为 PDF
 
 ---
 
-详细使用说明见 [FrameForge-使用说明.md](docs/FrameForge-使用说明.md)。
+## How to Add Profiles / 如何添加型材轮廓
+
+### Getting Cross-Sections / 获取截面
+
+- **Draw your own sketch** — Create a Sketcher sketch with a closed wire cross-section, save as `.FCStd` / 自己画草图，保存为 .FCStd
+- **Extract from STP/IGS** — Open STP, create sketch from end face (Part → Create sketch from face), clean up and save / 从 STP 提取端面草图
+- **Same series in one file** — Recommend putting same-series profiles in the same `.FCStd` / 同系列截面建议放同一个文件
+
+### File Location / 文件位置
+
+```
+resources/profiles/
+├── aluminum/        ← Aluminum profiles (AGB 20~60 series, CN/EU standard) / 铝型材
+├── steel/           ← Steel profiles (tube, rectangular tube, light rail etc.) / 钢材
+└── aluminium_extrusion.json  ← Aluminium dimension definitions / 铝型材尺寸定义
+    metal.json                ← Metal structural shapes (EN standard) / 金属型材尺寸
+    wood.json                 ← Timber sections (EN standard) / 木材型材
+```
+
+### Profile Families / 截面类型
+
+#### Aluminum (JSON + .FCStd) / 铝型材
+
+Aluminum has many specifications; currently includes AGB 20~60 series, Chinese/European standard with various groove widths. / 铝型材规格非常多，目前包含 AGB 20~60 系列、国标/欧标多种槽宽。
+
+| Series / 系列 | Size range / 尺寸范围 | Source / 来源 |
+|------|---------|---------|
+| CN 30 series(6.3) | 25×25 | aluminium_extrusion.json |
+| EU 20 series | 20×20 ~ 20×80 | aluminium_extrusion.json |
+| EU 30 series(8.2) | 30×30, 30×60 | aluminium_extrusion.json |
+| EU 40 series(10.2) | 40×40, 40×80 | aluminium_extrusion.json |
+| AGB series | 20~60 series, various groove widths | `.FCStd` files |
+
+#### Steel (.FCStd) / 钢材
+
+Steel profiles are currently few, and any help adding more is welcome. / 钢材目前很少，后续可补充，有帮助更好。
+
+| Profile / 型材 | File / 文件 |
+|------|------|
+| Square tube 40×40×1.5 | st4040-1.5.FCStd |
+| Rectangular tube 50×30×2.6 | 矩型管 50 X 30 X 2.6.FCStd |
+| Light rail 9kg | 轻轨 轻轨9.FCStd |
+| Location / 位置：resources/profiles/steel/ | |
+
+#### Metal structural shapes (JSON) / 金属型材
+
+| Series / 系列 | Size range / 尺寸 | Note / 说明 |
+|------|---------|------|
+| Equal Leg Angles | 16×16×3 ~ 250×250×35 | EN 10056-1 |
+| Unequal Leg Angles | 30×20×3 ~ 250×150×15 | EN 10056-1 |
+| Flat Sections | 10×3 ~ 200×65 | EN10025 |
+
+#### V-Slot / T-Slot (parametric / 程序生成)
+
+| Type / 类型 | Size / 尺寸 | Note / 说明 |
+|------|------|------|
+| V-Slot 20 | 20×20 ~ 20×80 | Generated / 程序生成 |
+| T-Slot 20 | 20×20 (1~3 grooves, symmetrical/opposing) | Generated / 程序生成 |
+| CN/EU standard | 20/30/40/45 series | Generated / 程序生成 |
+
+---
+
+## Toolbar Layout / 工具栏布局
+
+| Toolbar / 工具栏 | Commands / 命令 |
+|--------|------|
+| Drawing Primitives | Sketcher_NewSketch, Part_Box, ParametricLine, SubShapeBinder |
+| Frameforge | AluminumProfileLibrary ▼, Trim ▼, EndMiter, ExtrudedCutout, EndCap, Gusset, H |
+| Profile Group | Std_Group, Std_Part |
+| Part Primitives | AttachedLink, Part_Fuse, Part_Cut, PartDesign_Body |
+| FrameForge output | PopulateIDs, ResetIDs, CreateBalloons, RefreshBalloons, CreateBOM |
+| Dynamic Data | CreateObject, AddProperty, CopyProperty, CreateConfiguration |
+| Other Tools | AddVent, PatternFill, OffsetPlane |
+| Utilities | Recompute, ExportTechDraw, Isolate, IsolateSettings |
+
+---
+
+## Usage Notes / 使用备注
+
+This plugin code was generated with AI (Claude) assistance. Known AI issues / 已知 AI 常见问题：
+
+- FreeCAD API misunderstanding (e.g. `Part.makeRegularPolygon` doesn't exist) / API 理解偏差
+- `addObject` + transaction missmatching (`abortTransaction` not paired) / 事务管理遗漏
+- Frequent `recompute()` causing lag / 频繁 recompute 导致卡顿
+- Bad cache design → stale geometry / 缓存设计不合理
+- Edge cases not covered (null selection, shapeless objects) / 边界情况未覆盖
+
+Recommendations / 操作建议：
+1. Verify on small models first / 先在小模型上验证
+2. Save/backup before operations / 操作前保存/备份
+3. Turn off FreeCAD auto-save or shorten interval / 关闭自动保存或缩短间隔
 
 ---
 
 ## Maintainer / 维护者
 
-Vivien HENRY  
-vivien.henry@inductivebrain.fr
-
----
+xingxing — q921057310@gmail.com
 
 ## Credits / 致谢
 
-This workbench references and bundles code from the following open-source projects:
-
-本工作台参考并集成了以下开源项目的代码：
-
-| Project / 项目 | Author / 作者 | Description / 说明 |
-|---|---|---|
-| [FrameForge](https://github.com/lukh/frameforge) | lukh | Original workbench this project is forked from / 本分支的原始工作台 |
-| [MetalWB](https://framagit.org/Veloma/freecad_metal_workbench) | Veloma | Original base workbench (FrameForge predecessor) / FrameForge 的前身 |
-| [Dynamic Data (动态数据)](https://github.com/mwganson/DynamicData) | Mark Ganson (TheMarkster) | Dynamic properties system (v2.78, bundled) / 动态属性系统（v2.78，已集成） |
-| [EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) | ovo-Tim | Profile frame workbench / 型材框架工作台 |
-| [BOLTS](https://github.com/boltsparts/BOLTS) | Johannes Reinhardt | Open Library of Technical Specifications (extrusion geometry) / 开源技术规格库（挤压型材几何） |
+| Project | Author | Description |
+|---------|--------|-------------|
+| [FrameForge](https://github.com/lukh/frameforge) | lukh | Original workbench / 原始工作台 |
+| [MetalWB](https://framagit.org/Veloma/freecad_metal_workbench) | Veloma | FrameForge predecessor / FrameForge 前身 |
+| [Dynamic Data](https://github.com/mwganson/DynamicData) | Mark Ganson | Dynamic properties (v2.78, bundled) / 动态属性系统 |
+| [BOLTS](https://github.com/boltsparts/BOLTS) | Johannes Reinhardt | Open Technical Specs library / 开源技术规格库 |
 
 ### Special thanks / 特别感谢
+- **大海** — Provided aluminum extrusion profile library / 提供铝合金型材轮廓库
+- Vincent B, Quentin Plisson, rockn, Jonathan Wiedemann
+- [FreeCAD forum thread](https://forum.freecad.org/viewtopic.php?style=5&t=72389)
 
-- **大海** (QQ group) — Provided aluminum extrusion profile library / 提供铝合金型材轮廓库
-  - Bilibili: [space.bilibili.com/3546652184938824](https://space.bilibili.com/3546652184938824?spm_id_from=333.337.0.0)
-- Vincent B
-- Quentin Plisson
-- rockn
-- Jonathan Wiedemann
+## License / 许可证
 
-And many others from the [FreeCAD forum thread](https://forum.freecad.org/viewtopic.php?style=5&t=72389)
-
-以及 FreeCAD 论坛相关讨论中的众多贡献者。
-
----
-
-## How to Add Profiles / 如何添加轮廓
-
-Profiles are defined in multiple places. To add a new profile, follow the steps below:
-
-轮廓定义在多个位置。要添加新轮廓，请按以下步骤操作：
-
-### 1. JSON Dimension Data / JSON 尺寸数据
-
-Edit the JSON file for the material type:
-
-编辑对应材料类型的 JSON 文件：
-
-- `freecad/frameforgemod/resources/profiles/aluminium_extrusion.json` — Aluminum / 铝型材
-- `freecad/frameforgemod/resources/profiles/wood.json` — Wood / 木材
-- `freecad/frameforgemod/resources/profiles/metal.json` — Steel / 钢材
-
-**Format example / 格式示例** (add under the corresponding family):
-
-```json
-{
-  "family": "欧标30系列(8.2)",
-  "sizes": [
-    {"label": "30x30", "Height": 30.0, "Width": 30.0},
-    {"label": "30x60", "Height": 30.0, "Width": 60.0}
-  ]
-}
-```
-
-### 2. Cross-Section Sketch / Sheet Body / 截面草图 / 片体
-
-Profile outlines are loaded from `.FCStd` files in the profiles directory:
-
-型材轮廓从 `profiles` 目录下的 `.FCStd` 文件加载：
-
-`freecad/frameforgemod/resources/profiles/`
-
-- File name must match the `<label>` in JSON / 文件名必须与 JSON 中的 `<label>` 一致
-- Supported content / 支持的内容：
-  - **Sketch** — closed wire sketch of the cross-section / 闭合截面草图
-  - **Sheet Body / 片体** — face body representing the cross-section / 表示截面的片体
-- Each `.FCStd` should contain ONE sketch or sheet body named the same as the file / 每个 `.FCStd` 文件应包含一个与文件同名的草图或片体
-
-### 3. SVG Outline (Optional) / SVG 轮廓（可选）
-
-For visual reference in the UI, add an SVG:
-
-如需在界面中显示轮廓预览，添加 SVG 文件：
-
-`freecad/frameforgemod/resources/profiles/aluminum/svg/`
-
-### 4. Profile Preview Image / 预览图片
-
-Add a preview PNG to the corresponding folder:
-
-添加预览 PNG 到对应文件夹：
-
-- `freecad/frameforgemod/resources/images/profiles/Metal/`
-- `freecad/frameforgemod/resources/images/profiles/Wood/`
-
-### 5. Using Custom Profile Tool / 使用自定义轮廓工具
-
-You can also create profiles directly in FreeCAD:
-
-也可以在 FreeCAD 中直接创建自定义轮廓：
-
-1. Switch to **型材框架** workbench / 切换到型材框架工作台
-2. Click **Create Custom Profile** / 点击"创建自定义轮廓"
-3. Select a sketch as the cross-section / 选择草图作为截面
-
----
-
-## LICENSE / 许可证
-
-FrameForge is licensed under the [GPLv3 / LGPLv3](LICENSE).
+LGPL-3.0-only

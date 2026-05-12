@@ -218,6 +218,7 @@ class FrameForgemod(Gui.Workbench):
         "frameforgemod_RecomputeFrameForgeObjects",
         "frameforgemod_ExportTechDraw",
         "frameforgemod_Isolate",
+        "frameforgemod_IsolateSettings",
     ]
 
     def GetClassName(self):

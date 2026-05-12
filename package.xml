@@ -1,21 +1,28 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no" ?>
 <package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
 
-  <name>FrameForgemod</name>
-  <description>FrameForgemod - Modified fork of FrameForge for creating Frames and Beams.</description>
+  <name>FrameForge_Mod</name>
+  <description>Create aluminum profile (extrusion) frames for industrial machines, conveyor systems, and structural frameworks. Supports parametric profiles (20–50 series), corner modes (miter/overlap/gap), end trimming, whistle connectors (M6–M14), hole features, gussets, end caps, extruded cutouts, BOM generation, pattern fill, and an isolate tool. Fork with performance optimizations, simplified preview, multi-selection adjust ends, and enhanced QY/T-joint connector matching.</description>
   <tag>Welded frame</tag>
   <tag>Metal</tag>
   <tag>Frame</tag>
   <tag>Beam</tag>
   <tag>Extrusion</tag>
+  <tag>Aluminum Profile</tag>
   <tag>Miter cut</tag>
   <tag>Miter-joint</tag>
   <tag>Trim Cut</tag>
+  <tag>BOM</tag>
+  <tag>Connector</tag>
+  <tag>Gusset</tag>
+  <tag>End Cap</tag>
+  <tag>Pattern Fill</tag>
+  <tag>Isolate</tag>
   <version>0.1</version>
-  <date>2026-05-08</date>
-  <maintainer>FrameForgemod contributors</maintainer>
+  <date>2026-05-12</date>
+  <maintainer email="q921057310@gmail.com">xingxing</maintainer>
   <license file="LICENSE">LGPL-3.0-only</license>
-  <url type="repository" branch="main">https://github.com/FrameForgemod/FrameForgemod</url>
+  <url type="repository" branch="main">https://github.com/q921057310-byte/FrameForge_Mod</url>
   <icon>freecad/frameforgemod/resources/icons/metalwb.svg</icon>
 
   <freecadmin>0.21.0</freecadmin>

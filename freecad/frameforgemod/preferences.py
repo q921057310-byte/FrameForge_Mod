@@ -154,3 +154,10 @@ profile_show_helpers = get_show_helpers
 profile_show_endpoints = get_show_endpoints
 profile_show_guide_lines = get_show_guides
 profile_show_labels = get_show_labels
+
+# Isolate: comma-separated keywords to skip on exit
+ISOLATE_SKIP_DEFAULT = "Constraint,Joint,Revolute,Slider,Cylindrical,GroundedJoint,Plane,Origin"
+
+def get_isolate_skip_keywords():
+    raw = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod/Isolate").GetString("SkipKeywords", ISOLATE_SKIP_DEFAULT)
+    return tuple(k.strip() for k in raw.split(",") if k.strip())
