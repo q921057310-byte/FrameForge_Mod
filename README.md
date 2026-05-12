@@ -10,6 +10,12 @@
 <video src="https://github.com/user-attachments/assets/9b82ec2a-d3f6-48d9-b804-f1c74c3f432c"></video>
 <video src="https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223"></video>
 
+**Profile Creation Tutorial 2 / 型材创建教程 2**
+<video src="https://github.com/user-attachments/assets/af3ade0f-59d0-45e8-a84a-c17d32b5633c"></video>
+
+**Profile Library Guide / 轮廓库教程**
+<video src="https://github.com/user-attachments/assets/26157577-2dc4-4720-a9f2-5244bf8269fd"></video>
+
 ---
 
 ## Installation / 安装
