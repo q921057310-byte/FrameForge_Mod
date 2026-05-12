@@ -25,7 +25,7 @@
   <url type="repository" branch="main">https://github.com/q921057310-byte/FrameForge_Mod</url>
   <icon>freecad/frameforgemod/resources/icons/metalwb.svg</icon>
 
-  <freecadmin>0.21.0</freecadmin>
+  <freecadmin>1.0</freecadmin>
 
   <content>
     <workbench>

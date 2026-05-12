@@ -619,7 +619,7 @@ class ConnectorToolGroup:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
-            "MenuText": translate("frameforgemod", "Connector"),
+            "MenuText": translate("frameforgemod", "Connectors"),
             "ToolTip": translate(
                 "frameforgemod",
                 "Whistle connector or T-Joint connector",
