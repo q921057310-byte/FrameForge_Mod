@@ -137,40 +137,18 @@ class IsolateCommand:
         if not selected:
             return
 
-        all_ff = [o for o in doc.Objects if _is_frameforge_object(o)]
-        parent_map = _build_parent_map(doc)
+        selected_names = {o.Name for o in selected}
 
-        for obj in all_ff:
+        # Also show parent containers of selected objects
+        for sel_obj in selected:
+            for p in sel_obj.Parents:
+                selected_names.add(p[0].Name)
+
+        # Save current visibility, hide everything not selected
+        for obj in doc.Objects:
             try:
                 IsolateCommand._saved_state[obj.Name] = obj.ViewObject.Visibility
-            except AttributeError:
-                IsolateCommand._saved_state[obj.Name] = True
-
-        keep_visible = set()
-        for sel_obj in selected:
-            fusion = _find_nearest_fusion(sel_obj.Name, parent_map)
-            if fusion:
-                keep_visible.add(fusion)
-                for ancestor in _walk_up_to_root(fusion, parent_map):
-                    keep_visible.add(ancestor)
-            else:
-                keep_visible.add(sel_obj.Name)
-                for ancestor in _walk_up_to_root(sel_obj.Name, parent_map):
-                    keep_visible.add(ancestor)
-
-            if _is_container(sel_obj):
-                for obj in all_ff:
-                    ancestors = _walk_up_to_root(obj.Name, parent_map)
-                    if sel_obj.Name in ancestors:
-                        descendant_fusion = _find_nearest_fusion(obj.Name, parent_map)
-                        if descendant_fusion:
-                            keep_visible.add(descendant_fusion)
-                        else:
-                            keep_visible.add(obj.Name)
-
-        for obj in all_ff:
-            try:
-                obj.ViewObject.Visibility = (obj.Name in keep_visible)
+                obj.ViewObject.Visibility = obj.Name in selected_names
             except AttributeError:
                 pass
 
