@@ -7,8 +7,8 @@
 > ⚠️ This mod code is AI(Claude) generated. AI may have inaccurate understanding of FreeCAD API. Test before use, backup files before operations.
 > ⚠️ 本 Mod 代码由 AI (Claude) 辅助生成。AI 对 FreeCAD API 的理解可能不准确，使用前请先测试，操作前备份文件。
 
-<video src="https://github.com/user-attachments/assets/9b82ec2a-d3f6-48d9-b804-f1c74c3f432c" />
-<video src="https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223" />
+![](https://github.com/user-attachments/assets/9b82ec2a-d3f6-48d9-b804-f1c74c3f432c)
+![](https://github.com/user-attachments/assets/7afd0c91-624a-48f2-9319-2409226ca223)
 
 ---
 
