@@ -835,9 +835,32 @@ class ImportAluminumProfileTaskPanel:
             if self._is_profile_object(obj):
                 App.Console.PrintMessage(f"Skipping profile edge: {obj.Label}\n")
                 continue
+
+            # 1) Directly selected edges
             top = [n for n in sel.SubElementNames if n.startswith("Edge") and ":" not in n]
-            if not top and hasattr(obj, "Shape") and obj.Shape and obj.Shape.Edges:
-                top = [f"Edge{i + 1}" for i in range(len(obj.Shape.Edges))]
+
+            # 2) If face selected, extract its edges only
+            if not top:
+                face_names = [n for n in sel.SubElementNames if n.startswith("Face")]
+                if face_names and hasattr(obj, "Shape") and obj.Shape:
+                    for fname in face_names:
+                        try:
+                            fidx = int(fname.replace("Face", "")) - 1
+                            if 0 <= fidx < len(obj.Shape.Faces):
+                                face = obj.Shape.Faces[fidx]
+                                for i, obj_edge in enumerate(obj.Shape.Edges):
+                                    for face_edge in face.OuterWire.Edges:
+                                        if obj_edge.isSame(face_edge):
+                                            top.append(f"Edge{i+1}")
+                                            break
+                        except (ValueError, IndexError):
+                            pass
+
+            # 3) Fallback: all edges (no face, no edge selected)
+            if not top and not [n for n in sel.SubElementNames if n.startswith("Face")]:
+                if hasattr(obj, "Shape") and obj.Shape and obj.Shape.Edges:
+                    top = [f"Edge{i + 1}" for i in range(len(obj.Shape.Edges))]
+
             if top:
                 self.edge_selection.append(_Sel(obj, top))
         self._update_edge_label()
@@ -927,9 +950,12 @@ class ImportAluminumProfileTaskPanel:
             doc = App.ActiveDocument
             name_base = sketch_data["label"].replace(" ", "_")
 
-            # Option A: same edge selection → update parameters in-place
+            # Option A: same edges, gap/corner changed but rotation unchanged → in-place update
+            last_params = getattr(self, "_last_preview_params", None)
+            params_changed = (gap_val, cm) != (last_params[0], last_params[1]) if last_params else False
+            rot_unchanged = (rot_deg == last_params[2]) if last_params else True
             if (last_pairs is not None and pair_keys == last_pairs
-                    and not use_simple and (gap_val, cm, rot_deg) != getattr(self, "_last_preview_params", (None, None, None))):
+                    and not use_simple and params_changed and rot_unchanged):
                 self._update_preview_inplace(doc, pairs, gap_val, cm, rot_deg)
                 self._last_preview_params = (gap_val, cm, rot_deg)
                 App.Console.PrintMessage(f"Preview: in-place update (gap={gap_val}, corner={cm}, rot={rot_deg}, {time.time()-_t:.2f}s)\n")
