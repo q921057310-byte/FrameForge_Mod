@@ -18,7 +18,7 @@ class FrameForgemod(Gui.Workbench):
     """
 
     MenuText = "frameforgemod"
-    ToolTip = "Create Profiles, Miters, Cuts from Sketchs and Edges"
+    ToolTip = "Create Profiles, Miters, Cuts from Sketches and Edges"
     Icon = """
         /* XPM */
         static char * metalwb_xpm[] = {
@@ -282,14 +282,14 @@ class FrameForgemod(Gui.Workbench):
         self.appendToolbar(translate("frameforgemod", "Part Primitives"), self.toolbox_part)
         self.appendMenu(translate("frameforgemod", "Part Primitives"), self.toolbox_part)
 
-        self.appendToolbar(translate("frameforgemod", "Frameforge output"), self.toolbox_output)
-        self.appendMenu(translate("frameforgemod", "Frameforge output"), self.toolbox_output)
+        self.appendToolbar(translate("frameforgemod", "Frameforge Output"), self.toolbox_output)
+        self.appendMenu(translate("frameforgemod", "Frameforge Output"), self.toolbox_output)
 
         self.appendToolbar(translate("frameforgemod", "Dynamic Data"), self.toolbox_dynamicdata)
         self.appendMenu(translate("frameforgemod", "Dynamic Data"), self.toolbox_dynamicdata)
 
-        self.appendToolbar(translate("frameforgemod", "Frameforge utilities"), self.toolbox_utilities)
-        self.appendMenu(translate("frameforgemod", "Frameforge utilities"), self.toolbox_utilities)
+        self.appendToolbar(translate("frameforgemod", "Frameforge Utilities"), self.toolbox_utilities)
+        self.appendMenu(translate("frameforgemod", "Frameforge Utilities"), self.toolbox_utilities)
 
         self.appendToolbar(translate("frameforgemod", "Other Tools"), self.toolbox_other)
         self.appendMenu(translate("frameforgemod", "Other Tools"), self.toolbox_other)

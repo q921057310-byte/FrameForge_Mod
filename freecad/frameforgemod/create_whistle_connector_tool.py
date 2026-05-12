@@ -582,7 +582,7 @@ class TJointConnectorCommand:
             "Accel": "M, T",
             "ToolTip": translate(
                 "frameforgemod",
-                "Click the B side face, then the A end face. Drills a countersunk through hole for T-joint.",
+                "Click the B side face, then the A end face. Drills a through hole with counterbore for T-joint.",
             ),
         }
 

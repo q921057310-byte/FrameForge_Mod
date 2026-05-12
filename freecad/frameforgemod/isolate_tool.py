@@ -183,8 +183,8 @@ Gui.addCommand("frameforgemod_Isolate", IsolateCommand())
 class IsolateSettingsCommand:
     def GetResources(self):
         return {
-            "MenuText": "Isolate Settings",
-            "ToolTip": "Configure which object types to skip when exiting isolate",
+            "MenuText": translate("frameforgemod", "Isolate Settings"),
+            "ToolTip": translate("frameforgemod", "Configure which object types to skip when exiting isolate"),
         }
 
     def IsActive(self):
@@ -195,14 +195,14 @@ class IsolateSettingsCommand:
         from freecad.frameforgemod.preferences import ISOLATE_SKIP_DEFAULT
 
         dlg = QtGui.QDialog()
-        dlg.setWindowTitle("Isolate Skip Keywords")
+        dlg.setWindowTitle(translate("frameforgemod", "Isolate Skip Keywords"))
         layout = QtGui.QVBoxLayout(dlg)
 
-        lbl = QtGui.QLabel(
+        lbl = QtGui.QLabel(translate("frameforgemod",
             "Comma-separated keywords.\n"
             "Objects matching these (by TypeId, Label, or Name) are NOT shown\n"
             "when exiting isolate. Changes take effect immediately."
-        )
+        ))
         lbl.setWordWrap(True)
         layout.addWidget(lbl)
 

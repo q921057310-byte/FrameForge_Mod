@@ -814,10 +814,11 @@ if App.GuiUp:
         def GetResources(self):
             return {
                 "Pixmap": TOOL_ICON,
-                "MenuText": "Pattern Fill 填充阵列",
-                "ToolTip": "Fill sketch boundary with pattern\n填充阵列：选中面和边界草图后自动填充图案\n"
-                           "Patterns: Hexagon/Circle/Triangle\n"
-                           "支持六边形、圆形、三角形",
+            "MenuText": translate("frameforgemod", "Pattern Fill"),
+            "ToolTip": translate("frameforgemod",
+                "Fill sketch boundary with pattern\n"
+                "Patterns: Hexagon/Circle/User Sketch\n"
+                "支持六边形、圆形、用户草图"),
             }
 
         def Activated(self):
