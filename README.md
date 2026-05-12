@@ -149,6 +149,22 @@ Select profiles via `.FCStd` cross-section files (AGB 20~60 series, Chinese/Euro
 - Group identical profiles: same ID + xN count / 分组：相同型材同 ID + xN 计数
 - Mode: fill_selection / fill_document / continue_document / start_at / 模式
 
+### Dynamic Data (DD) / 动态数据
+
+This mod bundles the Dynamic Data addon for attaching custom properties to any object. / 本 Mod 集成了动态数据插件，可为任意对象附加自定义属性。
+
+**Common usage / 常用场景：**
+- Drive sketch dimensions via DD properties (e.g. `dd.x`, `dd.y`) / 通过 DD 属性驱动草图尺寸
+- Store BOM-related data (part number, supplier, note) / 存储 BOM 相关信息
+- Create configurations for different frame variants / 创建不同配置方案
+
+**How to use / 使用：**
+1. Click Dynamic Data → Create Object / 点击创建对象
+2. Right-click the `dd` object → Add Property / 右键添加属性
+3. Set a value (e.g. `x = 500`)
+4. In Sketch constraint expression: `dd.x` / 在草图约束表达式中引用：`dd.x`
+5. DD object auto-refreshes on document open / 自动刷新
+
 ### TechDraw Balloons / 技术图纸标注
 
 - Create / refresh balloon annotations, auto-linked to profile IDs / 创建/刷新气球标注，自动关联型材 ID
@@ -283,6 +299,7 @@ xingxing — q921057310@gmail.com
 | [FrameForge](https://github.com/lukh/frameforge) | lukh | Original workbench / 原始工作台 |
 | [MetalWB](https://framagit.org/Veloma/freecad_metal_workbench) | Veloma | FrameForge predecessor / FrameForge 前身 |
 | [Dynamic Data](https://github.com/mwganson/DynamicData) | Mark Ganson | Dynamic properties (v2.78, bundled) / 动态属性系统 |
+| [EasyProfileFrame](https://github.com/ovo-Tim/EasyProfileFrame) | ovo-Tim | Profile frame workbench (code referenced) / 型材框架工作台（参考代码） |
 | [BOLTS](https://github.com/boltsparts/BOLTS) | Johannes Reinhardt | Open Technical Specs library / 开源技术规格库 |
 
 ### Special thanks / 特别感谢
