@@ -14,7 +14,8 @@ from freecad.frameforgemod.gusset import Gusset, ViewProviderGusset
 
 
 class CreateGussetTaskPanel:
-    def __init__(self, obj):
+    def __init__(self, obj, newly_created=False):
+        self._newly_created = newly_created
         self.obj = obj
         self.dump = obj.dumpContent()
 
@@ -267,10 +268,11 @@ class CreateGussetTaskPanel:
     def reject(self):
         App.Console.PrintMessage(translate("frameforgemod", "Rejecting Create Gusset\n"))
         App.ActiveDocument.abortTransaction()
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
+        if self._newly_created:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -347,7 +349,7 @@ class GussetCommand:
 
         App.ActiveDocument.commitTransaction()
 
-        panel = CreateGussetTaskPanel(obj)
+        panel = CreateGussetTaskPanel(obj, newly_created=True)
         Gui.Control.showDialog(panel)
 
 

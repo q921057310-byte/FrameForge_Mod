@@ -18,8 +18,9 @@ from freecad.frameforgemod.frameforgemod_exceptions import FrameForgemodExceptio
 class CreateExtrudedCutoutTaskPanel:
     """TaskPanel pour FrameForge ExtrudedCutout (corrigé pour CutType)."""
 
-    def __init__(self, obj, cut_sketch=None, original_sketch_parents=None):
+    def __init__(self, obj, cut_sketch=None, original_sketch_parents=None, newly_created=False):
         self.obj = obj
+        self._newly_created = newly_created
         self.cut_sketch = cut_sketch
         self.original_sketch_parents = original_sketch_parents or []
         self.dump = obj.dumpContent()
@@ -126,10 +127,11 @@ class CreateExtrudedCutoutTaskPanel:
     def reject(self):
         App.Console.PrintMessage(translate("frameforgemod", "Rejecting Create Extrude Cutout\n"))
         App.ActiveDocument.abortTransaction()
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
+        if self._newly_created:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
         if self.cut_sketch:
             for p in list(self.cut_sketch.InList):
                 try:
@@ -249,7 +251,7 @@ class AddExtrudedCutoutCommandClass:
 
         obj.recompute()
 
-        panel = CreateExtrudedCutoutTaskPanel(obj, cut_sketch=cutSketch, original_sketch_parents=original_sketch_parents)
+        panel = CreateExtrudedCutoutTaskPanel(obj, cut_sketch=cutSketch, original_sketch_parents=original_sketch_parents, newly_created=True)
         Gui.Control.showDialog(panel)
 
     def IsActive(self):

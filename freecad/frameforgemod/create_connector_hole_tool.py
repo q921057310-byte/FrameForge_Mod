@@ -274,10 +274,11 @@ class HoleFeatureTaskPanel:
         if self._obs:
             Gui.Selection.removeObserver(self._obs)
             self._obs = None
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
+        if self._newly_created:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 

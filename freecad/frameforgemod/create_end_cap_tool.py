@@ -14,7 +14,8 @@ from freecad.frameforgemod.ff_tools import ICONPATH, UIPATH, translate
 
 
 class CreateEndCapTaskPanel:
-    def __init__(self, obj):
+    def __init__(self, obj, newly_created=False):
+        self._newly_created = newly_created
         self.obj = obj
         self.dump = obj.dumpContent()
 
@@ -264,10 +265,11 @@ class CreateEndCapTaskPanel:
     def reject(self):
         App.Console.PrintMessage(translate("frameforgemod", "Rejecting Create End Cap\n"))
         App.ActiveDocument.abortTransaction()
-        try:
-            App.ActiveDocument.removeObject(self.obj.Name)
-        except Exception:
-            pass
+        if self._newly_created:
+            try:
+                App.ActiveDocument.removeObject(self.obj.Name)
+            except Exception:
+                pass
         Gui.ActiveDocument.resetEdit()
         return True
 
@@ -346,7 +348,7 @@ class EndCapCommand:
 
         App.ActiveDocument.commitTransaction()
 
-        panel = CreateEndCapTaskPanel(obj)
+        panel = CreateEndCapTaskPanel(obj, newly_created=True)
         Gui.Control.showDialog(panel)
 
 

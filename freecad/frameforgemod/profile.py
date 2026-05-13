@@ -1753,8 +1753,9 @@ class ViewProviderProfile:
         from PySide import QtCore
         def _apply_style():
             try:
-                from freecad.frameforgemod.preferences import profile_line_width, profile_point_size
-                self.ViewObject.LineWidth = profile_line_width()
+                from freecad.frameforgemod.preferences import profile_point_size
+                # LineWidth: controlled globally via FreeCAD → Edit → Preferences → Display → 3D View
+                # self.ViewObject.LineWidth = profile_line_width()
                 self.ViewObject.PointSize = profile_point_size()
             except Exception:
                 pass
