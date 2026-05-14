@@ -1237,6 +1237,22 @@ class ImportAluminumProfileTaskPanel:
                            for n in self._preview_objects)
             if has_real:
                 # Real profiles already created — just finalize
+
+                # Also apply grouping if enabled (the code after this is skipped)
+                if self.cb_group_in_part.isChecked() if hasattr(self, "cb_group_in_part") else False:
+                    container = App.ActiveDocument.addObject("App::Part", "ProfileGroup")
+                    for name in self._preview_objects:
+                        obj = App.ActiveDocument.getObject(name)
+                        if obj and obj.TypeId == "Part::FeaturePython":
+                            container.addObject(obj)
+                elif self.cb_group_in_folder.isChecked() if hasattr(self, "cb_group_in_folder") else False:
+                    container = App.ActiveDocument.addObject("App::DocumentObjectGroup", "ProfileGroup")
+                    for name in self._preview_objects:
+                        obj = App.ActiveDocument.getObject(name)
+                        if obj and obj.TypeId == "Part::FeaturePython":
+                            container.addObject(obj)
+                App.ActiveDocument.recompute()
+
                 for name in getattr(self, "_old_preview_objects", []):
                     try:
                         App.ActiveDocument.removeObject(name)

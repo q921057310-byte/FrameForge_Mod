@@ -36,6 +36,7 @@ _submodules = [
     "populate_ids",
     "populate_ids_tool",
     "profile",
+    "tolerance_tool",
     "trimmed_profile",
     "utilities",
     "version",

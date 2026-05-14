@@ -212,7 +212,7 @@ class FrameForgemod(Gui.Workbench):
         "DynamicData2CreateConfiguration",
     ]
 
-    toolbox_other = ["frameforgemod_AddVent", "frameforgemod_PatternFill", "frameforgemod_OffsetPlane"]
+    toolbox_other = ["frameforgemod_AddVent", "frameforgemod_PatternFill", "frameforgemod_OffsetPlane", "frameforgemod_TechDrawTolerance"]
 
     toolbox_utilities = [
         "frameforgemod_RecomputeFrameForgeObjects",

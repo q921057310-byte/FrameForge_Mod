@@ -167,11 +167,12 @@ class TrimmedProfile:
         if len(fp.TrimmingBoundary) == 0:
             return
 
-        cache_key = self._trim_key(fp)
-        if cache_key is not None and self._cached_key == cache_key and self._cached_shape is not None:
-            fp.Shape = self._cached_shape
-            self._update_structure_data(fp)
-            return
+        # Cache disabled: matches original FrameForge behavior exactly
+        # cache_key = self._trim_key(fp)
+        # if cache_key is not None and self._cached_key == cache_key and self._cached_shape is not None:
+        #     fp.Shape = self._cached_shape
+        #     self._update_structure_data(fp)
+        #     return
 
         # hide trimmed body
         for tb in get_children_from_trimmedbody(fp.TrimmedBody):
@@ -179,6 +180,7 @@ class TrimmedProfile:
 
         body = fp.TrimmedBody
         work_shape = body.Shape
+        raw_shape = work_shape  # keep original for COG checks
 
         # Auto-extend body to reach each trimming plane
         extra_extend = 0.0
@@ -193,8 +195,6 @@ class TrimmedProfile:
                 pass
             if extra_extend <= 0:
                 extra_extend = 50.0
-        if extra_extend > 0 and fp.TrimmedProfileType != "End Miter":
-            App.Console.PrintMessage(f"Miter extra extend: {extra_extend:.0f}mm\n")
 
         if fp.TrimmedProfileType != "End Miter":
             for link in fp.TrimmingBoundary:
@@ -205,12 +205,12 @@ class TrimmedProfile:
                     extended = self._extend_to_plane(work_shape, face, extra=extra_extend)
                     if extended is not work_shape:
                         work_shape = extended
-                    break  # first face per boundary only
+                    break
 
         cut_shapes = []
 
         if fp.TrimmedProfileType == "End Trim":
-            if fp.CutType in ["Perfect fit", "Coped cut"]:  # Keeping Coped cut for retro-compatibility
+            if fp.CutType in ["Perfect fit", "Coped cut"]:
                 shapes = [x[0].Shape for x in fp.TrimmingBoundary]
                 if BOPTools is not None:
                     shps = BOPTools.SplitAPI.slice(work_shape, shapes, mode="Split")
@@ -224,16 +224,16 @@ class TrimmedProfile:
                         for sub in link[1]:
                             face = part.getSubObject(sub)
                             if isinstance(face.Surface, Part.Plane):
-                                shp = self.getOutsideCV(face, work_shape)
+                                shp = self.getOutsideCV(face, work_shape, raw_shape)
                                 cut_shapes.append(shp)
 
-            elif fp.CutType in ["Simple fit", "Simple cut"]:  # Keeping Simple cut for retro-compatibility
+            elif fp.CutType in ["Simple fit", "Simple cut"]:
                 for link in fp.TrimmingBoundary:
                     part = link[0]
                     for sub in link[1]:
                         face = part.getSubObject(sub)
                         if isinstance(face.Surface, Part.Plane):
-                            shp = self.getOutsideCV(face, work_shape)
+                            shp = self.getOutsideCV(face, work_shape, raw_shape)
                             cut_shapes.append(shp)
 
         elif fp.TrimmedProfileType == "End Miter":
@@ -405,7 +405,7 @@ class TrimmedProfile:
                     ps = max(pw, ph) * 3
                     cutplane = Part.makePlane(ps, ps, p1, vec1, normal)
                     cutplane.rotate(p1, normal, -90 + bisect)
-                    cut_shapes.append(self.getOutsideCV(cutplane, work_shape))
+                    cut_shapes.append(self.getOutsideCV(cutplane, work_shape, raw_shape))
 
         cut_shapes = [s for s in cut_shapes if s is not None and not s.isNull()]
         cut_shape = Part.Shape()
@@ -415,8 +415,8 @@ class TrimmedProfile:
                 cut_shape = cut_shape.fuse(sh)
 
         self.makeShape(fp, cut_shape, work_shape)
-        self._cached_key = cache_key
-        self._cached_shape = fp.Shape
+        # self._cached_key = cache_key
+        # self._cached_shape = fp.Shape
         self._update_structure_data(fp)
 
     def _update_structure_data(self, obj):
@@ -519,49 +519,58 @@ class TrimmedProfile:
                 "Frameforge Version used to create the profile",
             ).FrameforgeVersion = ff_version
 
-    def getOutsideCV(self, cutplane, shape):
+    def getOutsideCV(self, cutplane, shape, cog_shape=None):
+        """Return the offcut piece — ArchCommands, fallback to direct cut.
+        cog_shape: optional shape used for COG check (when shape is extended).
+        """
+        cog_src = cog_shape if cog_shape is not None else shape
         if ArchCommands is not None:
-            cv = ArchCommands.getCutVolume(cutplane, shape, clip=False, depth=0.0)
-            if cv is None:
-                return Part.Shape()
-            half1, half2 = cv[1], cv[2]
-            if half1 is not None and half2 is not None:
-                if half1.isInside(shape.CenterOfGravity, 0.001, False):
-                    return half2
-                else:
-                    return half1
-            if half1 is not None:
-                return half1
-            if half2 is not None:
-                return half2
-            return Part.Shape()
-        # Fallback when ArchCommands is not available
+            try:
+                cv = ArchCommands.getCutVolume(cutplane, shape, clip=False, depth=0.0)
+                if cv is not None and len(cv) >= 3:
+                    half1, half2 = cv[1], cv[2]
+                    if half1 is not None and not half1.isNull() and half2 is not None and not half2.isNull():
+                        if half1.isInside(cog_src.CenterOfGravity, 0.001, False):
+                            return half2
+                        else:
+                            return half1
+                    if half1 is not None and not half1.isNull():
+                        return half1
+                    if half2 is not None and not half2.isNull():
+                        return half2
+            except Exception:
+                pass
+
+        # Fallback: extrude cutting face along shape's longest axis
         try:
-            surf = cutplane.Surface
+            surf = getattr(cutplane, 'Surface', None)
+            if surf is None and isinstance(cutplane, Part.Face):
+                surf = cutplane.Surface
             if not isinstance(surf, Part.Plane):
                 return Part.Shape()
-            pos = surf.Position
-            normal = surf.Axis
+            face_normal = surf.Axis
+
+            # Find shape's longest axis (extrusion direction)
             bb = shape.BoundBox
-            d = bb.DiagonalLength * 1.5
-            if d <= 0:
-                d = 1000
-            plane_face = Part.makePlane(d, d, pos, normal, 0.0)
-            half = plane_face.extrude(normal * d)
-            if half.isNull() or not half.isValid():
-                return Part.Shape()
-            result = shape.cut(half)
-            if result.isNull() or not result.isValid():
-                return Part.Shape()
-            cg = shape.CenterOfGravity
-            if result.isInside(cg, 0.001, False):
-                # cut kept the body, waste is the intersection
-                other = shape.common(half)
-                if not other.isNull() and other.isValid():
-                    return other
-                return Part.Shape()
-            else:
-                return result
+            axes = [(bb.XLength, App.Vector(1,0,0)),
+                    (bb.YLength, App.Vector(0,1,0)),
+                    (bb.ZLength, App.Vector(0,0,1))]
+            axes.sort(key=lambda x: -x[0])
+            beam_dir = axes[0][1]
+
+            pos = surf.Position
+            d = 10000
+
+            # Create large plane at face position, oriented along face normal
+            plane = Part.makePlane(d, d, pos, face_normal)
+            for direction in (beam_dir, -beam_dir):
+                half = plane.extrude(direction * d)
+                if half.isNull() or not half.isValid():
+                    continue
+                offcut = shape.common(half)
+                if not offcut.isNull() and offcut.isValid() and offcut.Volume > 0:
+                    return offcut
+            return Part.Shape()
         except Exception:
             return Part.Shape()
 
@@ -569,11 +578,7 @@ class TrimmedProfile:
         if base_shape is None:
             base_shape = fp.TrimmedBody.Shape
         if not cutshape.isNull():
-            result = base_shape.cut(cutshape)
-            if not result.isNull() and result.isValid():
-                fp.Shape = result
-            else:
-                fp.Shape = base_shape
+            fp.Shape = base_shape.cut(cutshape)
         else:
             fp.Shape = base_shape
 
