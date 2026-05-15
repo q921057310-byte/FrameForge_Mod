@@ -30,6 +30,19 @@ class CreateTrimmedProfileTaskPanel:
         ui_file = os.path.join(UIPATH, "create_trimmed_profiles.ui")
         self.form = Gui.PySideUic.loadUi(ui_file)
 
+        # Translate
+        self.form.setWindowTitle("修剪型材")
+        self.form.groupBox_2.setTitle("修剪类型")
+        self.form.rb_perfectfit.setText("完美匹配")
+        self.form.rb_simplefit.setText("简单匹配")
+        self.form.groupBox_3.setTitle("修剪元素")
+        self.form.label.setText("被修剪对象：")
+        self.form.add_trimmed_object_button.setText("添加")
+        self.form.remove_body_button.setText("移除")
+        self.form.label_2.setText("修剪边界：")
+        self.form.add_boundary_button.setText("添加")
+        self.form.remove_boundary_button.setText("移除")
+
         # Top-right Apply button
         _top_row = QtWidgets.QHBoxLayout()
         _top_row.addStretch()

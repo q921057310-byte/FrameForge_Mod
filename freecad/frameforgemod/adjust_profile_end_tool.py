@@ -35,12 +35,12 @@ class AdjustEndTaskPanel:
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        self.target_label = QtGui.QLabel(translate("AdjustEnds", "No target faces selected."))
+        self.target_label = QtGui.QLabel(translate("AdjustEnds", "未选择目标面。"))
         self.target_label.setStyleSheet("color: #888; font-size: 10px;")
         layout.addWidget(self.target_label)
 
         # A group
-        self.group_a = QtGui.QGroupBox(translate("AdjustEnds", "A end (start)"))
+        self.group_a = QtGui.QGroupBox(translate("AdjustEnds", "A 端（起点）"))
         self.group_a.setCheckable(True)
         self.group_a.setChecked(True)
         self.a_layout = QtGui.QVBoxLayout(self.group_a)
@@ -51,7 +51,7 @@ class AdjustEndTaskPanel:
         layout.addWidget(self.group_a)
 
         # B group
-        self.group_b = QtGui.QGroupBox(translate("AdjustEnds", "B end (end)"))
+        self.group_b = QtGui.QGroupBox(translate("AdjustEnds", "B 端（终点）"))
         self.group_b.setCheckable(True)
         self.group_b.setChecked(True)
         self.b_layout = QtGui.QVBoxLayout(self.group_b)
@@ -62,7 +62,7 @@ class AdjustEndTaskPanel:
         layout.addWidget(self.group_b)
 
         # Reverse checkbox
-        self.reverse_cb = QtGui.QCheckBox(translate("AdjustEnds", "Swap A ↔ B (reverse direction)"))
+        self.reverse_cb = QtGui.QCheckBox(translate("AdjustEnds", "交换 A ↔ B（反向）"))
         self.reverse_cb.toggled.connect(self._on_reverse_toggled)
         layout.addWidget(self.reverse_cb)
 
@@ -216,16 +216,16 @@ class AdjustEndTaskPanel:
 
         # Update group titles with detection indicator
         if detected_a:
-            self.group_a.setTitle(translate("AdjustEnds", "A end (start)") + " ← detected")
+            self.group_a.setTitle(translate("AdjustEnds", "A 端（起点）") + " ← detected")
             self.group_a.setStyleSheet("QGroupBox { color: #c00; font-weight: bold; }")
         else:
-            self.group_a.setTitle(translate("AdjustEnds", "A end (start)"))
+            self.group_a.setTitle(translate("AdjustEnds", "A 端（起点）"))
             self.group_a.setStyleSheet("")
         if detected_b:
-            self.group_b.setTitle(translate("AdjustEnds", "B end (end)") + " ← detected")
+            self.group_b.setTitle(translate("AdjustEnds", "B 端（终点）") + " ← detected")
             self.group_b.setStyleSheet("QGroupBox { color: #c00; font-weight: bold; }")
         else:
-            self.group_b.setTitle(translate("AdjustEnds", "B end (end)"))
+            self.group_b.setTitle(translate("AdjustEnds", "B 端（终点）"))
             self.group_b.setStyleSheet("")
 
         self._update_target_label()
@@ -241,7 +241,7 @@ class AdjustEndTaskPanel:
 
     def _update_target_label(self):
         if not self.target_faces:
-            self.target_label.setText(translate("AdjustEnds", "No target faces selected."))
+            self.target_label.setText(translate("AdjustEnds", "未选择目标面。"))
             self.target_label.setStyleSheet("color: #888; font-size: 10px;")
             return
         lines = [f"{t[0]}.{t[1]}" for t in self.target_faces]
@@ -299,7 +299,7 @@ class AdjustEndCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "end-extend.svg"),
-            "MenuText": translate("AdjustEnds", "Adjust Ends"),
+            "MenuText": translate("AdjustEnds", "调整端头"),
             "ToolTip": translate("AdjustEnds",
                 "Click target faces to extend/shorten selected profiles."),
         }

@@ -18,6 +18,29 @@ class CreateCustomProfileTaskPanel:
     def __init__(self):
         self.form = Gui.PySideUic.loadUi(os.path.join(UIPATH, "create_custom_profiles.ui"))
 
+        # Translate
+        self.form.setWindowTitle("创建自定义型材")
+        self.form.groupBox.setTitle("型材")
+        self.form.label.setText("型材/面")
+        self.form.pb_selectprofile.setText("选择型材")
+        self.form.label_2.setText("材料")
+        self.form.label_12.setText("重量(kg/m)")
+        self.form.label_3.setText("单价")
+        self.form.groupBox_4.setTitle("附着 / 长度")
+        self.form.label_14.setText("边")
+        self.form.label_attach.setText("无")
+        self.form.label_5.setText("长度")
+        self.form.groupBox_5.setTitle("设置")
+        self.form.rb_profiles_in_place.setText("就地创建")
+        self.form.rb_profiles_in_place.setToolTip("在源对象（草图或参数化线）同级创建型材")
+        self.form.rb_profiles_in_part.setText("创建为零件")
+        self.form.rb_profiles_in_part.setToolTip("在新创建的零件中创建型材")
+        self.form.rb_profiles_in_group.setText("创建为组")
+        self.form.rb_profiles_in_group.setToolTip("在新创建的组中创建型材")
+        self.form.cb_sketch_in_name.setText("型材名称包含草图名")
+        self.form.cb_profile_in_name.setText("型材名称包含面/轮廓名")
+        self.form.cb_profile_in_name.setToolTip("将型材（面）名称添加到型材名中")
+
         self.select_profile_flag = False
         self.custom_profile = None
 

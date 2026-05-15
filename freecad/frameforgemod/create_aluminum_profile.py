@@ -96,30 +96,30 @@ class ImportAluminumProfileTaskPanel:
         QtCore.QTimer.singleShot(0, self._on_init_selection)
 
         self.form = QtGui.QWidget()
-        self.form.setWindowTitle("Import Profile")
+        self.form.setWindowTitle("导入型材")
         layout = QtGui.QVBoxLayout(self.form)
 
         # --- Group: Profile Selection (mimics icon1 cascade) ---
-        group_profile = QtGui.QGroupBox("Profile")
+        group_profile = QtGui.QGroupBox("型材")
         group_layout = QtGui.QVBoxLayout(group_profile)
 
-        group_layout.addWidget(QtGui.QLabel("Category"))
+        group_layout.addWidget(QtGui.QLabel("类别"))
         self.combo_category = QtGui.QComboBox()
         self.combo_category.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_category)
 
-        group_layout.addWidget(QtGui.QLabel("File"))
+        group_layout.addWidget(QtGui.QLabel("文件"))
         self.combo_file = QtGui.QComboBox()
         self.combo_file.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_file)
 
-        group_layout.addWidget(QtGui.QLabel("Section"))
+        group_layout.addWidget(QtGui.QLabel("截面"))
         self.combo_section = QtGui.QComboBox()
         self.combo_section.setFocusPolicy(QtCore.Qt.StrongFocus)
         group_layout.addWidget(self.combo_section)
 
         info_layout = QtGui.QHBoxLayout()
-        info_layout.addWidget(QtGui.QLabel("Type:"))
+        info_layout.addWidget(QtGui.QLabel("类型："))
         self.label_section_type = QtGui.QLabel("---")
         info_layout.addWidget(self.label_section_type)
         info_layout.addStretch()
@@ -135,7 +135,7 @@ class ImportAluminumProfileTaskPanel:
         preview_rot_layout = QtGui.QHBoxLayout()
 
         rot_vbox = QtGui.QVBoxLayout()
-        rot_vbox.addWidget(QtGui.QLabel("Corner:"))
+        rot_vbox.addWidget(QtGui.QLabel("角处理："))
         self.combo_corner = QtGui.QComboBox()
         self.combo_corner.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.combo_corner.addItems(["Off", u"45\u00b0 Miter", "A \u538b B", "B \u538b A"])
@@ -143,7 +143,7 @@ class ImportAluminumProfileTaskPanel:
         self.combo_corner.currentIndexChanged.connect(self._on_corner_changed)
 
         gap_layout = QtGui.QHBoxLayout()
-        self.cb_gap = QtGui.QCheckBox(u"Gap")
+        self.cb_gap = QtGui.QCheckBox(u"间隙")
         self.cb_gap.setChecked(False)
         gap_layout.addWidget(self.cb_gap)
         self.cb_gap.toggled.connect(self._on_corner_changed)
@@ -159,7 +159,7 @@ class ImportAluminumProfileTaskPanel:
         rot_vbox.addLayout(gap_layout)
 
         rot_vbox.addSpacing(6)
-        rot_vbox.addWidget(QtGui.QLabel("Rotation:"))
+        rot_vbox.addWidget(QtGui.QLabel("旋转："))
         self.combo_rotation = QtGui.QComboBox()
         self.combo_rotation.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.combo_rotation.addItems(["0", "90", "180", "270"])
@@ -167,11 +167,11 @@ class ImportAluminumProfileTaskPanel:
         rot_vbox.addWidget(self.combo_rotation)
         rot_vbox.addStretch()
 
-        self.cb_group_in_part = QtGui.QCheckBox("Group into Part")
-        self.cb_group_in_part.setToolTip("Place all created profiles into an App::Part container")
+        self.cb_group_in_part = QtGui.QCheckBox("归入零件")
+        self.cb_group_in_part.setToolTip("将所有创建的型材放入 App::Part 容器")
         rot_vbox.addWidget(self.cb_group_in_part)
-        self.cb_group_in_folder = QtGui.QCheckBox("Group into Folder")
-        self.cb_group_in_folder.setToolTip("Place all created profiles into a folder group")
+        self.cb_group_in_folder = QtGui.QCheckBox("归入文件夹")
+        self.cb_group_in_folder.setToolTip("将所有创建的型材放入文件夹组")
         rot_vbox.addWidget(self.cb_group_in_folder)
         preview_rot_layout.addLayout(rot_vbox, 0)
 
@@ -182,24 +182,24 @@ class ImportAluminumProfileTaskPanel:
         layout.addWidget(group_profile)
 
         # --- Edge selection ---
-        lbl2 = QtGui.QLabel("2. Select an edge in the 3D view:")
+        lbl2 = QtGui.QLabel("2. 在3D视图中选择边：")
         layout.addWidget(lbl2)
 
-        self.selection_label = QtGui.QLabel("(no edge selected)")
+        self.selection_label = QtGui.QLabel("（未选择边）")
         self.selection_label.setStyleSheet("color: #888;")
         layout.addWidget(self.selection_label)
 
-        self.btn_refresh = QtGui.QPushButton("Refresh selection from 3D view")
+        self.btn_refresh = QtGui.QPushButton("从3D视图刷新选择")
         self.btn_refresh.clicked.connect(self._read_edge_selection)
         layout.addWidget(self.btn_refresh)
 
-        lbl3 = QtGui.QLabel("3. Click OK to create profile:")
+        lbl3 = QtGui.QLabel("3. 点击确定创建型材：")
         layout.addWidget(lbl3)
 
         # --- Buttons ---
         btn_layout = QtGui.QHBoxLayout()
-        self.btn_ok = QtGui.QPushButton("OK")
-        self.btn_cancel = QtGui.QPushButton("Cancel")
+        self.btn_ok = QtGui.QPushButton("确定")
+        self.btn_cancel = QtGui.QPushButton("取消")
         self.btn_ok.clicked.connect(self.accept)
         self.btn_cancel.clicked.connect(self.reject)
         self.btn_ok.setEnabled(False)
@@ -214,18 +214,18 @@ class ImportAluminumProfileTaskPanel:
         self.btn_reload.clicked.connect(self._reload_modules)
         layout.addWidget(self.btn_reload)
 
-        self.cb_disable_preview = QtGui.QCheckBox("Disable live preview (faster)")
-        self.cb_disable_preview.setToolTip("Skip real-time preview when selecting edges. Click OK to generate.")
+        self.cb_disable_preview = QtGui.QCheckBox("禁用实时预览（更快）")
+        self.cb_disable_preview.setToolTip("选择边时跳过实时预览，点击确定生成。")
         preview_param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         self.cb_disable_preview.setChecked(preview_param.GetBool("DisablePreview", False))
         self.cb_disable_preview.toggled.connect(lambda v: preview_param.SetBool("DisablePreview", v))
 
-        self.cb_simple_preview = QtGui.QCheckBox("Simple preview (faster)")
-        self.cb_simple_preview.setToolTip("Show boxes instead of full profiles during preview")
+        self.cb_simple_preview = QtGui.QCheckBox("简化预览（更快）")
+        self.cb_simple_preview.setToolTip("预览时显示方框代替完整型材")
         self.cb_simple_preview.setChecked(preview_param.GetBool("SimplePreview", True))
         self.cb_simple_preview.toggled.connect(lambda v: preview_param.SetBool("SimplePreview", v))
 
-        preview_group = QtGui.QGroupBox("Preview")
+        preview_group = QtGui.QGroupBox("预览")
         preview_group.setCheckable(True)
         preview_group.setChecked(True)
         preview_layout = QtGui.QVBoxLayout(preview_group)
@@ -234,7 +234,7 @@ class ImportAluminumProfileTaskPanel:
         layout.addWidget(preview_group)
 
         len_layout = QtGui.QHBoxLayout()
-        self.cb_manual_len = QtGui.QCheckBox("Manual length:")
+        self.cb_manual_len = QtGui.QCheckBox("手动长度：")
         self.cb_manual_len.setChecked(False)
         len_layout.addWidget(self.cb_manual_len)
         self.sb_length = QtGui.QDoubleSpinBox()
@@ -891,7 +891,7 @@ class ImportAluminumProfileTaskPanel:
             self.selection_label.setStyleSheet("color: #000;")
             self.sb_length.setEnabled(self.cb_manual_len.isChecked())
         else:
-            self.selection_label.setText("(no edge selected)")
+            self.selection_label.setText("（未选择边）")
             self.selection_label.setStyleSheet("color: #888;")
             self.sb_length.setEnabled(self.cb_manual_len.isChecked())
 
@@ -1516,7 +1516,7 @@ class ImportAluminumProfileTaskPanel:
             for obj, sel in created:
                 mt_name = f"{obj.Name}_Mt"
                 mt = doc.getObject(mt_name)
-                if mt and hasattr(mt, "Gap"):
+                if mt and hasattr(mt, "间隙"):
                     mt.Gap = gap_val
                     mt.recompute()
             doc.recompute()

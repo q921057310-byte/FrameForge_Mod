@@ -26,8 +26,8 @@ class CreateExtrudedCutoutTaskPanel:
         self.dump = obj.dumpContent()
 
         self.cut_types = [
-            "Through All",
-            "Distance",
+            "完全贯穿",
+            "距离",
         ]
 
         self.form = QtWidgets.QWidget()
@@ -43,7 +43,7 @@ class CreateExtrudedCutoutTaskPanel:
         _top_row.addWidget(_apply_btn)
         layout.addLayout(_top_row)
 
-        layout.addWidget(QtWidgets.QLabel("Cut type"))
+        layout.addWidget(QtWidgets.QLabel("切割类型"))
         self.comboCutType = QtWidgets.QComboBox()
         self.comboCutType.addItems(self.cut_types)
         try:
@@ -65,7 +65,7 @@ class CreateExtrudedCutoutTaskPanel:
             except Exception:
                 self.spinA.setValue(500.0)
 
-        layout.addWidget(QtWidgets.QLabel("Extrusion Length"))
+        layout.addWidget(QtWidgets.QLabel("挤出长度"))
         layout.addWidget(self.spinA)
 
         self.comboCutType.currentIndexChanged.connect(self.onCutTypeChanged)
@@ -89,7 +89,7 @@ class CreateExtrudedCutoutTaskPanel:
     def updateWidgetsVisibility(self):
         """Afficher/masquer les widgets de longueur selon CutType selectionné."""
         ct = getattr(self.obj, "CutType", self.cut_types[0])
-        self.spinA.setVisible(ct in ["Distance"])
+        self.spinA.setVisible(ct in ["距离"])
 
     def open(self):
         App.Console.PrintMessage(translate("frameforgemod", "Opening Create Extrude Cutout\n"))
@@ -154,7 +154,7 @@ class AddExtrudedCutoutCommandClass:
         return {
             # 资源中可用的 svg 文件名。
             "Pixmap": os.path.join(ICONPATH, "extruded-cutout.svg"),
-            "MenuText": translate("frameforgemod", "Extruded Cutout"),
+            "MenuText": translate("frameforgemod", "挤出切割"),
             "Accel": "E, C",
             "ToolTip": translate(
                 "frameforgemod",

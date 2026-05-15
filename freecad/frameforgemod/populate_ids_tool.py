@@ -58,6 +58,29 @@ class PopulateIDsTaskPanel:
     def __init__(self):
         self.form = Gui.PySideUic.loadUi(os.path.join(UIPATH, "populate_ids.ui"))
 
+        # Translate
+        self.form.setWindowTitle("编号工具")
+        self.form.label.setText("编号类型")
+        self.form.cb_numbering_type.setItemText(0, "纯数字")
+        self.form.cb_numbering_type.setItemText(1, "纯字母")
+        self.form.cb_numbering_type.setItemText(2, "型材数字 / 链接字母")
+        self.form.cb_numbering_type.setItemText(3, "型材字母 / 链接数字")
+        self.form.cb_allow_duplicated.setText("允许重复编号")
+        self.form.cb_group_ids_for_identical.setText("同规格型材共用编号")
+        self.form.cb_group_ids_for_identical.setToolTip("所有相同的型材共用同一个ID")
+        self.form.cb_include_part_count_in_pid.setText("编号中包含数量")
+        self.form.cb_reset_numbering.setText("重置选中对象的编号")
+        self.form.label_2.setText("编号方案")
+        self.form.cb_numbering_scheme.setItemText(0, "填充可用编号（选区内）")
+        self.form.cb_numbering_scheme.setItemText(1, "填充可用编号（整个文档）")
+        self.form.cb_numbering_scheme.setItemText(2, "从当前文档编号开始")
+        self.form.cb_numbering_scheme.setItemText(3, "从指定编号/字母开始")
+        self.form.groupBox.setTitle("起始索引")
+        self.form.label_3.setText("起始数字")
+        self.form.label_4.setText("起始字母")
+        self.form.label_5.setText("型材前缀")
+        self.form.label_6.setText("链接前缀")
+
         # Top-right Apply button
         _top_row = QtWidgets.QHBoxLayout()
         _top_row.addStretch()

@@ -59,12 +59,12 @@ class HoleFeatureTaskPanel:
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        self.base_label = QtWidgets.QLabel(translate("frameforgemod", "Base: not set"))
+        self.base_label = QtWidgets.QLabel(translate("frameforgemod", "基准：未设置"))
         layout.addWidget(self.base_label)
-        self.pos_label = QtWidgets.QLabel(translate("frameforgemod", "Positions: 0"))
+        self.pos_label = QtWidgets.QLabel(translate("frameforgemod", "位置：0"))
         layout.addWidget(self.pos_label)
 
-        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "Hole Parameters"))
+        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "孔参数"))
         param_layout = QtWidgets.QFormLayout(param_group)
 
         self.hole_type = QtWidgets.QComboBox()
@@ -79,7 +79,7 @@ class HoleFeatureTaskPanel:
         current_spec = str(obj.BoltSpec)
         self.bolt_spec.setCurrentText(current_spec)
         self.bolt_spec.currentTextChanged.connect(self._on_bolt_changed)
-        param_layout.addRow(translate("frameforgemod", "Bolt"), self.bolt_spec)
+        param_layout.addRow(translate("frameforgemod", "螺栓"), self.bolt_spec)
 
         self.spin_dia = QtWidgets.QDoubleSpinBox()
         self.spin_dia.setRange(1.0, 100.0)
@@ -106,7 +106,7 @@ class HoleFeatureTaskPanel:
         self.spin_csink_dia.setValue(float(obj.CounterSinkDiameter))
         self.spin_csink_dia.valueChanged.connect(
             lambda v: self._set_and_recompute("CounterSinkDiameter", v))
-        param_layout.addRow(translate("frameforgemod", "CSink Dia"), self.spin_csink_dia)
+        param_layout.addRow(translate("frameforgemod", "沉头孔直径"), self.spin_csink_dia)
 
         self.spin_csink_depth = QtWidgets.QDoubleSpinBox()
         self.spin_csink_depth.setRange(0.5, 100.0)
@@ -115,7 +115,7 @@ class HoleFeatureTaskPanel:
         self.spin_csink_depth.setValue(float(obj.CounterSinkDepth))
         self.spin_csink_depth.valueChanged.connect(
             lambda v: self._set_and_recompute("CounterSinkDepth", v))
-        param_layout.addRow(translate("frameforgemod", "CSink Depth"), self.spin_csink_depth)
+        param_layout.addRow(translate("frameforgemod", "沉头孔深度"), self.spin_csink_depth)
 
         self.reverse_cb = QtWidgets.QCheckBox(translate("frameforgemod", "Reverse"))
         self.reverse_cb.setChecked(obj.Reverse)
@@ -123,7 +123,7 @@ class HoleFeatureTaskPanel:
             lambda v: self._set_and_recompute("Reverse", v))
         param_layout.addRow(self.reverse_cb)
 
-        rot_group = QtWidgets.QGroupBox(translate("frameforgemod", "Direction Rotation"))
+        rot_group = QtWidgets.QGroupBox(translate("frameforgemod", "方向旋转"))
         rot_layout = QtWidgets.QHBoxLayout(rot_group)
         rot_layout.addWidget(QtWidgets.QLabel(translate("frameforgemod", "X:")))
         self.combo_rotx = QtWidgets.QComboBox()
@@ -206,7 +206,7 @@ class HoleFeatureTaskPanel:
         if base and base[0]:
             self.base_label.setText(f"Base: {base[0].Label} ({base[1][0]})")
         else:
-            self.base_label.setText("Base: not set")
+            self.base_label.setText("基准：未设置")
         count = 0
         for _, subs in (self.obj.Positions or []):
             count += len(subs)
@@ -334,9 +334,9 @@ class HoleFeatureCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "hole.svg"),
-            "MenuText": translate("frameforgemod", "Hole"),
+            "MenuText": translate("frameforgemod", "打孔"),
             "ToolTip": translate("frameforgemod",
-                "Drill holes on profiles. Select profile face, then sketch points/circles."),
+                "在型材上钻孔。先选型材面，再选草图点/圆。"),
         }
 
     def IsActive(self):
@@ -345,7 +345,7 @@ class HoleFeatureCommand:
     def Activated(self):
         App.Console.PrintMessage("HoleFeature: activated\n")
         doc = App.ActiveDocument
-        obj = doc.addObject("Part::FeaturePython", "Hole")
+        obj = doc.addObject("Part::FeaturePython", "打孔")
         HoleFeature(obj)
         ViewProviderHoleFeature(obj.ViewObject)
 

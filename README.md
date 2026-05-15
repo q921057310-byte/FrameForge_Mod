@@ -206,6 +206,9 @@ This mod bundles the Dynamic Data addon for attaching custom properties to any o
 
 ## How to Add Profiles / 如何添加型材轮廓
 
+**Adding Profile Library Method / 添加轮廓库方法**
+<video src="https://github.com/user-attachments/assets/1b6b1319-25f9-48ca-8ac3-de276c8d5269"></video>
+
 ### Getting Cross-Sections / 获取截面
 
 - **Draw your own sketch** — Create a Sketcher sketch with a closed wire cross-section, save as `.FCStd` / 自己画草图，保存为 .FCStd

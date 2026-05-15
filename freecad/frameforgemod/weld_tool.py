@@ -30,10 +30,10 @@ class WeldTaskPanel:
         self.spin_size.setRange(1, 50)
         self.spin_size.setValue(4.0)
         self.spin_size.setSuffix(" mm")
-        grp_lay.addRow("Size / 尺寸:", self.spin_size)
+        grp_lay.addRow("尺寸：", self.spin_size)
         layout.addWidget(grp)
 
-        btn = QtGui.QPushButton("Create Weld / 创建焊缝")
+        btn = QtGui.QPushButton("创建焊缝")
         btn.clicked.connect(self._create)
         layout.addWidget(btn)
         layout.addStretch()

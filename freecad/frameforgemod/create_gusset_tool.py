@@ -33,31 +33,31 @@ class CreateGussetTaskPanel:
         layout.addLayout(_top_row)
 
         # Selection group
-        sel_group = QtWidgets.QGroupBox(translate("frameforgemod", "Selection"))
+        sel_group = QtWidgets.QGroupBox(translate("frameforgemod", "选择"))
         sel_layout = QtWidgets.QVBoxLayout(sel_group)
 
         btn1_layout = QtWidgets.QHBoxLayout()
-        self.select1_btn = QtWidgets.QPushButton(translate("frameforgemod", "Select Face 1"))
+        self.select1_btn = QtWidgets.QPushButton(translate("frameforgemod", "选择面 1"))
         self.select1_btn.setIcon(QtGui.QIcon(os.path.join(ICONPATH, "list-add.svg")))
         self.select1_btn.clicked.connect(lambda: self.select_face(1))
         btn1_layout.addWidget(self.select1_btn)
-        self.face1_label = QtWidgets.QLabel(translate("frameforgemod", "Not selected"))
+        self.face1_label = QtWidgets.QLabel(translate("frameforgemod", "未选择"))
         btn1_layout.addWidget(self.face1_label)
         sel_layout.addLayout(btn1_layout)
 
         btn2_layout = QtWidgets.QHBoxLayout()
-        self.select2_btn = QtWidgets.QPushButton(translate("frameforgemod", "Select Face 2"))
+        self.select2_btn = QtWidgets.QPushButton(translate("frameforgemod", "选择面 2"))
         self.select2_btn.setIcon(QtGui.QIcon(os.path.join(ICONPATH, "list-add.svg")))
         self.select2_btn.clicked.connect(lambda: self.select_face(2))
         btn2_layout.addWidget(self.select2_btn)
-        self.face2_label = QtWidgets.QLabel(translate("frameforgemod", "Not selected"))
+        self.face2_label = QtWidgets.QLabel(translate("frameforgemod", "未选择"))
         btn2_layout.addWidget(self.face2_label)
         sel_layout.addLayout(btn2_layout)
 
         layout.addWidget(sel_group)
 
         # Geometry group
-        geo_group = QtWidgets.QGroupBox(translate("frameforgemod", "Geometry"))
+        geo_group = QtWidgets.QGroupBox(translate("frameforgemod", "几何"))
         geo_layout = QtWidgets.QFormLayout(geo_group)
 
         self.spin_leg1 = QtWidgets.QDoubleSpinBox()
@@ -66,7 +66,7 @@ class CreateGussetTaskPanel:
         self.spin_leg1.setValue(float(obj.LegLength1))
         self.spin_leg1.setSuffix(" mm")
         self.spin_leg1.valueChanged.connect(self.on_leg1_changed)
-        geo_layout.addRow(translate("frameforgemod", "Leg length 1"), self.spin_leg1)
+        geo_layout.addRow(translate("frameforgemod", "边长 1"), self.spin_leg1)
 
         self.spin_leg2 = QtWidgets.QDoubleSpinBox()
         self.spin_leg2.setRange(1.0, 10000.0)
@@ -74,7 +74,7 @@ class CreateGussetTaskPanel:
         self.spin_leg2.setValue(float(obj.LegLength2))
         self.spin_leg2.setSuffix(" mm")
         self.spin_leg2.valueChanged.connect(self.on_leg2_changed)
-        geo_layout.addRow(translate("frameforgemod", "Leg length 2"), self.spin_leg2)
+        geo_layout.addRow(translate("frameforgemod", "边长 2"), self.spin_leg2)
 
         self.spin_offset = QtWidgets.QDoubleSpinBox()
         self.spin_offset.setRange(0.0, 10000.0)
@@ -82,7 +82,7 @@ class CreateGussetTaskPanel:
         self.spin_offset.setValue(float(obj.Offset))
         self.spin_offset.setSuffix(" mm")
         self.spin_offset.valueChanged.connect(self.on_offset_changed)
-        geo_layout.addRow(translate("frameforgemod", "Offset from corner"), self.spin_offset)
+        geo_layout.addRow(translate("frameforgemod", "距角偏移"), self.spin_offset)
 
         self.spin_thick = QtWidgets.QDoubleSpinBox()
         self.spin_thick.setRange(0.1, 1000.0)
@@ -90,25 +90,25 @@ class CreateGussetTaskPanel:
         self.spin_thick.setValue(float(obj.Thickness))
         self.spin_thick.setSuffix(" mm")
         self.spin_thick.valueChanged.connect(self.on_thickness_changed)
-        geo_layout.addRow(translate("frameforgemod", "Thickness"), self.spin_thick)
+        geo_layout.addRow(translate("frameforgemod", "厚度"), self.spin_thick)
 
         layout.addWidget(geo_group)
 
         # Options group
-        opt_group = QtWidgets.QGroupBox(translate("frameforgemod", "Options"))
+        opt_group = QtWidgets.QGroupBox(translate("frameforgemod", "选项"))
         opt_layout = QtWidgets.QFormLayout(opt_group)
 
         self.combo_thick_align = QtWidgets.QComboBox()
         self.combo_thick_align.addItems(["正向", "居中", "反向"])
         self.combo_thick_align.setCurrentIndex(obj.ThicknessAlign)
         self.combo_thick_align.currentIndexChanged.connect(self.on_thick_align_changed)
-        opt_layout.addRow(translate("frameforgemod", "Thickness"), self.combo_thick_align)
+        opt_layout.addRow(translate("frameforgemod", "厚度"), self.combo_thick_align)
 
         self.combo_pos_align = QtWidgets.QComboBox()
         self.combo_pos_align.addItems(["左端", "居中", "右端"])
         self.combo_pos_align.setCurrentIndex(obj.PositionAlign)
         self.combo_pos_align.currentIndexChanged.connect(self.on_pos_align_changed)
-        opt_layout.addRow(translate("frameforgemod", "Position"), self.combo_pos_align)
+        opt_layout.addRow(translate("frameforgemod", "位置"), self.combo_pos_align)
 
         self.spin_pos_offset = QtWidgets.QDoubleSpinBox()
         self.spin_pos_offset.setRange(-10000.0, 10000.0)
@@ -116,10 +116,10 @@ class CreateGussetTaskPanel:
         self.spin_pos_offset.setValue(float(obj.PositionOffset))
         self.spin_pos_offset.setSuffix(" mm")
         self.spin_pos_offset.valueChanged.connect(self.on_pos_offset_changed)
-        opt_layout.addRow(translate("frameforgemod", "Position offset"), self.spin_pos_offset)
+        opt_layout.addRow(translate("frameforgemod", "位置偏移"), self.spin_pos_offset)
 
         # Hole options below the form layout
-        self.cb_hole = QtWidgets.QCheckBox(translate("frameforgemod", "Center hole"))
+        self.cb_hole = QtWidgets.QCheckBox(translate("frameforgemod", "中心孔"))
         self.cb_hole.setChecked(obj.HoleEnabled)
         self.cb_hole.toggled.connect(self.on_hole_toggled)
         opt_layout.addRow(self.cb_hole)
@@ -131,10 +131,10 @@ class CreateGussetTaskPanel:
         self.spin_hole_dia.setSuffix(" mm")
         self.spin_hole_dia.setEnabled(obj.HoleEnabled)
         self.spin_hole_dia.valueChanged.connect(self.on_hole_dia_changed)
-        opt_layout.addRow(translate("frameforgemod", "Hole diameter"), self.spin_hole_dia)
+        opt_layout.addRow(translate("frameforgemod", "孔径"), self.spin_hole_dia)
 
         # Chamfer options
-        self.cb_chamfer_ra = QtWidgets.QCheckBox(translate("frameforgemod", "Right angle edges"))
+        self.cb_chamfer_ra = QtWidgets.QCheckBox(translate("frameforgemod", "直角边"))
         self.cb_chamfer_ra.setChecked(obj.ChamferRightAngle)
         self.cb_chamfer_ra.toggled.connect(self.on_chamfer_ra_toggled)
         opt_layout.addRow(self.cb_chamfer_ra)
@@ -146,9 +146,9 @@ class CreateGussetTaskPanel:
         self.spin_chamfer_ra.setSuffix(" mm")
         self.spin_chamfer_ra.setEnabled(obj.ChamferRightAngle)
         self.spin_chamfer_ra.valueChanged.connect(self.on_chamfer_ra_size_changed)
-        opt_layout.addRow(translate("frameforgemod", "RA chamfer size"), self.spin_chamfer_ra)
+        opt_layout.addRow(translate("frameforgemod", "直角倒角大小"), self.spin_chamfer_ra)
 
-        self.cb_chamfer_ac = QtWidgets.QCheckBox(translate("frameforgemod", "Acute edge"))
+        self.cb_chamfer_ac = QtWidgets.QCheckBox(translate("frameforgemod", "锐角边"))
         self.cb_chamfer_ac.setChecked(obj.ChamferAcute)
         self.cb_chamfer_ac.toggled.connect(self.on_chamfer_ac_toggled)
         opt_layout.addRow(self.cb_chamfer_ac)
@@ -160,7 +160,7 @@ class CreateGussetTaskPanel:
         self.spin_chamfer_ac.setSuffix(" mm")
         self.spin_chamfer_ac.setEnabled(obj.ChamferAcute)
         self.spin_chamfer_ac.valueChanged.connect(self.on_chamfer_ac_size_changed)
-        opt_layout.addRow(translate("frameforgemod", "AC chamfer size"), self.spin_chamfer_ac)
+        opt_layout.addRow(translate("frameforgemod", "锐角倒角大小"), self.spin_chamfer_ac)
 
         layout.addWidget(opt_group)
 
@@ -280,8 +280,8 @@ class CreateGussetTaskPanel:
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
         self.obj.Face1 = None
         self.obj.Face2 = None
-        self.face1_label.setText(translate("frameforgemod", "Not selected"))
-        self.face2_label.setText(translate("frameforgemod", "Not selected"))
+        self.face1_label.setText(translate("frameforgemod", "未选择"))
+        self.face2_label.setText(translate("frameforgemod", "未选择"))
         App.ActiveDocument.commitTransaction()
         # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
@@ -306,7 +306,7 @@ class GussetCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "gusset.svg"),
-            "MenuText": translate("frameforgemod", "Gusset"),
+            "MenuText": translate("frameforgemod", "斜撑"),
             "Accel": "M, G",
             "ToolTip": translate(
                 "frameforgemod",
@@ -336,7 +336,7 @@ class GussetCommand:
         App.ActiveDocument.openTransaction("Make Gusset")
 
         doc = App.ActiveDocument
-        obj = doc.addObject("Part::FeaturePython", "Gusset")
+        obj = doc.addObject("Part::FeaturePython", "斜撑")
         Gusset(obj)
         ViewProviderGusset(obj.ViewObject)
 

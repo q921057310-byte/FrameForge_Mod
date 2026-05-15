@@ -54,13 +54,13 @@ class WhistleConnectorTaskPanel:
         layout.addLayout(top_bar)
 
         # Status labels (auto-updated by selection observer)
-        self.end_label = QtWidgets.QLabel(translate("frameforgemod", "Waiting for end face..."))
-        self.drill_label = QtWidgets.QLabel(translate("frameforgemod", "Waiting for drill face..."))
+        self.end_label = QtWidgets.QLabel("等待选择端面...")
+        self.drill_label = QtWidgets.QLabel("等待选择钻孔面...")
 
         info = QtWidgets.QLabel(
-            "<b>" + translate("frameforgemod", "Click faces in order:") + "</b><br>"
-            "1. " + translate("frameforgemod", "Click the GROOVE FACE (side)") + "<br>"
-            "2. " + translate("frameforgemod", "Click the END FACE (cross-section)"))
+            "<b>" + "按顺序点击面：" + "</b><br>"
+            "1. " + "1. 点击槽面（侧面）" + "<br>"
+            "2. " + "2. 点击端面（截面）")
         info.setWordWrap(True)
 
         layout.addWidget(info)
@@ -68,21 +68,19 @@ class WhistleConnectorTaskPanel:
         layout.addWidget(self.drill_label)
 
         # QY model selector (manual override) - at top for quick access
-        qy_group = QtWidgets.QGroupBox(translate("frameforgemod", "QY Model"))
+        qy_group = QtWidgets.QGroupBox("QY 型号")
         qy_layout = QtWidgets.QVBoxLayout(qy_group)
         self.qy_combo = QtWidgets.QComboBox()
         qy_labels = ["Auto"] + [v["model"] + " (" + v["bolt"] + ")" for v in QY_SPECS.values()]
         self.qy_combo.addItems(qy_labels)
         self.qy_combo.setCurrentIndex(0)
-        self.qy_combo.currentIndexChanged.connect(self._on_qy_changed)
         qy_layout.addWidget(self.qy_combo)
         self.qy_label = QtWidgets.QLabel("")
         qy_layout.addWidget(self.qy_label)
         layout.addWidget(qy_group)
-        self._update_qy()
 
         # Hole parameters
-        hole_group = QtWidgets.QGroupBox(translate("frameforgemod", "Hole Dimensions"))
+        hole_group = QtWidgets.QGroupBox("孔尺寸")
         hole_layout = QtWidgets.QFormLayout(hole_group)
 
         self.spin_dia = QtWidgets.QDoubleSpinBox()
@@ -91,7 +89,7 @@ class WhistleConnectorTaskPanel:
         self.spin_dia.setSuffix(" mm")
         self.spin_dia.setValue(float(obj.HoleDiameter))
         self.spin_dia.valueChanged.connect(lambda v: [setattr(obj, "HoleDiameter", v), obj.recompute()])
-        hole_layout.addRow(translate("frameforgemod", "Diameter"), self.spin_dia)
+        hole_layout.addRow("直径", self.spin_dia)
 
         self.spin_depth = QtWidgets.QDoubleSpinBox()
         self.spin_depth.setRange(1.0, 500.0)
@@ -99,7 +97,7 @@ class WhistleConnectorTaskPanel:
         self.spin_depth.setSuffix(" mm")
         self.spin_depth.setValue(float(obj.HoleDepth))
         self.spin_depth.valueChanged.connect(lambda v: [setattr(obj, "HoleDepth", v), obj.recompute()])
-        hole_layout.addRow(translate("frameforgemod", "Depth"), self.spin_depth)
+        hole_layout.addRow("深度", self.spin_depth)
 
         self.spin_dist = QtWidgets.QDoubleSpinBox()
         self.spin_dist.setRange(0.0, 1000.0)
@@ -107,9 +105,9 @@ class WhistleConnectorTaskPanel:
         self.spin_dist.setSuffix(" mm")
         self.spin_dist.setValue(float(obj.HoleDistance))
         self.spin_dist.valueChanged.connect(lambda v: [setattr(obj, "HoleDistance", v), obj.recompute()])
-        hole_layout.addRow(translate("frameforgemod", "Dist. from End"), self.spin_dist)
+        hole_layout.addRow("距端距离", self.spin_dist)
 
-        self.reverse_cb = QtWidgets.QCheckBox(translate("frameforgemod", "Reverse"))
+        self.reverse_cb = QtWidgets.QCheckBox("反向")
         self.reverse_cb.setChecked(obj.Reverse)
         self.reverse_cb.toggled.connect(lambda v: [setattr(obj, "Reverse", v), obj.recompute()])
         hole_layout.addRow(self.reverse_cb)
@@ -117,6 +115,28 @@ class WhistleConnectorTaskPanel:
         layout.addWidget(hole_group)
 
         layout.addStretch()
+
+    def _on_selection(self, doc_name, obj_name, sub):
+        """Handle face selection for Whistle Connector: first = EndFace, second = DrillFace"""
+        import FreeCAD as App
+        if not sub or not sub.startswith("Face"):
+            return
+        if self.obj is None or obj_name == self.obj.Name:
+            return
+        doc = App.getDocument(doc_name)
+        sel_obj = doc.getObject(obj_name)
+        if sel_obj is None:
+            return
+        label = f"{sel_obj.Label} ({sub})"
+        if self.obj.EndFace is None:
+            self.obj.EndFace = (sel_obj, (sub,))
+            self.end_label.setText("端面: " + label)
+            App.Console.PrintMessage(f"Whistle: EndFace = {label}\n")
+        elif self.obj.DrillFace is None:
+            self.obj.DrillFace = (sel_obj, (sub,))
+            self.drill_label.setText("钻孔面: " + label)
+            App.Console.PrintMessage(f"Whistle: DrillFace = {label}, applying...\n")
+            self.apply()
 
     # ── Selection observer ──────────────────────────────────
 
@@ -148,8 +168,8 @@ class WhistleConnectorTaskPanel:
         self._do_cut()
         self.obj.EndFace = None
         self.obj.DrillFace = None
-        self.end_label.setText(translate("frameforgemod", "Waiting for end face..."))
-        self.drill_label.setText(translate("frameforgemod", "Waiting for drill face..."))
+        self.end_label.setText("等待选择端面...")
+        self.drill_label.setText("等待选择钻孔面...")
         App.ActiveDocument.commitTransaction()
         # self.obj.recompute()  # skip: doc.recompute() below handles it
         App.ActiveDocument.recompute()
@@ -205,7 +225,7 @@ class WhistleConnectorCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
-            "MenuText": translate("frameforgemod", "Whistle Connector"),
+            "MenuText": "笛型连接件",
             "Accel": "M, W",
             "ToolTip": translate(
                 "frameforgemod",
@@ -285,25 +305,25 @@ class TJointConnectorTaskPanel:
         layout.addLayout(top_bar)
 
         info = QtWidgets.QLabel(
-            "<b>" + translate("frameforgemod", "T-Joint Connector") + "</b><br>"
-            + translate("frameforgemod", "1. Click B side face (B hides)<br>2. Click A end face (with hole)")
+            "<b>" + "T型连接件" + "</b><br>"
+            + "1. 点击 B 侧面（B 隐藏）<br>2. 点击 A 端面（带孔）"
         )
         info.setWordWrap(True)
         layout.addWidget(info)
 
-        self.b_label = QtWidgets.QLabel(translate("frameforgemod", "Waiting for B side face..."))
-        self.a_label = QtWidgets.QLabel(translate("frameforgemod", "Waiting for A end face..."))
+        self.b_label = QtWidgets.QLabel("等待选择 B 侧面...")
+        self.a_label = QtWidgets.QLabel("等待选择 A 端面...")
         layout.addWidget(self.b_label)
         layout.addWidget(self.a_label)
 
-        self.detected_label = QtWidgets.QLabel(translate("frameforgemod", "Detected hole: not yet"))
+        self.detected_label = QtWidgets.QLabel("检测孔：尚未")
         layout.addWidget(self.detected_label)
 
-        self.match_label = QtWidgets.QLabel(translate("frameforgemod", "Matched spec: --"))
+        self.match_label = QtWidgets.QLabel("匹配规格：--")
         layout.addWidget(self.match_label)
 
         # Screw size selector
-        screw_group = QtWidgets.QGroupBox(translate("frameforgemod", "Screw Size"))
+        screw_group = QtWidgets.QGroupBox("螺钉规格")
         screw_layout = QtWidgets.QHBoxLayout(screw_group)
         self.screw_combo = QtWidgets.QComboBox()
         screw_labels = ["Auto"] + [row[2] for row in TJOINT_MATCH_TABLE] + ["Manual"]
@@ -313,7 +333,7 @@ class TJointConnectorTaskPanel:
         screw_layout.addWidget(self.screw_combo)
         layout.addWidget(screw_group)
 
-        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "T-Joint Parameters"))
+        param_group = QtWidgets.QGroupBox("T型连接参数")
         param_layout = QtWidgets.QFormLayout(param_group)
 
         self.spin_through = QtWidgets.QDoubleSpinBox()
@@ -323,7 +343,7 @@ class TJointConnectorTaskPanel:
         self.spin_through.setValue(float(obj.ThroughHoleDiameter))
         self.spin_through.valueChanged.connect(
             lambda v: [setattr(obj, "ThroughHoleDiameter", v), obj.recompute()])
-        param_layout.addRow(translate("frameforgemod", "Through Hole Dia"), self.spin_through)
+        param_layout.addRow("通孔直径", self.spin_through)
 
         self.spin_csink_dia = QtWidgets.QDoubleSpinBox()
         self.spin_csink_dia.setRange(1.0, 50.0)
@@ -332,7 +352,7 @@ class TJointConnectorTaskPanel:
         self.spin_csink_dia.setValue(float(obj.CounterSinkDiameter))
         self.spin_csink_dia.valueChanged.connect(
             lambda v: [setattr(obj, "CounterSinkDiameter", v), obj.recompute()])
-        param_layout.addRow(translate("frameforgemod", "Counterbore Dia"), self.spin_csink_dia)
+        param_layout.addRow("沉孔直径", self.spin_csink_dia)
 
         self.spin_csink_depth = QtWidgets.QDoubleSpinBox()
         self.spin_csink_depth.setRange(0.5, 50.0)
@@ -341,7 +361,7 @@ class TJointConnectorTaskPanel:
         self.spin_csink_depth.setValue(float(obj.CounterSinkDepth))
         self.spin_csink_depth.valueChanged.connect(
             lambda v: [setattr(obj, "CounterSinkDepth", v), obj.recompute()])
-        param_layout.addRow(translate("frameforgemod", "Counterbore Depth"), self.spin_csink_depth)
+        param_layout.addRow("沉孔深度", self.spin_csink_depth)
 
         self.spin_detected_dia = QtWidgets.QDoubleSpinBox()
         self.spin_detected_dia.setRange(1.0, 50.0)
@@ -350,7 +370,7 @@ class TJointConnectorTaskPanel:
         self.spin_detected_dia.setValue(0.0)
         self.spin_detected_dia.valueChanged.connect(
             lambda v: [setattr(obj, "DetectedHoleDiameter", v), self._rematch_spec(), obj.recompute()])
-        param_layout.addRow(translate("frameforgemod", "Detected Hole Dia"), self.spin_detected_dia)
+        param_layout.addRow("检测孔直径", self.spin_detected_dia)
 
         layout.addWidget(param_group)
         layout.addStretch()
@@ -578,7 +598,7 @@ class TJointConnectorCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
-            "MenuText": translate("frameforgemod", "T-Joint Connector"),
+            "MenuText": "T型连接件",
             "Accel": "M, T",
             "ToolTip": translate(
                 "frameforgemod",
@@ -619,7 +639,7 @@ class ConnectorToolGroup:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "whistle-connector.svg"),
-            "MenuText": translate("frameforgemod", "Connectors"),
+            "MenuText": "连接件",
             "ToolTip": translate(
                 "frameforgemod",
                 "Whistle connector or T-Joint connector",

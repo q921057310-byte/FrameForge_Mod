@@ -27,6 +27,56 @@ class BaseProfileTaskPanel(ABC):
             Gui.PySideUic.loadUi(os.path.join(UIPATH, "create_profiles2.ui")),
         ]
 
+        # Translate create_profiles1.ui
+        f0 = self.form[0]
+        f0.setWindowTitle("创建型材")
+        f0.groupBox.setTitle("型材")
+        f0.label_10.setText("材料")
+        f0.label.setText("系列")
+        f0.combo_family.setToolTip("选择型材类型")
+        f0.label_2.setText("规格")
+        f0.combo_size.setToolTip("选择规格")
+        f0.label_11.setText("标准")
+        f0.label_13.setText("单位")
+        f0.label_3.setText("单价")
+        f0.groupBox_4.setTitle("附着 / 长度")
+        f0.label_14.setText("边")
+        f0.label_attach.setText("无")
+        f0.label_5.setText("长度")
+
+        # Translate create_profiles2.ui
+        f1 = self.form[1]
+        f1.setWindowTitle("型材设置")
+        f1.groupBox_2.setTitle("尺寸")
+        f1.label_3.setText("高度/直径")
+        f1.sb_height.setToolTip("调整高度")
+        f1.label_4.setText("宽度")
+        f1.label_6.setText("主体壁厚")
+        f1.label_7.setText("翼缘壁厚")
+        f1.label_8.setText("大圆角")
+        f1.label_9.setText("小圆角")
+        f1.label_12.setText("重量(kg/m)")
+        f1.groupBox_3.setTitle("型材选项")
+        f1.cb_make_fillet.setText("制作圆角")
+        f1.cb_pre_extend.setText("预延伸")
+        f1.cb_pre_extend.setToolTip("按最大(宽,高)延伸型材")
+        f1.group_anchor.setTitle("路径对齐")
+        f1.cb_mirror_h.setText("水平镜像")
+        f1.cb_mirror_v.setText("垂直镜像")
+        f1.label_rotation.setText("旋转(°)")
+        f1.cb_combined_bevel.setText("组合斜角")
+        f1.groupBox_5.setTitle("设置")
+        f1.rb_profiles_in_place.setText("就地创建")
+        f1.rb_profiles_in_place.setToolTip("在源对象（草图或参数化线）同级创建型材")
+        f1.rb_profiles_in_part.setText("创建为零件")
+        f1.rb_profiles_in_part.setToolTip("在新创建的零件中创建型材")
+        f1.rb_profiles_in_group.setText("创建为组")
+        f1.rb_profiles_in_group.setToolTip("在新创建的组中创建型材")
+        f1.cb_sketch_in_name.setText("型材名称包含草图名")
+        f1.cb_family_in_name.setText("型材名称包含系列名")
+        f1.cb_size_in_name.setText("型材名称包含规格")
+        f1.cb_prefix_profile_in_name.setText("型材名称加\"Profile\"前缀")
+
         self.form_proxy = FormProxy(self.form)
 
         # Top-right Apply button on first page

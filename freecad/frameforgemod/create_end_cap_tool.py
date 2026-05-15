@@ -33,22 +33,22 @@ class CreateEndCapTaskPanel:
         layout.addLayout(_top_row)
 
         # Selection group
-        sel_group = QtWidgets.QGroupBox(translate("frameforgemod", "Selection"))
+        sel_group = QtWidgets.QGroupBox(translate("frameforgemod", "选择"))
         sel_layout = QtWidgets.QVBoxLayout(sel_group)
 
         btn_layout = QtWidgets.QHBoxLayout()
-        self.select_btn = QtWidgets.QPushButton(translate("frameforgemod", "Select Face"))
+        self.select_btn = QtWidgets.QPushButton(translate("frameforgemod", "选择面"))
         self.select_btn.setIcon(QtGui.QIcon(os.path.join(ICONPATH, "list-add.svg")))
         self.select_btn.clicked.connect(self.select_face)
         btn_layout.addWidget(self.select_btn)
 
-        self.face_label = QtWidgets.QLabel(translate("frameforgemod", "No face selected"))
+        self.face_label = QtWidgets.QLabel(translate("frameforgemod", "未选择面"))
         btn_layout.addWidget(self.face_label)
         sel_layout.addLayout(btn_layout)
         layout.addWidget(sel_group)
 
         # Parameters group
-        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "Parameters"))
+        param_group = QtWidgets.QGroupBox(translate("frameforgemod", "参数"))
         param_layout = QtWidgets.QFormLayout(param_group)
 
         self.spin_thickness = QtWidgets.QDoubleSpinBox()
@@ -57,7 +57,7 @@ class CreateEndCapTaskPanel:
         self.spin_thickness.setValue(float(obj.Thickness))
         self.spin_thickness.setSuffix(" mm")
         self.spin_thickness.valueChanged.connect(self.on_thickness_changed)
-        param_layout.addRow(translate("frameforgemod", "Thickness"), self.spin_thickness)
+        param_layout.addRow(translate("frameforgemod", "厚度"), self.spin_thickness)
 
         self.spin_offset = QtWidgets.QDoubleSpinBox()
         self.spin_offset.setRange(-1000.0, 1000.0)
@@ -65,13 +65,13 @@ class CreateEndCapTaskPanel:
         self.spin_offset.setValue(float(obj.Offset))
         self.spin_offset.setSuffix(" mm")
         self.spin_offset.valueChanged.connect(self.on_offset_changed)
-        param_layout.addRow(translate("frameforgemod", "Offset"), self.spin_offset)
+        param_layout.addRow(translate("frameforgemod", "偏移"), self.spin_offset)
 
         self.combo_cap_type = QtWidgets.QComboBox()
-        self.combo_cap_type.addItems(["Plate", "Plug"])
+        self.combo_cap_type.addItems(["平板", "堵头"])
         self.combo_cap_type.setCurrentIndex(obj.CapType)
         self.combo_cap_type.currentIndexChanged.connect(self.on_cap_type_changed)
-        param_layout.addRow(translate("frameforgemod", "Type"), self.combo_cap_type)
+        param_layout.addRow(translate("frameforgemod", "类型"), self.combo_cap_type)
 
         self.spin_plug_offset = QtWidgets.QDoubleSpinBox()
         self.spin_plug_offset.setRange(0.0, 100.0)
@@ -80,9 +80,9 @@ class CreateEndCapTaskPanel:
         self.spin_plug_offset.setSuffix(" mm")
         self.spin_plug_offset.setEnabled(obj.CapType == 1)
         self.spin_plug_offset.valueChanged.connect(self.on_plug_offset_changed)
-        param_layout.addRow(translate("frameforgemod", "Plug offset"), self.spin_plug_offset)
+        param_layout.addRow(translate("frameforgemod", "堵头偏移"), self.spin_plug_offset)
 
-        self.cb_reverse = QtWidgets.QCheckBox(translate("frameforgemod", "Reverse direction"))
+        self.cb_reverse = QtWidgets.QCheckBox(translate("frameforgemod", "反向"))
         self.cb_reverse.setChecked(obj.Reverse)
         self.cb_reverse.toggled.connect(self.on_reverse_toggled)
         param_layout.addRow(self.cb_reverse)
@@ -90,10 +90,10 @@ class CreateEndCapTaskPanel:
         layout.addWidget(param_group)
 
         # Edge treatment group
-        edge_group = QtWidgets.QGroupBox(translate("frameforgemod", "Edge Treatment"))
+        edge_group = QtWidgets.QGroupBox(translate("frameforgemod", "边处理"))
         edge_layout = QtWidgets.QFormLayout(edge_group)
 
-        self.cb_chamfer = QtWidgets.QCheckBox(translate("frameforgemod", "Chamfer"))
+        self.cb_chamfer = QtWidgets.QCheckBox(translate("frameforgemod", "倒角"))
         self.cb_chamfer.setChecked(obj.ChamferEnabled)
         self.cb_chamfer.toggled.connect(self.on_chamfer_toggled)
         edge_layout.addRow(self.cb_chamfer)
@@ -105,9 +105,9 @@ class CreateEndCapTaskPanel:
         self.spin_chamfer.setSuffix(" mm")
         self.spin_chamfer.setEnabled(obj.ChamferEnabled)
         self.spin_chamfer.valueChanged.connect(self.on_chamfer_size_changed)
-        edge_layout.addRow(translate("frameforgemod", "Chamfer size"), self.spin_chamfer)
+        edge_layout.addRow(translate("frameforgemod", "倒角大小"), self.spin_chamfer)
 
-        self.cb_fillet = QtWidgets.QCheckBox(translate("frameforgemod", "Fillet"))
+        self.cb_fillet = QtWidgets.QCheckBox(translate("frameforgemod", "圆角"))
         self.cb_fillet.setChecked(obj.FilletEnabled)
         self.cb_fillet.toggled.connect(self.on_fillet_toggled)
         edge_layout.addRow(self.cb_fillet)
@@ -119,20 +119,20 @@ class CreateEndCapTaskPanel:
         self.spin_fillet.setSuffix(" mm")
         self.spin_fillet.setEnabled(obj.FilletEnabled)
         self.spin_fillet.valueChanged.connect(self.on_fillet_size_changed)
-        edge_layout.addRow(translate("frameforgemod", "Fillet radius"), self.spin_fillet)
+        edge_layout.addRow(translate("frameforgemod", "圆角半径"), self.spin_fillet)
 
         layout.addWidget(edge_group)
 
         # Hole group
-        hole_group = QtWidgets.QGroupBox(translate("frameforgemod", "Bolt Hole"))
+        hole_group = QtWidgets.QGroupBox(translate("frameforgemod", "螺栓孔"))
         hole_layout = QtWidgets.QFormLayout(hole_group)
 
-        self.cb_hole = QtWidgets.QCheckBox(translate("frameforgemod", "Center hole"))
+        self.cb_hole = QtWidgets.QCheckBox(translate("frameforgemod", "中心孔"))
         self.cb_hole.setChecked(obj.HoleEnabled)
         self.cb_hole.toggled.connect(self.on_hole_toggled)
         hole_layout.addRow(self.cb_hole)
 
-        self.cb_hole_threaded = QtWidgets.QCheckBox(translate("frameforgemod", "Threaded"))
+        self.cb_hole_threaded = QtWidgets.QCheckBox(translate("frameforgemod", "螺纹"))
         self.cb_hole_threaded.setChecked(obj.HoleThreaded)
         self.cb_hole_threaded.setEnabled(obj.HoleEnabled)
         self.cb_hole_threaded.toggled.connect(self.on_hole_threaded_toggled)
@@ -145,7 +145,7 @@ class CreateEndCapTaskPanel:
         self.spin_hole_dia.setSuffix(" mm")
         self.spin_hole_dia.setEnabled(obj.HoleEnabled)
         self.spin_hole_dia.valueChanged.connect(self.on_hole_dia_changed)
-        hole_layout.addRow(translate("frameforgemod", "Diameter"), self.spin_hole_dia)
+        hole_layout.addRow(translate("frameforgemod", "直径"), self.spin_hole_dia)
 
         self.spin_hole_depth = QtWidgets.QDoubleSpinBox()
         self.spin_hole_depth.setRange(-1000.0, 1000.0)
@@ -153,9 +153,9 @@ class CreateEndCapTaskPanel:
         self.spin_hole_depth.setValue(float(obj.HoleDepth) if hasattr(obj, "HoleDepth") else 0.0)
         self.spin_hole_depth.setSuffix(" mm")
         self.spin_hole_depth.setEnabled(obj.HoleEnabled)
-        self.spin_hole_depth.setToolTip("0 = through all")
+        self.spin_hole_depth.setToolTip("0 = 通孔")
         self.spin_hole_depth.valueChanged.connect(self.on_hole_depth_changed)
-        hole_layout.addRow(translate("frameforgemod", "Depth"), self.spin_hole_depth)
+        hole_layout.addRow(translate("frameforgemod", "深度"), self.spin_hole_depth)
 
         layout.addWidget(hole_group)
 
@@ -256,7 +256,7 @@ class CreateEndCapTaskPanel:
                 o, subs = self.obj.BaseObject
                 self.face_label.setText(f"{o.Label} ({subs[0]})")
             except Exception:
-                self.face_label.setText(translate("frameforgemod", "No face selected"))
+                self.face_label.setText(translate("frameforgemod", "未选择面"))
 
     def open(self):
         App.Console.PrintMessage(translate("frameforgemod", "Opening Create End Cap\n"))
@@ -276,7 +276,7 @@ class CreateEndCapTaskPanel:
     def apply(self):
         App.Console.PrintMessage(translate("frameforgemod", "Applying...\n"))
         self.obj.BaseObject = None
-        self.face_label.setText(translate("frameforgemod", "No face selected"))
+        self.face_label.setText(translate("frameforgemod", "未选择面"))
         App.ActiveDocument.commitTransaction()
         _save_endcap_defaults(self.obj)
         # self.obj.recompute()  # skip: doc.recompute() below handles it
@@ -303,7 +303,7 @@ class EndCapCommand:
     def GetResources(self):
         return {
             "Pixmap": os.path.join(ICONPATH, "end-cap.svg"),
-            "MenuText": translate("frameforgemod", "End Cap"),
+            "MenuText": translate("frameforgemod", "顶盖"),
             "Accel": "M, C",
             "ToolTip": translate(
                 "frameforgemod",

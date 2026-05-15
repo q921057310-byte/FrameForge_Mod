@@ -556,7 +556,7 @@ if App.GuiUp:
             self._pending_rib_edges = []
 
             self.form = QtGui.QWidget()
-            self.form.setWindowTitle(translate("frameforgemod", "Vent"))
+            self.form.setWindowTitle(translate("frameforgemod", "通风口"))
             layout = QtGui.QVBoxLayout(self.form)
 
             face_group = QtGui.QHBoxLayout()
@@ -568,25 +568,25 @@ if App.GuiUp:
             layout.addLayout(face_group)
 
             sketch_group = QtGui.QHBoxLayout()
-            self.sketch_btn = QtGui.QPushButton(translate("frameforgemod", "Select Sketch"))
+            self.sketch_btn = QtGui.QPushButton(translate("frameforgemod", "选择草图"))
             self.sketch_txt = QtGui.QLineEdit()
             self.sketch_txt.setReadOnly(True)
             sketch_group.addWidget(self.sketch_btn)
             sketch_group.addWidget(self.sketch_txt)
             layout.addLayout(sketch_group)
 
-            layout.addWidget(QtGui.QLabel(translate("frameforgemod", "Rib Edges (select from sketch):")))
+            layout.addWidget(QtGui.QLabel(translate("frameforgemod", "筋边（从草图选择）：")))
 
             rib_sel_layout = QtGui.QHBoxLayout()
-            self.rib_btn = QtGui.QPushButton(translate("frameforgemod", "Select Ribs"))
-            self.rib_clear_btn = QtGui.QPushButton(translate("frameforgemod", "Clear"))
+            self.rib_btn = QtGui.QPushButton(translate("frameforgemod", "选择筋"))
+            self.rib_clear_btn = QtGui.QPushButton(translate("frameforgemod", "清除"))
             rib_sel_layout.addWidget(self.rib_btn)
             rib_sel_layout.addWidget(self.rib_clear_btn)
             layout.addLayout(rib_sel_layout)
 
             self.rib_tree = QtGui.QTreeWidget()
             self.rib_tree.setHeaderLabels([
-                translate("frameforgemod", "Object"),
+                translate("frameforgemod", "对象"),
                 translate("frameforgemod", "Edge"),
             ])
             self.rib_tree.setRootIsDecorated(False)
@@ -594,7 +594,7 @@ if App.GuiUp:
             layout.addWidget(self.rib_tree)
 
             wg = QtGui.QHBoxLayout()
-            wg.addWidget(QtGui.QLabel(translate("frameforgemod", "Rib Width:")))
+            wg.addWidget(QtGui.QLabel(translate("frameforgemod", "筋宽：")))
             self.width_spin = QtGui.QDoubleSpinBox()
             self.width_spin.setDecimals(2)
             self.width_spin.setSingleStep(0.5)
@@ -604,7 +604,7 @@ if App.GuiUp:
             layout.addLayout(wg)
 
             fg = QtGui.QHBoxLayout()
-            fg.addWidget(QtGui.QLabel(translate("frameforgemod", "Fillet:")))
+            fg.addWidget(QtGui.QLabel(translate("frameforgemod", "圆角：")))
             self.fillet_spin = QtGui.QDoubleSpinBox()
             self.fillet_spin.setDecimals(2)
             self.fillet_spin.setSingleStep(0.5)
@@ -689,18 +689,18 @@ if App.GuiUp:
                 Gui.Selection.setSelectionStyle(Gui.Selection.SelectionStyle.GreedySelection)
             Gui.Selection.addObserver(self)
             if mode == 'face':
-                self.face_btn.setText(translate("frameforgemod", "Done"))
-                self.face_txt.setText(translate("frameforgemod", "Select a face..."))
+                self.face_btn.setText(translate("frameforgemod", "完成"))
+                self.face_txt.setText(translate("frameforgemod", "选择一个面..."))
             elif mode == 'sketch':
-                self.sketch_btn.setText(translate("frameforgemod", "Done"))
-                self.sketch_txt.setText(translate("frameforgemod", "Select a sketch..."))
+                self.sketch_btn.setText(translate("frameforgemod", "完成"))
+                self.sketch_txt.setText(translate("frameforgemod", "选择一个草图..."))
                 try:
                     if hasattr(self.obj, "baseObject") and self.obj.baseObject:
                         self.obj.baseObject[0].ViewObject.Visibility = False
                 except Exception:
                     pass
             elif mode == 'ribs':
-                self.rib_btn.setText(translate("frameforgemod", "Done (click to finish)"))
+                self.rib_btn.setText(translate("frameforgemod", "完成（点击结束）"))
                 rib = getattr(self.obj, "RibEdges", None)
                 if rib is not None and hasattr(rib, '__getitem__') and rib[1]:
                     self._pending_rib_edges = list(rib[1])
@@ -725,9 +725,9 @@ if App.GuiUp:
                 if mode == 'face':
                     self.face_btn.setText(translate("frameforgemod", "Select Face"))
                 elif mode == 'sketch':
-                    self.sketch_btn.setText(translate("frameforgemod", "Select Sketch"))
+                    self.sketch_btn.setText(translate("frameforgemod", "选择草图"))
                 elif mode == 'ribs':
-                    self.rib_btn.setText(translate("frameforgemod", "Select Ribs"))
+                    self.rib_btn.setText(translate("frameforgemod", "选择筋"))
                     if self._pending_rib_edges:
                         self._apply_rib_edges()
                     self._pending_rib_edges = []
@@ -848,7 +848,7 @@ if App.GuiUp:
         def GetResources(self):
             return {
                 "Pixmap": TOOL_ICON,
-                "MenuText": translate("frameforgemod", "Add Vent"),
+                "MenuText": translate("frameforgemod", "添加通风口"),
                 "Accel": "M, V",
                 "ToolTip": translate(
                     "frameforgemod",
@@ -885,13 +885,13 @@ if App.GuiUp:
                 return
 
             doc = App.ActiveDocument
-            doc.openTransaction("Vent")
+            doc.openTransaction("通风口")
 
             body = _smFindBody(selobj)
             if body is not None:
-                newObj = doc.addObject("PartDesign::FeaturePython", "Vent")
+                newObj = doc.addObject("PartDesign::FeaturePython", "通风口")
             else:
-                newObj = doc.addObject("Part::FeaturePython", "Vent")
+                newObj = doc.addObject("Part::FeaturePython", "通风口")
             VentFeature(newObj, selobj, selected_faces, selected_sketch)
             VentViewProvider(newObj.ViewObject)
             if body is not None:
