@@ -33,7 +33,7 @@ def _migrate_once():
         ("First Letter ID", "string", "A"),
         ("Full Parent Path", "bool", False),
         ("Include Links in BOM", "bool", False),
-        ("Group BOM Items by Material/Size/Family", "bool", False),
+        ("Group BOM Items by Material/Size/Family", "bool", True),
         ("Generate Cut List", "bool", False),
         ("Stock Length", "float", 6000.0),
         ("Kerf", "float", 1.0),
@@ -161,3 +161,18 @@ ISOLATE_SKIP_DEFAULT = "Constraint,Joint,Revolute,Slider,Cylindrical,GroundedJoi
 def get_isolate_skip_keywords():
     raw = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod/Isolate").GetString("SkipKeywords", ISOLATE_SKIP_DEFAULT)
     return tuple(k.strip() for k in raw.split(",") if k.strip())
+
+PROFILE_COLOR_DEFAULT = (0.44, 0.47, 0.5, 0.0)
+
+def get_profile_color():
+    grp = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod/Display")
+    r = grp.GetFloat("ProfileColorR", PROFILE_COLOR_DEFAULT[0])
+    g = grp.GetFloat("ProfileColorG", PROFILE_COLOR_DEFAULT[1])
+    b = grp.GetFloat("ProfileColorB", PROFILE_COLOR_DEFAULT[2])
+    return (r, g, b)
+
+def set_profile_color(r, g, b):
+    grp = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod/Display")
+    grp.SetFloat("ProfileColorR", r)
+    grp.SetFloat("ProfileColorG", g)
+    grp.SetFloat("ProfileColorB", b)

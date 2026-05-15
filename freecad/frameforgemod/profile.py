@@ -1615,6 +1615,9 @@ class ViewProviderProfile:
         self.Object = vobj.Object
         self.ObjectName = vobj.Object.Name
 
+        from freecad.frameforgemod.preferences import get_profile_color
+        vobj.ShapeColor = get_profile_color()
+
         self._ensureHelpers()
 
         Gui.Selection.addObserver(self)

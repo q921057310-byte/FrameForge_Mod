@@ -38,6 +38,17 @@ class CreateBOMTaskPanel:
     def __init__(self):
         self.form = Gui.PySideUic.loadUi(os.path.join(UIPATH, "create_bom.ui"))
 
+        # Translate UI labels
+        self.form.groupBox.setTitle("物料清单(BOM)")
+        self.form.label.setText("BOM 名称")
+        self.form.full_parent_path.setText("完整父级路径")
+        self.form.include_links_cb.setText("包含链接")
+        self.form.group_profiles_cb.setText("同规格归纳")
+        self.form.groupBox_2.setTitle("裁切清单")
+        self.form.cut_list_cb.setText("生成裁切清单")
+        self.form.label_2.setText("材料长度")
+        self.form.label_3.setText("切口(Kerf)")
+
         # Top-right Apply button
         _top_row = QtWidgets.QHBoxLayout()
         _top_row.addStretch()
@@ -48,11 +59,11 @@ class CreateBOMTaskPanel:
         _top_row.addWidget(_apply_btn)
         self.form.layout().insertLayout(0, _top_row)
 
+        self.form.group_profiles_cb.setChecked(True)
         param = App.ParamGet("User parameter:BaseApp/Preferences/Frameforge_mod")
         if not param.IsEmpty():
             self.form.full_parent_path.setChecked(param.GetBool("Full Parent Path", False))
             self.form.include_links_cb.setChecked(param.GetBool("Include Links in BOM", False))
-            self.form.group_profiles_cb.setChecked(param.GetBool("Group BOM Items by Material/Size/Family", False))
             self.form.cut_list_cb.setChecked(param.GetBool("Generate Cut List", False))
             self.form.stock_length_sb.setValue(param.GetFloat("Stock Length", 6000.0))
             self.form.kerf_sb.setValue(param.GetFloat("Kerf", 1.0))

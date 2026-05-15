@@ -95,7 +95,8 @@ class EditProfileTaskPanel(BaseProfileTaskPanel):
         self.proceed()
 
         self.profile.ViewObject.Transparency = 0
-        self.profile.ViewObject.ShapeColor = (0.44, 0.47, 0.5)
+        from freecad.frameforgemod.preferences import get_profile_color
+        self.profile.ViewObject.ShapeColor = get_profile_color()
 
         App.ActiveDocument.commitTransaction()
         App.ActiveDocument.recompute()

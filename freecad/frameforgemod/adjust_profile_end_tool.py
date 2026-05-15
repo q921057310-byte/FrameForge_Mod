@@ -61,6 +61,11 @@ class AdjustEndTaskPanel:
         self.b_layout.addWidget(self.b_placeholder)
         layout.addWidget(self.group_b)
 
+        # Reverse checkbox
+        self.reverse_cb = QtGui.QCheckBox(translate("AdjustEnds", "Swap A ↔ B (reverse direction)"))
+        self.reverse_cb.toggled.connect(self._on_reverse_toggled)
+        layout.addWidget(self.reverse_cb)
+
         layout.addStretch()
 
         self._build_initial_rows()
@@ -113,6 +118,22 @@ class AdjustEndTaskPanel:
                     w.setParent(None)
         self._sbs.clear()
         self._manual.clear()
+
+    def _on_reverse_toggled(self, checked):
+        if not checked:
+            return
+        for obj in self.objs:
+            if hasattr(obj, "OffsetA") and hasattr(obj, "OffsetB"):
+                a = float(obj.OffsetA)
+                b = float(obj.OffsetB)
+                obj.OffsetA = b
+                obj.OffsetB = a
+                obj.recompute()
+        App.ActiveDocument.recompute()
+        # Rebuild rows with new values
+        self._build_initial_rows()
+        # Reset checkbox (fire-and-forget action)
+        self.reverse_cb.setChecked(False)
 
     def _get_edge_data(self, obj):
         if not hasattr(obj, "Target") or not obj.Target:

@@ -175,6 +175,7 @@ class PropertyTableEditor(QtGui.QDialog):
             }
             self._addRowToTable(prop, type_name, value_str, group, tooltip)
         self.table.blockSignals(False)
+        self._refreshResults()
 
     def _evaluateResult(self, value):
         """Evaluate a value or expression and return the result string."""
